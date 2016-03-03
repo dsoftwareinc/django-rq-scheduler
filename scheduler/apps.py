@@ -9,16 +9,21 @@ class SchedulerConfig(AppConfig):
     verbose_name = _('Django RQ Scheduler')
 
     def ready(self):
-        self.reschedule_repeatable_jobs()
-        self.reschedule_scheduled_jobs()
+        try:
+            self.reschedule_repeatable_jobs()
+            self.reschedule_scheduled_jobs()
+        except:
+            # Django isn't ready yet, example a management command is being
+            # executed
+            pass
 
     def reschedule_repeatable_jobs(self):
-        from scheduler.models import RepeatableJob  # noqa
+        RepeatableJob = self.get_model('RepeatableJob')
         jobs = RepeatableJob.objects.filter(enabled=True)
         self.reschedule_jobs(jobs)
 
     def reschedule_scheduled_jobs(self):
-        from scheduler.models import ScheduledJob  # noqa
+        ScheduledJob = self.get_model('ScheduledJob')
         jobs = ScheduledJob.objects.filter(enabled=True)
         self.reschedule_jobs(jobs)
 
