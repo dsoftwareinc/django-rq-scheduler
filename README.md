@@ -28,25 +28,26 @@ pip install django-rq-scheduler
 ```
 
 
-### Add to Django Settings
+### Update Django Settings
 
-In your Django settings.py add `django_rq` and `scheduler` to the INSTALLED_APPS:
+1. In `settings.py`, add `django_rq` and `scheduler` to  `INSTALLED_APPS`:
 
-```
-...
+	```
+	...
 
-INSTALLED_APPS = [
+	INSTALLED_APPS = [
     ...
     'django_rq',
     'scheduler',
     ...
-]
+	]
 
-...
+	...
 
-```
+	```
 
-Next, configure Django RQ. See https://github.com/ui/django-rq#installation
+2. Configure Django RQ. See https://github.com/ui/django-rq#installation
+
 
 ### Migrate
 
