@@ -1,0 +1,9 @@
+CREATE ROLE test_djangorq;
+ALTER ROLE test_djangorq WITH LOGIN PASSWORD 'djangorq' NOSUPERUSER CREATEDB NOCREATEROLE;
+GRANT test_djangorq TO postgres;
+
+CREATE ROLE djangorq;
+ALTER ROLE djangorq WITH LOGIN PASSWORD 'djangorq' NOSUPERUSER CREATEDB NOCREATEROLE;
+GRANT djangorq TO postgres;
+
+CREATE DATABASE testproject OWNER djangorq;

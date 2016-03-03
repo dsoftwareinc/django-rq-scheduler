@@ -9,7 +9,7 @@ branches:
   only:
     - master
 before_script:
-  - psql -c 'create database testproject;' -U postgres
+  - psql -f testproject19/travis_setup.sql -U postgres
   - pip install pip --upgrade
   - pip install .[test]
   - ./testproject19/manage.py migrate --noinput
