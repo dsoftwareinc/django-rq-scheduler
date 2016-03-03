@@ -16,7 +16,7 @@ class ScheduledJobFactory(factory.Factory):
     name = factory.Sequence(lambda n: 'Addition {}'.format(n))
     job_id = None
     queue = 'default'
-    callable = 'scheduled.tests.test_job'
+    callable = 'scheduler.tests.test_job'
     enabled = True
 
     @factory.lazy_attribute
@@ -32,7 +32,7 @@ class RepeatableJobFactory(factory.Factory):
     name = factory.Sequence(lambda n: 'Addition {}'.format(n))
     job_id = None
     queue = 'default'
-    callable = 'scheduled.tests.test_job'
+    callable = 'scheduler.tests.test_job'
     enabled = True
     interval = 1
     interval_unit = 'hours'
@@ -61,34 +61,37 @@ class TestScheduledJob(TestCase):
 
     def test_callable_func(self):
         job = self.JobClass()
-        job.callable = 'scheduled.tests.test_job'
+        job.callable = 'scheduler.tests.test_job'
         func = job.callable_func()
         self.assertEqual(test_job, func)
 
     def test_callable_func_not_callable(self):
         job = self.JobClass()
-        job.callable = 'scheduled.tests.test_non_callable'
-        self.assertRaises(TypeError, job.callable_func())
+        job.callable = 'scheduler.tests.test_non_callable'
+        with self.assertRaises(TypeError):
+            job.callable_func()
 
     def test_clean_callable(self):
         job = self.JobClass()
-        job.callable = 'scheduled.tests.test_job'
+        job.callable = 'scheduler.tests.test_job'
         assert job.clean_callable() is None
 
     def test_clean_callable_invalid(self):
         job = self.JobClass()
-        job.callable = 'scheduled.tests.test_non_callable'
-        self.assertRaises(ValidationError, job.clean_callable())
+        job.callable = 'scheduler.tests.test_non_callable'
+        with self.assertRaises(ValidationError):
+            job.clean_callable()
 
     def test_clean(self):
         job = self.JobClass()
-        job.callable = 'scheduled.tests.test_job'
+        job.callable = 'scheduler.tests.test_job'
         assert job.clean() is None
 
     def test_clean_invalid(self):
         job = self.JobClass()
-        job.callable = 'scheduled.tests.test_non_callable'
-        self.assertRaises(ValidationError, job.clean())
+        job.callable = 'scheduler.tests.test_non_callable'
+        with self.assertRaises(ValidationError):
+            job.clean()
 
     def test_is_schedulable_already_scheduled(self):
         job = self.JobClass()
@@ -137,9 +140,8 @@ class TestScheduledJob(TestCase):
     def test_schedule_time_utc(self):
         job = self.JobClass()
         now = datetime.now()
-        eastern = pytz.timezone('US/Eastern')
         utc = pytz.timezone('UTC')
-        job.scheduled_time = eastern.localize(now)
+        job.scheduled_time = now
         expected = utc.localize(now).isoformat()
         self.assertEqual(expected, job.schedule_time_utc().isoformat())
 
@@ -177,7 +179,7 @@ class TestRepeatableJob(TestScheduledJob):
         job = RepeatableJob()
         job.interval = 2
         job.interval_unit = 'hours'
-        self.assertEqual(54000.0, job.interval_seconds())
+        self.assertEqual(7200.0, job.interval_seconds())
 
     def test_interval_seconds_minutes(self):
         job = RepeatableJob()
@@ -194,6 +196,7 @@ class TestRepeatableJob(TestScheduledJob):
 
     def test_repeatable_unschedulable(self):
         job = self.JobClassFactory()
+        job.enabled = False
         successful = job.schedule()
         self.assertFalse(successful)
         self.assertIsNone(job.job_id)
