@@ -15,6 +15,7 @@ Currently, when you pip install Django RQ Scheduler the following packages are a
 Testing also requires:
 
 * factory_boy >= 2.6.1
+* psycopg2 >= 2.6.1
 
 
 ## Usage
