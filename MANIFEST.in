@@ -1,0 +1,4 @@
+include MANIFEST.in
+include README.md
+recursive-include scheduler *.py
+exclude testproject19
