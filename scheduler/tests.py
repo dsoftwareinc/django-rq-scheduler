@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
@@ -84,12 +85,21 @@ class TestScheduledJob(TestCase):
 
     def test_clean(self):
         job = self.JobClass()
+        job.queue = settings.RQ_QUEUES.keys()[0]
         job.callable = 'scheduler.tests.test_job'
         assert job.clean() is None
 
     def test_clean_invalid(self):
         job = self.JobClass()
+        job.queue = settings.RQ_QUEUES.keys()[0]
         job.callable = 'scheduler.tests.test_non_callable'
+        with self.assertRaises(ValidationError):
+            job.clean()
+
+    def test_clean_queue_invalid(self):
+        job = self.JobClass()
+        job.queue = 'xxxxxx'
+        job.callable = 'scheduler.tests.test_job'
         with self.assertRaises(ValidationError):
             job.clean()
 
