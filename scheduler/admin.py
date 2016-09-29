@@ -13,7 +13,7 @@ QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
 class QueueMixin(object):
 
     def get_form(self, request, obj=None, **kwargs):
-        queue_field = obj._meta.get_field('queue')
+        queue_field = self.model._meta.get_field('queue')
         queue_field.choices = QUEUES
         return super(QueueMixin, self).get_form(request, obj, **kwargs)
 
