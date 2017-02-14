@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
 
-from scheduler.models import RepeatableJob, ScheduledJob
+from scheduler.models import CronJob, RepeatableJob, ScheduledJob
 
 
 QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
@@ -62,6 +62,31 @@ class RepeatableJobAdmin(QueueMixin, admin.ModelAdmin):
             'fields': (
                 'scheduled_time',
                 ('interval', 'interval_unit', ),
+                'repeat',
+                'timeout',
+            ),
+        }),
+    )
+
+
+@admin.register(CronJob)
+class CronJobAdmin(QueueMixin, admin.ModelAdmin):
+    list_display = (
+        'name', 'job_id', 'is_scheduled', 'cron_string', 'enabled')
+    list_filter = ('enabled', )
+    list_editable = ('enabled', )
+
+    readonly_fields = ('job_id', )
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'callable', 'enabled', ),
+        }),
+        (_('RQ Settings'), {
+            'fields': ('queue', 'job_id', ),
+        }),
+        (_('Scheduling'), {
+            'fields': (
+                'cron_string',
                 'repeat',
                 'timeout',
             ),
