@@ -98,6 +98,8 @@ class BaseJob(TimeStampedModel):
         kwargs = {}
         if self.timeout:
             kwargs['timeout'] = self.timeout
+        if self.result_ttl is not None:
+            kwargs['result_ttl'] = self.result_ttl
         job = self.scheduler().enqueue_at(
             self.schedule_time_utc(), self.callable_func(),
             **kwargs
@@ -161,6 +163,8 @@ class RepeatableJob(BaseJob):
         }
         if self.timeout:
             kwargs['timeout'] = self.timeout
+        if self.result_ttl is not None:
+            kwargs['result_ttl'] = self.result_ttl
         job = self.scheduler().schedule(**kwargs)
         self.job_id = job.id
         return True
