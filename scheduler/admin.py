@@ -37,6 +37,7 @@ class ScheduledJobAdmin(QueueMixin, admin.ModelAdmin):
             'fields': (
                 'scheduled_time',
                 'timeout',
+                'result_ttl'
             ),
         }),
     )
@@ -64,6 +65,7 @@ class RepeatableJobAdmin(QueueMixin, admin.ModelAdmin):
                 ('interval', 'interval_unit', ),
                 'repeat',
                 'timeout',
+                'result_ttl'
             ),
         }),
     )
