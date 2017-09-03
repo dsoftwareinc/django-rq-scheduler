@@ -32,6 +32,13 @@ class BaseJob(TimeStampedModel):
             'timeout.'
         )
     )
+    result_ttl = models.IntegerField(
+        _('result ttl'), blank=True, null=True,
+        help_text=_('The TTL value (in seconds) of the job result. -1: '
+                    'Result never expires, you should delete jobs manually. '
+                    '0: Result gets deleted immediately. >0: Result expires '
+                    'after n seconds.')
+    )
 
     def __str__(self):
         return self.name
