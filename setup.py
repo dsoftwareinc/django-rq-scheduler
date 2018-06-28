@@ -46,7 +46,7 @@ setup(
         'django>=1.9.0',
         'django-model-utils>=2.4.0',
         'django-rq>=0.9.0',
-        'rq_scheduler>=0.5.1',
+        'rq_scheduler>=0.6.0',
         'pytz>=2015.7',
     ],
     tests_require=tests_require,

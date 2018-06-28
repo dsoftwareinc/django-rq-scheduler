@@ -9,7 +9,7 @@ Currently, when you pip install Django RQ Scheduler the following packages are a
 * django >= 1.9
 * django-model-utils >= 2.4
 * django-rq >= 0.9 (Django RQ requires RQ >= 0.5.5)
-* rq_scheduler >= 0.5.1
+* rq_scheduler >= 0.6.0
 * pytz >= 2015.7
 
 Testing also requires:

@@ -11,12 +11,18 @@ class SchedulerConfig(AppConfig):
 
     def ready(self):
         try:
+            self.reschedule_cron_jobs()
             self.reschedule_repeatable_jobs()
             self.reschedule_scheduled_jobs()
         except:
             # Django isn't ready yet, example a management command is being
             # executed
             pass
+
+    def reschedule_cron_jobs(self):
+        CronJob = self.get_model('CronJob')
+        jobs = CronJob.objects.filter(enabled=True)
+        self.reschedule_jobs(jobs)
 
     def reschedule_repeatable_jobs(self):
         RepeatableJob = self.get_model('RepeatableJob')
