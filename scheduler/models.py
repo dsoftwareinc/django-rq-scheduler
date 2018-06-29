@@ -188,6 +188,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
 
 
 class CronJob(BaseJob):
+    result_ttl = None
 
     cron_string = models.CharField(
         _('cron string'), max_length=64,
