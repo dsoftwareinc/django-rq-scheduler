@@ -85,6 +85,10 @@ class BaseJob(TimeStampedModel):
             self.schedule()
         super(BaseJob, self).save(**kwargs)
 
+    def delete(self, **kwargs):
+        self.unschedule()
+        super(BaseJob, self).delete(**kwargs)
+
     def scheduler(self):
         return django_rq.get_scheduler(self.queue)
 
