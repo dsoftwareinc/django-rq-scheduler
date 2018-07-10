@@ -45,9 +45,10 @@ setup(
     install_requires=[
         'django>=1.9.0',
         'django-model-utils>=2.4.0',
-        'django-rq>=0.9.0',
-        'rq_scheduler>=0.6.0',
+        'django-rq>=0.9.3',
+        'rq-scheduler>=0.6.0',
         'pytz>=2015.7',
+        'croniter>=0.3.24',
     ],
     tests_require=tests_require,
     extras_require={

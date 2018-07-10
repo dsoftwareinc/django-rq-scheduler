@@ -33,6 +33,13 @@ class BaseJob(TimeStampedModel):
             'timeout.'
         )
     )
+    result_ttl = models.IntegerField(
+        _('result ttl'), blank=True, null=True,
+        help_text=_('The TTL value (in seconds) of the job result. -1: '
+                    'Result never expires, you should delete jobs manually. '
+                    '0: Result gets deleted immediately. >0: Result expires '
+                    'after n seconds.')
+    )
 
     def __str__(self):
         return self.name
@@ -92,6 +99,8 @@ class BaseJob(TimeStampedModel):
         kwargs = {}
         if self.timeout:
             kwargs['timeout'] = self.timeout
+        if self.result_ttl is not None:
+            kwargs['result_ttl'] = self.result_ttl
         job = self.scheduler().enqueue_at(
             self.schedule_time_utc(), self.callable_func(),
             **kwargs
@@ -166,6 +175,8 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         }
         if self.timeout:
             kwargs['timeout'] = self.timeout
+        if self.result_ttl is not None:
+            kwargs['result_ttl'] = self.result_ttl
         job = self.scheduler().schedule(**kwargs)
         self.job_id = job.id
         return True
@@ -177,6 +188,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
 
 
 class CronJob(BaseJob):
+    result_ttl = None
 
     cron_string = models.CharField(
         _('cron string'), max_length=64,
