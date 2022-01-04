@@ -1,12 +1,13 @@
-# Django RQ Scheduler
+# Django RQ Scheduler 
 
 A database backed job scheduler for Django RQ.
+Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.
 
 ## Requirements
 
 Currently, when you pip install Django RQ Scheduler the following packages are also installed.
 
-* django >= 1.9
+* django >= 4.0
 * django-model-utils >= 2.4
 * django-rq >= 0.9.3 (Django RQ requires RQ >= 0.5.5)
 * rq-scheduler >= 0.6.0
@@ -26,7 +27,7 @@ Testing also requires:
 Use pip to install:
 
 ```
-pip install django-rq-scheduler
+pip install django-rq-scheduler4
 ```
 
 

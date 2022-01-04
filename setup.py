@@ -32,18 +32,20 @@ tests_require = [
 
 
 setup(
-    name='django-rq-scheduler',
+    name='django-rqscheduler4',
     version=get_version(PATH_OF_RUNNING_SCRIPT),
-    description='A database backed job scheduler for Django RQ',
+    description='A database backed job scheduler for Django RQ with Django 4 and above',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     packages=find_packages(),
     include_package_data=True,
-    author='ISL',
-    author_email='dev@isl.co',
-    url='https://github.com/istrategylabs/django-rq-scheduler',
+    author='Daniel Moran',
+    author_email='daniel.maruani@gmail.com',
+    license='MIT',
+    url='https://github.com/cunla/django-rqscheduler',
     zip_safe=True,
     install_requires=[
-        'django>=1.9.0',
+        'django>=4.0.0',
         'django-model-utils>=2.4.0',
         'django-rq>=0.9.3',
         'rq-scheduler>=0.6.0',
@@ -55,14 +57,12 @@ setup(
     extras_require={
         'test': tests_require,
     },
-    classifiers=[
-        'Development Status :: 4 - Beta',
+    classifiers=[        
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
         'Framework :: Django',
     ],
