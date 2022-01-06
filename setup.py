@@ -18,23 +18,14 @@ def long_desc(root_path):
 PATH_OF_RUNNING_SCRIPT = os.path.abspath(os.path.dirname(__file__))
 long_description = "\n\n".join(long_desc(PATH_OF_RUNNING_SCRIPT))
 
-
-def get_version(root_path):
-    with open(os.path.join(root_path, 'scheduler', '__init__.py')) as f:
-        for line in f:
-            if line.startswith('__version__ ='):
-                return line.split('=')[1].strip().strip('"\'')
-
-
 tests_require = [
     'factory_boy>=2.11.1',
 ]
 
-
 setup(
     name='django-rqscheduler4',
-    version=get_version(PATH_OF_RUNNING_SCRIPT),
-    description='A database backed job scheduler for Django RQ with Django 4 and above',
+    version='2022.1',
+    description='A database backed job scheduler for Django RQ with Django',
     long_description=long_description,
     long_description_content_type='text/markdown',
     packages=find_packages(),
@@ -45,19 +36,19 @@ setup(
     url='https://github.com/cunla/django-rqscheduler',
     zip_safe=True,
     install_requires=[
-        'django>=4.0.0',
-        'django-model-utils>=2.4.0',
-        'django-rq>=0.9.3',
-        'rq-scheduler>=0.6.0',
-        'pytz>=2018.5',
-        'croniter>=0.3.24',
+        'django>=3.0.0',
+        'django-model-utils>=4.2.0',
+        'django-rq>=2.5.1',
+        'rq-scheduler>=0.11.0',
+        'pytz>=2021.3',
+        'croniter>=1.1.0',
     ],
     tests_require=tests_require,
     test_suite='scheduler.tests',
     extras_require={
         'test': tests_require,
     },
-    classifiers=[        
+    classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
