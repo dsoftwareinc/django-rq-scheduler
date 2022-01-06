@@ -27,7 +27,7 @@ Testing also requires:
 Use pip to install:
 
 ```
-pip install django-rq-scheduler4
+pip install django-rqscheduler4
 ```
 
 
@@ -113,5 +113,5 @@ def count():
 
 ## Reporting issues or Features
 
-Please report issues via [GitHub Issues](https://github.com/istrategylabs/django-rq-scheduler/issues) .
+Please report issues via [GitHub Issues](https://github.com/cunla/django-rqscheduler4/issues) .
 
