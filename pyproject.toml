@@ -1,21 +1,19 @@
 [build-system]
-requires = ["setuptools >= 40.6.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "django-rqscheduler4"
+packages = [
+    { include = "scheduler" },
+]
 version = "2022.1"
 description = "A database backed job scheduler for Django RQ with Django"
 readme = "README.md"
-requires-python = ">=3.8"
-license = { file = "LICENSE" }
+license = "MIT"
 keywords = ["django", "rq", "django-rq", "rq-scheduler"]
 authors = [
-    { email = "daniel.maruani@gmail.com" },
-    { name = "Daniel Moran" }
-]
-maintainers = [
-    { name = "Daniel Moran", email = "daniel.maruani@gmail.com" }
+    "Daniel Moran <daniel.maruani@gmail.com>"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -29,32 +27,17 @@ classifiers = [
     'Framework :: Django',
     'Framework :: Django :: 4.0',
 ]
+homepage = "https://github.com/cunla/django-rqscheduler4"
 
-dependencies = [
-    'django>=3.0.0',
-    'django-model-utils>=2.4.0',
-    'django-rq>=0.9.3',
-    'rq-scheduler>=0.6.0',
-    'pytz>=2018.5',
-    'croniter>=0.3.24',
-]
-[project.optional-dependencies]
-test = [
-    'factory_boy>=2.11.1',
-]
+[tool.poetry.dependencies]
+python = "^3.8"
+django = "^3.0.0"
+django-model-utils = "^2.4.0"
+django-rq = "^0.9.3"
+rq-scheduler = "0.6.0"
+pytz = "2018.5"
+croniter = "0.3.24"
 
-
-[project.urls]
-homepage = "https://github.com/cunla/django-rqscheduler"
-documentation = "readthedocs.org"
-repository = "github.com"
-changelog = "https://github.com/cunla/django-rqscheduler"
-
-[project.scripts]
-spam-cli = "spam:main_cli"
-
-[project.gui-scripts]
-spam-gui = "spam:main_gui"
-
-[project.entry-points."spam.magical"]
-tomatoes = "spam:main_tomatoes"
+[tool.poetry.dev-dependencies]
+factory_boy = "2.11.1"
+poetry = "~1.0"
