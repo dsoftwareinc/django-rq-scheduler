@@ -1,0 +1,44 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "django-rqscheduler4"
+packages = [
+    { include = "scheduler" },
+]
+version = "2022.1"
+description = "A database backed job scheduler for Django RQ with Django"
+readme = "README.md"
+license = "MIT"
+keywords = ["django", "rq", "django-rq", "rq-scheduler"]
+authors = [
+    "Daniel Moran <daniel.maruani@gmail.com>"
+]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Web Environment',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.10',
+    'Framework :: Django',
+    'Framework :: Django :: 4.0',
+]
+homepage = "https://github.com/cunla/django-rqscheduler4"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+django = "^4.0.0"
+django-model-utils = "^4.2.0"
+django-rq = "^2.4.1"
+rq-scheduler = "0.11.0"
+pytz = "2018.5"
+croniter = "0.3.24"
+
+[tool.poetry.dev-dependencies]
+factory_boy = "2.11.1"
+poetry = "~1.0"
+coverage = "^6.2"

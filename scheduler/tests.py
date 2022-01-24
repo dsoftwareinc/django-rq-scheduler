@@ -1,19 +1,18 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 from datetime import datetime, timedelta
-
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.test import TestCase
 
 import factory
 import pytz
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.test import TestCase
+from django.urls import reverse
 from django_rq import job
+
 from scheduler.models import CronJob, RepeatableJob, ScheduledJob
 
 
 class ScheduledJobFactory(factory.Factory):
-
     name = factory.Sequence(lambda n: 'Addition {}'.format(n))
     job_id = None
     queue = 'default'
@@ -29,7 +28,6 @@ class ScheduledJobFactory(factory.Factory):
 
 
 class RepeatableJobFactory(factory.Factory):
-
     name = factory.Sequence(lambda n: 'Addition {}'.format(n))
     job_id = None
     queue = 'default'
@@ -48,7 +46,6 @@ class RepeatableJobFactory(factory.Factory):
 
 
 class CronJobFactory(factory.Factory):
-
     name = factory.Sequence(lambda n: 'Addition {}'.format(n))
     job_id = None
     queue = 'default'
@@ -70,9 +67,14 @@ test_non_callable = 'I am a teapot'
 
 
 class TestScheduledJob(TestCase):
-
     JobClass = ScheduledJob
     JobClassFactory = ScheduledJobFactory
+    model_name = 'scheduledjob'
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        User.objects.create_superuser('admin', 'a@a.com', 'admin')
 
     def test_callable_func(self):
         job = self.JobClass()
@@ -141,6 +143,15 @@ class TestScheduledJob(TestCase):
         self.assertTrue(successful)
         self.assertIsNotNone(job.job_id)
 
+    def test_schedule_with_extra_params(self):
+        job = self.JobClassFactory()
+        job.timeout = 100
+        job.result_ttl = 10
+        job.id = 1
+        successful = job.schedule()
+        self.assertTrue(successful)
+        self.assertIsNotNone(job.job_id)
+
     def test_unschedulable(self):
         job = self.JobClassFactory()
         job.enabled = False
@@ -203,11 +214,32 @@ class TestScheduledJob(TestCase):
         is_scheduled = job_id in scheduler
         self.assertFalse(is_scheduled)
 
+    def test_admin_view_change_list(self):
+        job = self.JobClassFactory()
+        job.id = 1
+        job.schedule()
+        self.client.login(username='admin', password='admin')
+        self.client.get(reverse(f'admin:scheduler_{self.model_name}_changelist'))
+
+    def test_admin_view_delete_model(self):
+        job = self.JobClassFactory()
+        job.id = 1
+        job.schedule()
+        self.client.login(username='admin', password='admin')
+        self.client.post(reverse(f'admin:scheduler_{self.model_name}_delete', args=[job.id]))
+
+    def test_admin_view_add_model(self):
+        job = self.JobClassFactory()
+        job.id = 1
+        job.schedule()
+        self.client.login(username='admin', password='admin')
+        self.client.get(reverse(f'admin:scheduler_{self.model_name}_add'))
+
 
 class TestRepeatableJob(TestScheduledJob):
-
     JobClass = RepeatableJob
     JobClassFactory = RepeatableJobFactory
+    model_name = 'repeatablejob'
 
     def test_interval_seconds_weeks(self):
         job = RepeatableJob()
@@ -249,9 +281,9 @@ class TestRepeatableJob(TestScheduledJob):
 
 
 class TestCronJob(TestScheduledJob):
-
     JobClass = CronJob
     JobClassFactory = CronJobFactory
+    model_name = 'cronjob'
 
     def test_clean(self):
         job = self.JobClass()

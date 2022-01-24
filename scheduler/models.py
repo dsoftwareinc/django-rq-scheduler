@@ -1,22 +1,18 @@
-from __future__ import unicode_literals
 import importlib
 from datetime import timedelta
 
 import croniter
-
+import django_rq
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
 from django.utils.translation import gettext_lazy as _
-
-import django_rq
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
 
 class BaseJob(TimeStampedModel):
-
     name = models.CharField(_('name'), max_length=128, unique=True)
     callable = models.CharField(_('callable'), max_length=2048)
     enabled = models.BooleanField(_('enabled'), default=True)
@@ -74,6 +70,7 @@ class BaseJob(TimeStampedModel):
 
     def is_scheduled(self):
         return self.job_id and self.job_id in self.scheduler()
+
     is_scheduled.short_description = _('is scheduled?')
     is_scheduled.boolean = True
 
@@ -124,7 +121,6 @@ class BaseJob(TimeStampedModel):
 
 
 class ScheduledTimeMixin(models.Model):
-
     scheduled_time = models.DateTimeField(_('scheduled time'))
 
     def schedule_time_utc(self):
@@ -135,15 +131,13 @@ class ScheduledTimeMixin(models.Model):
 
 
 class ScheduledJob(ScheduledTimeMixin, BaseJob):
-
     class Meta:
         verbose_name = _('Scheduled Job')
         verbose_name_plural = _('Scheduled Jobs')
-        ordering = ('name', )
+        ordering = ('name',)
 
 
 class RepeatableJob(ScheduledTimeMixin, BaseJob):
-
     UNITS = Choices(
         ('minutes', _('minutes')),
         ('hours', _('hours')),
@@ -186,7 +180,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
     class Meta:
         verbose_name = _('Repeatable Job')
         verbose_name_plural = _('Repeatable Jobs')
-        ordering = ('name', )
+        ordering = ('name',)
 
 
 class CronJob(BaseJob):
@@ -228,4 +222,4 @@ class CronJob(BaseJob):
     class Meta:
         verbose_name = _('Cron Job')
         verbose_name_plural = _('Cron Jobs')
-        ordering = ('name', )
+        ordering = ('name',)
