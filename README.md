@@ -113,5 +113,5 @@ def count():
 
 ## Reporting issues or Features
 
-Please report issues via [GitHub Issues](https://github.com/cunla/django-rqscheduler4/issues) .
+Please report issues via [GitHub Issues](https://github.com/cunla/django-rqscheduler/issues) .
 
