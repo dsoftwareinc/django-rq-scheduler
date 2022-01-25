@@ -159,11 +159,11 @@ category = "main"
 description = "croniter provides iteration for datetime object with cron like format"
 name = "croniter"
 optional = false
-python-versions = "*"
-version = "0.3.24"
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "1.2.0"
 
 [package.dependencies]
-python_dateutil = "*"
+python-dateutil = "*"
 
 [[package]]
 category = "dev"
@@ -495,7 +495,7 @@ description = "World timezone definitions, modern and historical"
 name = "pytz"
 optional = false
 python-versions = "*"
-version = "2018.5"
+version = "2021.3"
 
 [[package]]
 category = "dev"
@@ -674,7 +674,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 version = "1.13.3"
 
 [metadata]
-content-hash = "ba0587ee24eb63c7926beba655f72cb6f19ffbbdaa6851d74d1ce6eb752e9939"
+content-hash = "d1488332579246cb8729bd2d49e61270b97d1338b0019583c12e271c6733626b"
 lock-version = "1.0"
 python-versions = "^3.8"
 
@@ -839,7 +839,8 @@ coverage = [
     {file = "coverage-6.2.tar.gz", hash = "sha256:e2cad8093172b7d1595b4ad66f24270808658e11acf43a8f95b41276162eb5b8"},
 ]
 croniter = [
-    {file = "croniter-0.3.24.tar.gz", hash = "sha256:4e9cb809d8879372e179cabfb7dc15432815b62be034713cc7d9dc09d62ebf02"},
+    {file = "croniter-1.2.0-py2.py3-none-any.whl", hash = "sha256:c214aa35c0de6048f2e3eddb6cb7812c99fcb4039f37f559a4b2d62edcb0d157"},
+    {file = "croniter-1.2.0.tar.gz", hash = "sha256:094422f6aeb9ed646714393503fa388afe4f846e110e1997fea5794e2085c2d7"},
 ]
 cryptography = [
     {file = "cryptography-36.0.1-cp36-abi3-macosx_10_10_universal2.whl", hash = "sha256:73bc2d3f2444bcfeac67dd130ff2ea598ea5f20b40e36d19821b4df8c9c5037b"},
@@ -991,8 +992,8 @@ python-dateutil = [
     {file = "python_dateutil-2.8.2-py2.py3-none-any.whl", hash = "sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9"},
 ]
 pytz = [
-    {file = "pytz-2018.5-py2.py3-none-any.whl", hash = "sha256:a061aa0a9e06881eb8b3b2b43f05b9439d6583c206d0a6c340ff72a7b6669053"},
-    {file = "pytz-2018.5.tar.gz", hash = "sha256:ffb9ef1de172603304d9d2819af6f5ece76f2e85ec10692a524dd876e72bf277"},
+    {file = "pytz-2021.3-py2.py3-none-any.whl", hash = "sha256:3672058bc3453457b622aab7a1c3bfd5ab0bdae451512f6cf25f64ed37f5b87c"},
+    {file = "pytz-2021.3.tar.gz", hash = "sha256:acad2d8b20a1af07d4e4c9d2e9285c5ed9104354062f275f3fcd88dcef4f1326"},
 ]
 pywin32-ctypes = [
     {file = "pywin32-ctypes-0.2.0.tar.gz", hash = "sha256:24ffc3b341d457d48e8922352130cf2644024a4ff09762a2261fd34c36ee5942"},
