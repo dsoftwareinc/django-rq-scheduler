@@ -114,7 +114,7 @@ class BaseJob(TimeStampedModel):
         return True
 
     def schedule_time_utc(self):
-        return utc(self.scheduled_time)
+        raise NotImplementedError
 
     class Meta:
         abstract = True

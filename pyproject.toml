@@ -7,14 +7,14 @@ name = "django-rqscheduler4"
 packages = [
     { include = "scheduler" },
 ]
-version = "2022.2.1"
+version = "2022.2.2"
 description = "A database backed job scheduler for Django RQ with Django"
 readme = "README.md"
-license = "MIT"
 keywords = ["django", "rq", "django-rq", "rq-scheduler"]
 authors = [
     "Daniel Moran <daniel.maruani@gmail.com>"
 ]
+license = "MIT"
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Web Environment',
