@@ -1,4 +1,5 @@
 # Django RQ Scheduler 
+[![Django CI](https://github.com/cunla/django-rqscheduler/actions/workflows/test.yml/badge.svg)](https://github.com/cunla/django-rqscheduler/actions/workflows/test.yml)
 
 A database backed job scheduler for Django RQ.
 Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.

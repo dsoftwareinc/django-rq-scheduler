@@ -2,7 +2,8 @@ name: Django CI
 
 on:
   pull_request:
-    branches: [ master ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -20,16 +21,11 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: actions/cache@v2
-      with:
-        path: ~/.cache/pypoetry/virtualenvs
-        key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-poetry-
+        cache-dependency-path: poetry.lock
     - name: Install poetry
       shell: bash
       run: |
-          python -m pip install poetry
+          python -m pip --quiet install poetry
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
     - name: Install dependencies
       run: poetry install
@@ -46,7 +42,7 @@ jobs:
       uses: mathiasvr/command-output@v1
       with:
         run: |
-          cd testproject19
+          mv testproject19/.coverage .
           poetry run coverage report
     - uses: mshick/add-pr-comment@v1
       with:
@@ -55,6 +51,6 @@ jobs:
           ```
           ${{ steps.coverage_report.outputs.stdout }}
           ```
-        repo-token: ${{ secrets.M_GITHUB_TOKEN }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
         repo-token-user-login: 'github-actions[bot]'
         allow-repeats: false
