@@ -113,6 +113,9 @@ class BaseJob(TimeStampedModel):
         self.job_id = None
         return True
 
+    def schedule_time_utc(self):
+        return utc(self.scheduled_time)
+
     class Meta:
         abstract = True
 
