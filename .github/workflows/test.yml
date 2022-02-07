@@ -50,6 +50,6 @@ jobs:
           ```
           ${{ steps.coverage_report.outputs.stdout }}
           ```
-        repo-token: ${{ secrets.M_GITHUB_TOKEN }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
         repo-token-user-login: 'github-actions[bot]'
         allow-repeats: false
