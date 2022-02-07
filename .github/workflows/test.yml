@@ -42,7 +42,7 @@ jobs:
       uses: mathiasvr/command-output@v1
       with:
         run: |
-          cd testproject19
+          mv testproject19/.coverage .
           poetry run coverage report
     - uses: mshick/add-pr-comment@v1
       with:
