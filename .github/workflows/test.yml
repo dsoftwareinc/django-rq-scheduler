@@ -2,6 +2,7 @@ name: Django CI
 
 on:
   pull_request:
+    types: [opened, reopened]
     branches: [ master ]
 
 jobs:
