@@ -28,7 +28,7 @@ jobs:
           python -m pip install poetry
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
     - name: Install dependencies
-      run: poetry --quiet install
+      run: poetry install
     - name: Start Redis
       uses: supercharge/redis-github-action@1.4.0
       with:
