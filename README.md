@@ -7,17 +7,16 @@ Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-sched
 
 Currently, when you pip install Django RQ Scheduler the following packages are also installed.
 
-* django >= 3.0
+* django >= 4.0.0
 * django-model-utils >= 4.2.0
-* django-rq >= 2.5.1
+* django-rq >= 2.4.1
 * rq-scheduler >= 0.11.0
 * pytz >= 2021.3
-* croniter >= 1.1.0
+* croniter >= 1.2.0
 
 Testing also requires:
 
 * factory_boy >= 2.11.1
-* psycopg2 >= 2.6.1
 
 
 ## Usage
@@ -33,14 +32,14 @@ pip install django-rqscheduler4
 
 ### Update Django Settings
 
-1. In `settings.py`, add `django_rq` and `django_rqscheduler` to  `INSTALLED_APPS`:
+1. In `settings.py`, add `django_rq` and `scheduler` to  `INSTALLED_APPS`:
 
 	```
 
 	INSTALLED_APPS = [
     	...
     	'django_rq',
-    	'django_rqscheduler',
+    	'scheduler',
     	...
 	]
 
