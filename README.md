@@ -8,7 +8,7 @@ Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-sched
 
 Currently, when you pip install Django RQ Scheduler the following packages are also installed.
 
-* django >= 4.0.0
+* django >= 3.2
 * django-model-utils >= 4.2.0
 * django-rq >= 2.4.1
 * rq-scheduler >= 0.11.0
