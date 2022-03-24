@@ -47,10 +47,10 @@ jobs:
     - uses: mshick/add-pr-comment@v1
       with:
         message: |
-          Coverage report:
+          Coverage report python ${{ matrix.python-version }} (python 3.9 tests with django 3.2, while 3.10 tests with latest):
           ```
           ${{ steps.coverage_report.outputs.stdout }}
           ```
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         repo-token-user-login: 'github-actions[bot]'
-        allow-repeats: false
+        allow-repeats: true
