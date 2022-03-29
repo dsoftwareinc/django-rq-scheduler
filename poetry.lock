@@ -90,11 +90,11 @@ clikit = ">=0.6.0,<0.7.0"
 
 [[package]]
 name = "click"
-version = "8.0.4"
+version = "8.1.0"
 description = "Composable command line interface toolkit"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
@@ -266,7 +266,7 @@ Faker = ">=0.7.0"
 
 [[package]]
 name = "faker"
-version = "13.3.3"
+version = "13.3.4"
 description = "Faker is a Python package that generates fake data for you."
 category = "dev"
 optional = false
@@ -634,7 +634,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "tomlkit"
-version = "0.10.0"
+version = "0.10.1"
 description = "Style preserving TOML library"
 category = "dev"
 optional = false
@@ -671,7 +671,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "virtualenv"
-version = "20.13.4"
+version = "20.14.0"
 description = "Virtual Python Environment builder"
 category = "dev"
 optional = false
@@ -802,8 +802,8 @@ cleo = [
     {file = "cleo-0.8.1.tar.gz", hash = "sha256:3d0e22d30117851b45970b6c14aca4ab0b18b1b53c8af57bed13208147e4069f"},
 ]
 click = [
-    {file = "click-8.0.4-py3-none-any.whl", hash = "sha256:6a7a62563bbfabfda3a38f3023a1db4a35978c0abd76f6c9605ecd6554d6d9b1"},
-    {file = "click-8.0.4.tar.gz", hash = "sha256:8458d7b1287c5fb128c90e23381cf99dcde74beaf6c7ff6384ce84d6fe090adb"},
+    {file = "click-8.1.0-py3-none-any.whl", hash = "sha256:19a4baa64da924c5e0cd889aba8e947f280309f1a2ce0947a3e3a7bcb7cc72d6"},
+    {file = "click-8.1.0.tar.gz", hash = "sha256:977c213473c7665d3aa092b41ff12063227751c41d7b17165013e10069cc5cd2"},
 ]
 clikit = [
     {file = "clikit-0.6.2-py2.py3-none-any.whl", hash = "sha256:71268e074e68082306e23d7369a7b99f824a0ef926e55ba2665e911f7208489e"},
@@ -913,8 +913,8 @@ factory-boy = [
     {file = "factory_boy-2.11.1.tar.gz", hash = "sha256:6f25cc4761ac109efd503f096e2ad99421b1159f01a29dbb917359dcd68e08ca"},
 ]
 faker = [
-    {file = "Faker-13.3.3-py3-none-any.whl", hash = "sha256:85ed0cb379e3b7414bdb6b484994beaf9bddc74472c8c35f743c16cf5fc0c314"},
-    {file = "Faker-13.3.3.tar.gz", hash = "sha256:5536ceb63380f0d598c026b7c330c17d719a19d1a495e9397ee8f5259420a696"},
+    {file = "Faker-13.3.4-py3-none-any.whl", hash = "sha256:7758ece2593ce603db117db3d27393c31f4af03f783e176f3f0e14839a4f3426"},
+    {file = "Faker-13.3.4.tar.gz", hash = "sha256:188961065fb5c78ea639f42176f55100f72c90c3a3179ac6c955c4bd712b0511"},
 ]
 filelock = [
     {file = "filelock-3.6.0-py3-none-any.whl", hash = "sha256:f8314284bfffbdcfa0ff3d7992b023d4c628ced6feb957351d4c48d059f56bc0"},
@@ -1073,8 +1073,8 @@ sqlparse = [
     {file = "sqlparse-0.4.2.tar.gz", hash = "sha256:0c00730c74263a94e5a9919ade150dfc3b19c574389985446148402998287dae"},
 ]
 tomlkit = [
-    {file = "tomlkit-0.10.0-py3-none-any.whl", hash = "sha256:cac4aeaff42f18fef6e07831c2c2689a51df76cf2ede07a6a4fa5fcb83558870"},
-    {file = "tomlkit-0.10.0.tar.gz", hash = "sha256:d99946c6aed3387c98b89d91fb9edff8f901bf9255901081266a84fb5604adcd"},
+    {file = "tomlkit-0.10.1-py3-none-any.whl", hash = "sha256:3eba517439dcb2f84cf39f4f85fd2c3398309823a3c75ac3e73003638daf7915"},
+    {file = "tomlkit-0.10.1.tar.gz", hash = "sha256:3c517894eadef53e9072d343d37e4427b8f0b6200a70b7c9a19b2ebd1f53b951"},
 ]
 typing-extensions = [
     {file = "typing_extensions-4.1.1-py3-none-any.whl", hash = "sha256:21c85e0fe4b9a155d0799430b0ad741cdce7e359660ccbd8b530613e8df88ce2"},
@@ -1089,8 +1089,8 @@ urllib3 = [
     {file = "urllib3-1.26.9.tar.gz", hash = "sha256:aabaf16477806a5e1dd19aa41f8c2b7950dd3c746362d7e3223dbe6de6ac448e"},
 ]
 virtualenv = [
-    {file = "virtualenv-20.13.4-py2.py3-none-any.whl", hash = "sha256:c3e01300fb8495bc00ed70741f5271fc95fed067eb7106297be73d30879af60c"},
-    {file = "virtualenv-20.13.4.tar.gz", hash = "sha256:ce8901d3bbf3b90393498187f2d56797a8a452fb2d0d7efc6fd837554d6f679c"},
+    {file = "virtualenv-20.14.0-py2.py3-none-any.whl", hash = "sha256:1e8588f35e8b42c6ec6841a13c5e88239de1e6e4e4cedfd3916b306dc826ec66"},
+    {file = "virtualenv-20.14.0.tar.gz", hash = "sha256:8e5b402037287126e81ccde9432b95a8be5b19d36584f64957060a3488c11ca8"},
 ]
 webencodings = [
     {file = "webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78"},
