@@ -55,7 +55,7 @@ jobs:
         auth: ${{ secrets.GIST_SECRET }}
         gistID: b756396efb895f0e34558c980f1ca0c7
         filename: django-rq-scheduler-32.json
-        label: Coverage
+        label: Coverage django 3.2
         message: ${{ env.COVERAGE }}
         color: green
     - name: Create Awesome Badge django4
@@ -65,7 +65,7 @@ jobs:
         auth: ${{ secrets.GIST_SECRET }}
         gistID: b756396efb895f0e34558c980f1ca0c7
         filename: django-rq-scheduler-4.json
-        label: Coverage
+        label: Coverage django 4
         message: ${{ env.COVERAGE }}
         color: green
     - uses: mshick/add-pr-comment@v1
