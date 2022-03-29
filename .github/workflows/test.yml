@@ -44,6 +44,30 @@ jobs:
         run: |
           mv testproject19/.coverage .
           poetry run coverage report
+    - name: json report
+      run: |
+        poetry run coverage json
+        echo "COVERAGE=$(jq '.totals.percent_covered_display|tonumber' coverage.json)" >> $GITHUB_ENV
+    - name: Create Awesome Badge django3.2
+      if: matrix.python-version == '3.9'
+      uses: schneegans/dynamic-badges-action@v1.1.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: b756396efb895f0e34558c980f1ca0c7
+        filename: django-rq-scheduler-32.json
+        label: Coverage
+        message: ${{ env.COVERAGE }}
+        color: green
+    - name: Create Awesome Badge django4
+      if: matrix.python-version == '3.10'
+      uses: schneegans/dynamic-badges-action@v1.1.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: b756396efb895f0e34558c980f1ca0c7
+        filename: django-rq-scheduler-4.json
+        label: Coverage
+        message: ${{ env.COVERAGE }}
+        color: green
     - uses: mshick/add-pr-comment@v1
       with:
         message: |
