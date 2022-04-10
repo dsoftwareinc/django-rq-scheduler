@@ -1,8 +1,8 @@
 # Django RQ Scheduler 
+[![Django CI](https://github.com/cunla/django-rqscheduler/actions/workflows/test.yml/badge.svg)](https://github.com/cunla/django-rqscheduler/actions/workflows/test.yml)
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/cunla/b756396efb895f0e34558c980f1ca0c7/raw/django-rq-scheduler-32.json)
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/cunla/b756396efb895f0e34558c980f1ca0c7/raw/django-rq-scheduler-4.json)
 
-[![Django CI](https://github.com/cunla/django-rqscheduler/actions/workflows/test.yml/badge.svg)](https://github.com/cunla/django-rqscheduler/actions/workflows/test.yml)
 
 A database backed job scheduler for Django RQ.
 Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.
