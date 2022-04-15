@@ -6,13 +6,25 @@ on:
       - main
 
 jobs:
-  build:
+  matrix:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.10']
-        redis-version: ['6']
+        python-version: [ '3.9', '3.10' ]
+        redis-version: [ '6' ]
+        include:
+          - python-version: '3.10'
+            redis-version: '6'
+            coverage: yes
+    outputs:
+      matrix: ${{ toJson(matrix) }}
+  build:
+    runs-on: ubuntu-latest
+    needs: matrix
+    strategy:
+      matrix: ${{ fromJson(needs.matrix.outputs.matrix) }}
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -31,7 +43,14 @@ jobs:
       uses: supercharge/redis-github-action@1.4.0
       with:
         redis-version: ${{ matrix.redis-version }}
-    - name: Run Tests
+    - name: Run Tests with coverage
+      if: ${{ matrix.coverage == 'yes' }}
+      run: |
+        cd testproject19
+        poetry run coverage run manage.py test scheduler
+
+    - name: Run Tests without coverage
+      if: ${{ matrix.coverage != 'yes' }}
       run: |
         cd testproject19
         poetry run coverage run manage.py test scheduler
