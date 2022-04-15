@@ -31,10 +31,7 @@ homepage = "https://github.com/cunla/django-rqscheduler"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-django = [
-    {version="^3.2", markers="python_version == '3.9'"},
-    {version="^4.0", markers="python_version >= '3.10'"}
-]
+django = ">=3.2, >=4.0"
 django-model-utils = "^4.2.0"
 django-rq = "^2.4.1"
 rq-scheduler = "^0.11.0"
