@@ -9,17 +9,15 @@ on:
       - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
         python-version: [ '3.9', '3.10' ]
-        redis-version: [ '6' ]
         django-version: [ '3.2.12', '4.0.4' ]
         include:
           - python-version: '3.10'
-            redis-version: '6'
             django-version: '4.0.4'
             coverage: yes
     steps:
@@ -41,7 +39,7 @@ jobs:
       - name: Start Redis
         uses: supercharge/redis-github-action@1.4.0
         with:
-          redis-version: ${{ matrix.redis-version }}
+          redis-version: 6
       - name: Run Tests without coverage
         if: ${{ matrix.coverage != 'yes' }}
         run: |
@@ -79,12 +77,12 @@ jobs:
           repo-token-user-login: 'github-actions[bot]'
           allow-repeats: true
       - name: Create coverage badge
-        if: ${{ matrix.coverage == 'yes' }} && ${{ github.ref == 'ref/heads/main' }}
+        if: ${{ matrix.coverage == 'yes' && github.ref == 'ref/heads/main' }}
         uses: schneegans/dynamic-badges-action@v1.1.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: b756396efb895f0e34558c980f1ca0c7
           filename: django-rq-scheduler-4.json
-          label: Test coverage django 4
+          label: coverage
           message: ${{ env.COVERAGE }}%
           color: green
