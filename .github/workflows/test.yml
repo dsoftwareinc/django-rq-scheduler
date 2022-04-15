@@ -4,75 +4,85 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.10']
-        redis-version: ['6']
+        python-version: [ '3.9', '3.10' ]
+        django-version: [ '3.2.12', '4.0.4' ]
+        include:
+          - python-version: '3.10'
+            django-version: '4.0.4'
+            coverage: yes
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache-dependency-path: poetry.lock
-    - name: Install poetry
-      shell: bash
-      run: |
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache-dependency-path: poetry.lock
+      - name: Install poetry
+        shell: bash
+        run: |
           python -m pip --quiet install poetry
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-    - name: Install dependencies
-      run: poetry install
-    - name: Start Redis
-      uses: supercharge/redis-github-action@1.4.0
-      with:
-        redis-version: ${{ matrix.redis-version }}
-    - name: Run Tests
-      run: |
-        cd testproject19
-        poetry run coverage run manage.py test scheduler
-    - name: Coverage report
-      id: coverage_report
-      uses: mathiasvr/command-output@v1
-      with:
+      - name: Install dependencies
         run: |
-          mv testproject19/.coverage .
-          poetry run coverage report
-    - name: json report
-      run: |
-        poetry run coverage json
-        echo "COVERAGE=$(jq '.totals.percent_covered_display|tonumber' coverage.json)" >> $GITHUB_ENV
-    - name: Create Awesome Badge django3.2
-      if: matrix.python-version == '3.9'
-      uses: schneegans/dynamic-badges-action@v1.1.0
-      with:
-        auth: ${{ secrets.GIST_SECRET }}
-        gistID: b756396efb895f0e34558c980f1ca0c7
-        filename: django-rq-scheduler-32.json
-        label: Test coverage django 3.2
-        message: ${{ env.COVERAGE }}%
-        color: green
-    - name: Create Awesome Badge django4
-      if: matrix.python-version == '3.10'
-      uses: schneegans/dynamic-badges-action@v1.1.0
-      with:
-        auth: ${{ secrets.GIST_SECRET }}
-        gistID: b756396efb895f0e34558c980f1ca0c7
-        filename: django-rq-scheduler-4.json
-        label: Test coverage django 4
-        message: ${{ env.COVERAGE }}%
-        color: green
-    - uses: mshick/add-pr-comment@v1
-      with:
-        message: |
-          Coverage report python ${{ matrix.python-version }} (python 3.9 tests with django 3.2, while 3.10 tests with latest):
-          ```
-          ${{ steps.coverage_report.outputs.stdout }}
-          ```
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        repo-token-user-login: 'github-actions[bot]'
-        allow-repeats: true
+          poetry install
+          poetry run pip install django==${{ matrix.django-version }}
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.4.0
+        with:
+          redis-version: 6
+      - name: Run Tests without coverage
+        if: ${{ matrix.coverage != 'yes' }}
+        run: |
+          cd testproject19
+          poetry run python manage.py test scheduler
+      # Steps for coverage check
+      - name: Run Tests with coverage
+        if: ${{ matrix.coverage == 'yes' }}
+        run: |
+          cd testproject19
+          poetry run coverage run manage.py test scheduler
+
+      - name: Coverage report
+        if: ${{ matrix.coverage == 'yes' }}
+        id: coverage_report
+        uses: mathiasvr/command-output@v1
+        with:
+          run: |
+            mv testproject19/.coverage .
+            poetry run coverage report
+      - name: json report
+        if: ${{ matrix.coverage == 'yes' }}
+        run: |
+          poetry run coverage json
+          echo "COVERAGE=$(jq '.totals.percent_covered_display|tonumber' coverage.json)" >> $GITHUB_ENV
+      - uses: mshick/add-pr-comment@v1
+        if: ${{ matrix.coverage == 'yes' }}
+        with:
+          message: |
+            Coverage report python ${{ matrix.python-version }} (python 3.9 tests with django 3.2, while 3.10 tests with latest):
+            ```
+            ${{ steps.coverage_report.outputs.stdout }}
+            ```
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          allow-repeats: true
+      - name: Create coverage badge
+        if: ${{ matrix.coverage == 'yes' && github.ref == 'ref/heads/main' }}
+        uses: schneegans/dynamic-badges-action@v1.1.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: b756396efb895f0e34558c980f1ca0c7
+          filename: django-rq-scheduler-4.json
+          label: coverage
+          message: ${{ env.COVERAGE }}%
+          color: green
