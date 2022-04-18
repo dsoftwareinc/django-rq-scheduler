@@ -1,4 +1,4 @@
-# Code of Conduct - django-rqscheduler4
+# Code of Conduct - django-rq-scheduler
 
 ## Our Pledge
 
