@@ -3,7 +3,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "django-rqscheduler4"
+name = "django-rq-scheduler"
 packages = [
     { include = "scheduler" },
 ]
@@ -27,7 +27,7 @@ classifiers = [
     'Framework :: Django',
     'Framework :: Django :: 4.0',
 ]
-homepage = "https://github.com/cunla/django-rqscheduler"
+homepage = "https://github.com/dsoftwareinc/django-rq-scheduler"
 
 [tool.poetry.dependencies]
 python = "^3.8"
