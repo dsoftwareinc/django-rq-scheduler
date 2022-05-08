@@ -49,6 +49,7 @@ jobs:
         with:
           pythonVer: ${{ matrix.python-version }}
           djangoVer: ${{ matrix.django-version }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Create coverage badge
         if: ${{ matrix.coverage == 'yes' && github.event_name == 'push' }}
         uses: schneegans/dynamic-badges-action@v1.1.0

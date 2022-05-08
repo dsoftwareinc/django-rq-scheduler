@@ -7,6 +7,9 @@ inputs:
   djangoVer:
     description: 'django version'
     required: true
+  repoToken:
+    description: 'Token for PR comment'
+    required: true
 outputs:
   coverage:
     description: "Coverage"
@@ -40,6 +43,6 @@ runs:
           ```
           ${{ steps.coverage_report.outputs.stdout }}
           ```
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        repo-token: ${{ inputs.repoToken }}
         repo-token-user-login: 'github-actions[bot]'
         allow-repeats: true
