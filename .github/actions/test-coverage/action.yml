@@ -1,0 +1,48 @@
+name: Run Tests with coverage
+description: 'Run tests with coverage and publish results to PR'
+inputs:
+  pythonVer:
+    description: 'python version'
+    required: true
+  djangoVer:
+    description: 'django version'
+    required: true
+  repoToken:
+    description: 'Token for PR comment'
+    required: true
+outputs:
+  coverage:
+    description: "Coverage"
+    value: ${{ steps.json-report.outputs.coverage }}
+runs:
+  using: "composite"
+  steps:
+    - name: Run Tests with coverage
+      shell: bash
+      run: |
+        cd testproject19
+        poetry run coverage run manage.py test scheduler
+    - name: Coverage report
+      id: coverage_report
+      uses: mathiasvr/command-output@v1
+      with:
+        run: |
+          mv testproject19/.coverage .
+          poetry run coverage report
+    - name: json report
+      id: json-report
+      shell: bash
+      run: |
+        poetry run coverage json
+        echo "COVERAGE=$(jq '.totals.percent_covered_display|tonumber' coverage.json)" >> $GITHUB_ENV
+        echo "::set-output name=coverage::${{ env.COVERAGE }}"
+    - uses: mshick/add-pr-comment@v1
+      with:
+        message: |
+          Coverage report python v${{ inputs.pythonVer }} django v${{ inputs.djangoVer }}
+          ```
+          ${{ steps.coverage_report.outputs.stdout }}
+          ```
+        repo-token: ${{ inputs.repoToken }}
+        repo-token-user-login: 'github-actions[bot]'
+        allow-repeats: true
