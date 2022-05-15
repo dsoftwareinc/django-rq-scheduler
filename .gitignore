@@ -5,6 +5,8 @@ __pycache__/
 *.so
 
 .Python
+.venv/
+docker-compose.yml
 env/
 build/
 develop-eggs/
