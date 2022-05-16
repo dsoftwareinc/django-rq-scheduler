@@ -1,1 +1,3 @@
-__version__ = '2022.5'
+import importlib.metadata
+
+__version__ = importlib.metadata.version('django-rq-scheduler')
