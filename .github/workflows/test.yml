@@ -44,7 +44,8 @@ jobs:
           cd testproject19
           poetry run python manage.py test scheduler
       # Steps for coverage check
-      - uses: ./.github/actions/test-coverage
+      - name: Run tests with coverage
+        uses: ./.github/actions/test-coverage
         if: ${{ matrix.coverage == 'yes' }}
         with:
           pythonVer: ${{ matrix.python-version }}
