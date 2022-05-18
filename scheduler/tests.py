@@ -10,7 +10,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
-from django_rq import job
+from django_rq import job as jobdecorator
 
 from scheduler.models import BaseJob, BaseJobArg, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
 
@@ -89,12 +89,12 @@ class JobKwargFactory(BaseJobArgFactory):
         model = JobKwarg
 
 
-@job
+@jobdecorator
 def test_job():
     return 1 + 1
 
 
-@job
+@jobdecorator
 def test_args_kwargs(*args, **kwargs):
     func = "test_args_kwargs({})"
     args_list = [repr(arg) for arg in args]
@@ -161,12 +161,12 @@ class BaseTestCases:
             try:
                 arg.clean_one_value()
             except ValidationError as e:
-                self.assertFalse(True, msg=e)
+                self.fail(e)
             arg = self.JobArgClassFactory(arg_type='bool_val', bool_val=True)
             try:
                 arg.clean_one_value()
             except ValidationError as e:
-                self.assertFalse(True, msg=e)
+                self.fail(e)
 
         def test_clean_invalid(self):
             arg = self.JobArgClassFactory(str_val='str', int_val=1, datetime_val=timezone.now())
@@ -532,7 +532,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         job.callable = 'scheduler.tests.test_job'
         job.interval = 1
         job.result_ttl = -1
-        assert job.clean() is None
+        self.assertIsNone(job.clean())
 
     def test_clean_seconds(self):
         job = self.JobClass()
@@ -541,7 +541,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         job.interval = 60
         job.result_ttl = -1
         job.interval_unit = 'seconds'
-        assert job.clean() is None
+        self.assertIsNone(job.clean())
 
     def test_clean_too_frequent(self):
         job = self.JobClass()

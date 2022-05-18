@@ -9,17 +9,16 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
-from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
-
+from django.utils.translation import gettext_lazy as _
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
+from rq_scheduler import Scheduler
 
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
 
 class BaseJobArg(models.Model):
-
     ARG_TYPE = Choices(
         ('str_val', _('string')),
         ('int_val', _('int')),
@@ -98,7 +97,6 @@ class JobKwarg(BaseJobArg):
 
 
 class BaseJob(TimeStampedModel):
-
     name = models.CharField(_('name'), max_length=128, unique=True)
     callable = models.CharField(_('callable'), max_length=2048)
     callable_args = GenericRelation(JobArg, related_query_name='args')
@@ -142,7 +140,7 @@ class BaseJob(TimeStampedModel):
     def clean_callable(self):
         try:
             self.callable_func()
-        except TypeError as e:
+        except TypeError:
             raise ValidationError({
                 'callable': ValidationError(
                     _('Invalid callable, must be importable'), code='invalid')
@@ -157,10 +155,11 @@ class BaseJob(TimeStampedModel):
                         ', '.join(queue_keys))), code='invalid')
             })
 
-    def is_scheduled(self):
+    def is_scheduled(self) -> bool:
         if not self.job_id:
             return False
         return self.job_id in self.scheduler()
+
     is_scheduled.short_description = _('is scheduled?')
     is_scheduled.boolean = True
 
@@ -172,13 +171,14 @@ class BaseJob(TimeStampedModel):
         self.unschedule()
         super(BaseJob, self).delete(**kwargs)
 
-    def function_string(self):
+    def function_string(self) -> str:
         func = self.callable + "(\u200b{})"  # zero-width space allows textwrap
         args = self.parse_args()
         args_list = [repr(arg) for arg in args]
         kwargs = self.parse_kwargs()
         kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
         return func.format(', '.join(args_list + kwargs_list))
+
     function_string.short_description = 'Callable'
 
     def parse_args(self):
@@ -189,20 +189,20 @@ class BaseJob(TimeStampedModel):
         kwargs = self.callable_kwargs.all()
         return dict([kwarg.value() for kwarg in kwargs])
 
-    def scheduler(self):
+    def scheduler(self) -> Scheduler:
         return django_rq.get_scheduler(self.queue, interval=RQ_SCHEDULER_INTERVAL)
 
-    def is_schedulable(self):
+    def is_schedulable(self) -> bool:
         if self.job_id:
             return False
         return self.enabled
 
-    def schedule(self):
+    def schedule(self) -> bool:
         self.unschedule()
         if self.is_schedulable() is False:
             return False
 
-    def unschedule(self):
+    def unschedule(self) -> bool:
         if self.is_scheduled():
             self.scheduler().cancel(self.job_id)
         self.job_id = None
@@ -213,7 +213,6 @@ class BaseJob(TimeStampedModel):
 
 
 class ScheduledTimeMixin(models.Model):
-
     scheduled_time = models.DateTimeField(_('scheduled time'))
 
     def schedule_time_utc(self):
@@ -226,7 +225,7 @@ class ScheduledTimeMixin(models.Model):
 class ScheduledJob(ScheduledTimeMixin, BaseJob):
     repeat = None
 
-    def schedule(self):
+    def schedule(self) -> bool:
         result = super(ScheduledJob, self).schedule()
         if self.scheduled_time < now():
             return False
@@ -249,11 +248,10 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
     class Meta:
         verbose_name = _('Scheduled Job')
         verbose_name_plural = _('Scheduled Jobs')
-        ordering = ('name', )
+        ordering = ('name',)
 
 
 class RepeatableJob(ScheduledTimeMixin, BaseJob):
-
     UNITS = Choices(
         ('seconds', _('seconds')),
         ('minutes', _('minutes')),
@@ -284,17 +282,17 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
                 code='invalid',
                 params={'interval': RQ_SCHEDULER_INTERVAL})
 
-    def clean_result_ttl(self):
+    def clean_result_ttl(self) -> None:
         """
         Throws an error if there are repeats left to run and the result_ttl won't last until the next scheduled time.
-        :return:
+        :return: None
         """
         if self.result_ttl and self.result_ttl != -1 and self.result_ttl < self.interval_seconds() and self.repeat:
             raise ValidationError(
                 _("Job result_ttl must be either indefinite (-1) or "
                   "longer than the interval, %(interval)s seconds, to ensure rescheduling."),
                 code='invalid',
-                params={'interval': self.interval_seconds()},)
+                params={'interval': self.interval_seconds()}, )
 
     def interval_display(self):
         return '{} {}'.format(self.interval, self.get_interval_unit_display())
@@ -343,7 +341,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
     class Meta:
         verbose_name = _('Repeatable Job')
         verbose_name_plural = _('Repeatable Jobs')
-        ordering = ('name', )
+        ordering = ('name',)
 
 
 class CronJob(BaseJob):
@@ -389,4 +387,4 @@ class CronJob(BaseJob):
     class Meta:
         verbose_name = _('Cron Job')
         verbose_name_plural = _('Cron Jobs')
-        ordering = ('name', )
+        ordering = ('name',)
