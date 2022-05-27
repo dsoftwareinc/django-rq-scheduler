@@ -118,26 +118,6 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 
-# RQ
-# Configuration to pretend there is a Redis service
-# available. We need to set up the connection before
-# RQ Django reads the settings. Also, the connection
-# must be the same because in fakeredis connections
-# do not share the state. Therefore, we define a
-# singleton object to reuse it.
-class FakeRedisConn:
-    """Singleton FakeRedis connection."""
-
-    def __init__(self):
-        self.conn = None
-
-    def __call__(self, _, strict):
-        if not self.conn:
-            self.conn = FakeStrictRedis() if strict else FakeRedis()
-        return self.conn
-
-
-django_rq.queues.get_redis_connection = FakeRedisConn()
 
 RQ_QUEUES = {
     'default': {

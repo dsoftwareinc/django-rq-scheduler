@@ -11,8 +11,29 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
 from django_rq import job as jobdecorator
+from fakeredis import FakeStrictRedis, FakeRedis
 
 from scheduler.models import BaseJob, BaseJobArg, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
+
+
+# RQ
+# Configuration to pretend there is a Redis service available.
+# Set up the connection before RQ Django reads the settings.
+# The connection must be the same because in fakeredis connections
+# do not share the state. Therefore, we define a singleton object to reuse it.
+class FakeRedisConn:
+    """Singleton FakeRedis connection."""
+
+    def __init__(self):
+        self.conn = None
+
+    def __call__(self, _, strict):
+        if not self.conn:
+            self.conn = FakeStrictRedis() if strict else FakeRedis()
+        return self.conn
+
+
+django_rq.queues.get_redis_connection = FakeRedisConn()
 
 
 class BaseJobFactory(factory.django.DjangoModelFactory):
