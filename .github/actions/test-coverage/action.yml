@@ -20,14 +20,14 @@ runs:
     - name: Run Tests with coverage
       shell: bash
       run: |
-        cd testproject19
+        cd testproject
         poetry run coverage run manage.py test scheduler
     - name: Coverage report
       id: coverage_report
       uses: mathiasvr/command-output@v1
       with:
         run: |
-          mv testproject19/.coverage .
+          mv testproject/.coverage .
           poetry run coverage report
     - name: json report
       id: json-report

@@ -41,7 +41,7 @@ jobs:
       - name: Run Tests without coverage
         if: ${{ matrix.coverage != 'yes' }}
         run: |
-          cd testproject19
+          cd testproject
           poetry run python manage.py test scheduler
       # Steps for coverage check
       - name: Run tests with coverage
