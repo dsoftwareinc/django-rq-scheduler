@@ -14,7 +14,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [ '3.9', '3.10' ]
+        python-version: [ '3.8', '3.9', '3.10' ]
         django-version: [ '3.2.13', '4.0.4' ]
         include:
           - python-version: '3.10'
@@ -34,10 +34,6 @@ jobs:
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
           poetry install
           poetry run pip install django==${{ matrix.django-version }}
-      - name: Start Redis
-        uses: supercharge/redis-github-action@1.4.0
-        with:
-          redis-version: 6
       - name: Run Tests without coverage
         if: ${{ matrix.coverage != 'yes' }}
         run: |
