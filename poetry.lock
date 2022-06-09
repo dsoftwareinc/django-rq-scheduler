@@ -276,14 +276,14 @@ python-dateutil = ">=2.4"
 
 [[package]]
 name = "fakeredis"
-version = "1.8"
+version = "1.8.1"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
 python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
-redis = "<=4.3.1"
+redis = "<4.4"
 six = ">=1.16.0,<2.0.0"
 sortedcontainers = ">=2.4.0,<3.0.0"
 
@@ -950,8 +950,8 @@ faker = [
     {file = "Faker-13.12.0.tar.gz", hash = "sha256:1f6478011ac8a8273e0f9cd6da03d9ea6391c622db340eca015339512e9cde29"},
 ]
 fakeredis = [
-    {file = "fakeredis-1.8-py3-none-any.whl", hash = "sha256:65dcd78c0cd29d17daccce9f58698f6ab61ad7a404eab373fcad2b76fe8db03d"},
-    {file = "fakeredis-1.8.tar.gz", hash = "sha256:cbf8d74ae06672d40b2fa88b9ee4f1d6efd56b06b2e7f0be2c639647f00643f1"},
+    {file = "fakeredis-1.8.1-py3-none-any.whl", hash = "sha256:4a0f8fe0d5c18147864db50ae2e86f667420ea06653bec08b3a5fccfd3fbde6f"},
+    {file = "fakeredis-1.8.1.tar.gz", hash = "sha256:ca516f86181f85615cd8210854b43acbe7b1f37ed8a082c5557749c73f2f0dd3"},
 ]
 filelock = [
     {file = "filelock-3.7.1-py3-none-any.whl", hash = "sha256:37def7b658813cda163b56fc564cdc75e86d338246458c4c28ae84cabefa2404"},
