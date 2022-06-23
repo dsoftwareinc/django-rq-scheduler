@@ -1,12 +1,12 @@
-
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.contenttypes.admin import GenericStackedInline
+from django.db.models import QuerySet
 from django.templatetags.tz import utc
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob, BaseJob
 
 QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
 
@@ -40,10 +40,10 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
 class JobAdmin(admin.ModelAdmin):
     actions = ['delete_model', 'disable_selected', 'enable_selected', 'run_job_now']
     inlines = [JobArgInline, JobKwargInline]
-    list_filter = ('enabled', )
+    list_filter = ('enabled',)
     list_display = ('enabled', 'name', 'job_id', 'function_string', 'is_scheduled',)
     list_display_links = ('name',)
-    readonly_fields = ('job_id', )
+    readonly_fields = ('job_id',)
     fieldsets = (
         (None, {
             'fields': ('name', 'callable', 'enabled',),
@@ -65,16 +65,19 @@ class JobAdmin(admin.ModelAdmin):
 
     def delete_model(self, request, queryset):
         rows_deleted = 0
-        for obj in queryset.all().iterator():
-            obj.delete()
+        if isinstance(queryset, BaseJob):
+            queryset.delete()
             rows_deleted += 1
+        elif isinstance(queryset, QuerySet):
+            rows_deleted, _ = queryset.delete()
         if rows_deleted == 1:
             message_bit = "1 job was"
         else:
-            message_bit = "%s jobs were" % rows_deleted
+            message_bit = f"{rows_deleted} jobs were"
 
         level = messages.WARNING if not rows_deleted else messages.INFO
         self.message_user(request, "%s successfully deleted." % message_bit, level=level)
+
     delete_model.short_description = _("Delete selected %(verbose_name_plural)s")
     delete_model.allowed_permissions = ('delete',)
 
@@ -91,6 +94,7 @@ class JobAdmin(admin.ModelAdmin):
 
         level = messages.WARNING if not rows_updated else messages.INFO
         self.message_user(request, "%s successfully disabled." % message_bit, level=level)
+
     disable_selected.short_description = _("Disable selected %(verbose_name_plural)s")
     disable_selected.allowed_permissions = ('change',)
 
@@ -106,6 +110,7 @@ class JobAdmin(admin.ModelAdmin):
             message_bit = "%s jobs were" % rows_updated
         level = messages.WARNING if not rows_updated else messages.INFO
         self.message_user(request, "%s successfully enabled." % message_bit, level=level)
+
     enable_selected.short_description = _("Enable selected %(verbose_name_plural)s")
     enable_selected.allowed_permissions = ('change',)
 
@@ -125,6 +130,7 @@ class JobAdmin(admin.ModelAdmin):
             )
             job_names.append(obj.name)
         self.message_user(request, "The following jobs have been run: %s" % ', '.join(job_names))
+
     run_job_now.short_description = "Run now"
     run_job_now.allowed_permissions = ('change',)
 
@@ -152,7 +158,7 @@ class RepeatableJobAdmin(JobAdmin):
         (_('Scheduling'), {
             'fields': (
                 'scheduled_time',
-                ('interval', 'interval_unit', ),
+                ('interval', 'interval_unit',),
                 'repeat',
                 'timeout',
                 'result_ttl',
