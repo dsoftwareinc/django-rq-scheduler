@@ -6,9 +6,12 @@ import django_rq
 import factory
 import pytz
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.test import Client
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 from django_rq import job as jobdecorator
 from fakeredis import FakeStrictRedis, FakeRedis
@@ -420,6 +423,65 @@ class BaseTestCases:
             self.assertEqual(job.function_string(),
                              ("scheduler.tests.test_job(\u200b'one', 1, {date}, True, " +
                               "key1='one', key2=2, key3={date}, key4=False)").format(date=repr(date)))
+
+        def test_admin_list_view(self):
+            # arrange
+            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            client = Client()
+            client.login(username='admin', password='admin')
+            job = self.JobClassFactory()
+            job.save()
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_changelist')
+            # act
+            res = client.get(url)
+            # assert
+            self.assertEqual(200, res.status_code)
+
+        def test_admin_list_view_delete_model(self):
+            # arrange
+            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            client = Client()
+            client.login(username='admin', password='admin')
+            job = self.JobClassFactory()
+            job.save()
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_changelist')
+            # act
+            res = client.post(url, data={
+                'action': 'delete_model',
+                '_selected_action': [job.pk, ],
+            })
+            # assert
+            self.assertEqual(302, res.status_code)
+
+        def test_admin_single_view(self):
+            # arrange
+            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            client = Client()
+            client.login(username='admin', password='admin')
+            job = self.JobClassFactory()
+            job.save()
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_change', args=[job.pk, ])
+            # act
+            res = client.get(url)
+            # assert
+            self.assertEqual(200, res.status_code)
+
+        def test_admin_single_delete(self):
+            # arrange
+            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            client = Client()
+            client.login(username='admin', password='admin')
+            job = self.JobClassFactory()
+            job.save()
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_delete', args=[job.pk, ])
+            # act
+            res = client.post(url)
+            # assert
+            self.assertEqual(200, res.status_code)
 
     class TestSchedulableJob(TestBaseJob):
         # Currently ScheduledJob and RepeatableJob
