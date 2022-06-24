@@ -69,7 +69,7 @@ jobs:
   # If accepted and published, release workflow would be triggered
   releaseDraft:
     name: Release Draft
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -97,4 +97,4 @@ jobs:
           ${{ needs.build.outputs.version }}
           EOM
           )"
-          echo "::notice title=New release::${{ needs.build.outputs.version }}"          
+          echo "::notice title=New release draft::${{ needs.build.outputs.version }}"          
