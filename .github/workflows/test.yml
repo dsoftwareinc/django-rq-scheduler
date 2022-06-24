@@ -94,6 +94,7 @@ jobs:
             --draft \
             --title "v${{ needs.build.outputs.version }}" \
             --notes "$(cat << 'EOM'
-          ${{ needs.build.outputs.changelog }}
+          ${{ needs.build.outputs.version }}
           EOM
           )"
+          echo "::notice title=New release::${{ needs.build.outputs.version }}"          
