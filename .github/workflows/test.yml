@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
@@ -20,6 +20,8 @@ jobs:
           - python-version: '3.10'
             django-version: '4.0.4'
             coverage: yes
+    outputs:
+      version: ${{ steps.getVersion.outputs.VERSION }}
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -34,6 +36,12 @@ jobs:
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
           poetry install
           poetry run pip install django==${{ matrix.django-version }}
+      - name: Get version
+        id: getVersion
+        shell: bash
+        run: |
+          VERSION=$(poetry version -s --no-ansi -n)
+          echo "::set-output name=VERSION::$VERSION"
       - name: Run Tests without coverage
         if: ${{ matrix.coverage != 'yes' }}
         run: |
@@ -65,7 +73,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v3
