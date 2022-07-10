@@ -43,7 +43,7 @@ pytz = ">=2021.3,<2023.0"
 croniter = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
-factory_boy = "3.2.1"
-poetry = "~1.1"
+factory_boy = "^3.2.1"
+poetry = "^1.1"
 coverage = "^6.4"
 fakeredis = "^1.8.1"
