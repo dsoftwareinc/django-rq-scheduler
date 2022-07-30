@@ -31,7 +31,7 @@ classifiers = [
     'Framework :: Django :: 4.0',
     'Framework :: Django :: 3.2',
 ]
-homepage = "https://github.com/cunla/django-rq-scheduler"
+homepage = "https://github.com/dsoftwareinc/django-rq-scheduler"
 
 [tool.poetry.dependencies]
 python = "^3.8"

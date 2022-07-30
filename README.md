@@ -1,5 +1,5 @@
 # Django RQ Scheduler 
-[![Django CI](https://github.com/cunla/django-rq-scheduler/actions/workflows/test.yml/badge.svg)](https://github.com/cunla/django-rq-scheduler/actions/workflows/test.yml)
+[![Django CI](https://github.com/dsoftwareinc/django-rq-scheduler/actions/workflows/test.yml/badge.svg)](https://github.com/dsoftwareinc/django-rq-scheduler/actions/workflows/test.yml)
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/cunla/b756396efb895f0e34558c980f1ca0c7/raw/django-rq-scheduler-4.json)
 
 A database backed job scheduler for Django RQ.
@@ -138,5 +138,5 @@ def job_args_kwargs(*args, **kwargs):
 
 # Reporting issues or Features requests
 
-Please report issues via [GitHub Issues](https://github.com/cunla/django-rq-scheduler/issues) .
+Please report issues via [GitHub Issues](https://github.com/dsoftwareinc/django-rq-scheduler/issues) .
 
