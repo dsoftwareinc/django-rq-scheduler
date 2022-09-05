@@ -45,6 +45,6 @@ croniter = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
 factory_boy = "^3.2.1"
-poetry = "^1.1"
+poetry = "^1.2"
 coverage = "^6.4"
 fakeredis = "^1.9.0"
