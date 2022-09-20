@@ -227,7 +227,7 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
 
     def schedule(self) -> bool:
         result = super(ScheduledJob, self).schedule()
-        if self.scheduled_time < now():
+        if self.scheduled_time is not None and self.scheduled_time < now():
             return False
         if result is False:
             return False
