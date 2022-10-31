@@ -1,6 +1,8 @@
 # Django RQ Scheduler 
 [![Django CI](https://github.com/dsoftwareinc/django-rq-scheduler/actions/workflows/test.yml/badge.svg)](https://github.com/dsoftwareinc/django-rq-scheduler/actions/workflows/test.yml)
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/cunla/b756396efb895f0e34558c980f1ca0c7/raw/django-rq-scheduler-4.json)
+[![badge](https://img.shields.io/pypi/dm/django-rq-scheduler)](https://pypi.org/project/django-rq-scheduler/)
+
 
 A database backed job scheduler for Django RQ.
 Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.
@@ -67,7 +69,7 @@ def count():
 
 ### Scheduled Job
 
-1. Sign into the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
+1. Sign in to the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
 
 2. Click on the **Add** link for Scheduled Job.
 
@@ -83,7 +85,7 @@ def count():
 
 ### Repeatable Job
 
-1. Sign into the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
+1. Sign in to the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
 
 2. Click on the **Add** link for Repeatable Job
 
@@ -118,7 +120,7 @@ def job_args_kwargs(*args, **kwargs):
 
 ### Schedule job with custom arguments to be calculated when scheduling
 
-1. Sign into the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
+1. Sign in to the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
 
 2. Click on the **Add** link for Scheduled Job.
 
