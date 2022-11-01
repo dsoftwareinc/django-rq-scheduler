@@ -12,10 +12,9 @@ This allows remembering scheduled jobs, their parameters, etc.
 # Installation
 
 1. Use pip to install:
-
-```shell
-pip install django-rq-scheduler
-```
+   ```shell
+   pip install django-rq-scheduler
+   ```
 
 2. In `settings.py`, add `django_rq` and `scheduler` to  `INSTALLED_APPS`:
    ```python
@@ -42,10 +41,10 @@ pip install django-rq-scheduler
    }
    ```
 
-5. Run migrations.
-	```shell
-	./manage.py migrate
-	```
+4. Run migrations.
+    ```shell
+    ./manage.py migrate
+    ```
 
 # Usage
 
