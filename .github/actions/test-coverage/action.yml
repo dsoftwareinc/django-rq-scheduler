@@ -24,24 +24,25 @@ runs:
         poetry run coverage run manage.py test scheduler
     - name: Coverage report
       id: coverage_report
-      uses: mathiasvr/command-output@v1
-      with:
-        run: |
-          mv testproject/.coverage .
-          poetry run coverage report
+      shell: bash
+      run: |
+        mv testproject/.coverage .
+        echo 'REPORT<<EOF' >> $GITHUB_ENV
+        poetry run coverage report >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
     - name: json report
       id: json-report
       shell: bash
       run: |
         poetry run coverage json
         echo "COVERAGE=$(jq '.totals.percent_covered_display|tonumber' coverage.json)" >> $GITHUB_ENV
-        echo "::set-output name=coverage::${{ env.COVERAGE }}"
-    - uses: mshick/add-pr-comment@v1
+    - uses: mshick/add-pr-comment@v2
+      if: ${{ github.event_name == 'pull_request' }}
       with:
         message: |
           Coverage report python v${{ inputs.pythonVer }} django v${{ inputs.djangoVer }}
           ```
-          ${{ steps.coverage_report.outputs.stdout }}
+          ${{ env.REPORT }}
           ```
         repo-token: ${{ inputs.repoToken }}
         repo-token-user-login: 'github-actions[bot]'
