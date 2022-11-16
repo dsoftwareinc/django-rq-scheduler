@@ -37,6 +37,10 @@ jobs:
           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
           poetry install
           poetry run pip install django==${{ matrix.django-version }}
+      - name: Run flake8
+        shell: bash
+        run: |
+          poetry run flake8 scheduler/
       - name: Get version
         id: getVersion
         shell: bash
