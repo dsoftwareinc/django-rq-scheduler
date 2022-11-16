@@ -75,7 +75,7 @@ jobs:
       # write permission is required for auto-labeler
       # otherwise, read permission is required at least
       pull-requests: write
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v5
