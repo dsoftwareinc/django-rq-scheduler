@@ -426,7 +426,7 @@ class BaseTestCases:
 
         def test_admin_list_view(self):
             # arrange
-            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
             client = Client()
             client.login(username='admin', password='admin')
             job = self.JobClassFactory()
@@ -440,7 +440,7 @@ class BaseTestCases:
 
         def test_admin_list_view_delete_model(self):
             # arrange
-            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
             client = Client()
             client.login(username='admin', password='admin')
             job = self.JobClassFactory()
@@ -457,7 +457,7 @@ class BaseTestCases:
 
         def test_admin_single_view(self):
             # arrange
-            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
             client = Client()
             client.login(username='admin', password='admin')
             job = self.JobClassFactory()
@@ -471,7 +471,7 @@ class BaseTestCases:
 
         def test_admin_single_delete(self):
             # arrange
-            User.objects.create_superuser('admin', f'admin@a.com', 'admin')
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
             client = Client()
             client.login(username='admin', password='admin')
             job = self.JobClassFactory()

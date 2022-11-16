@@ -14,7 +14,7 @@ class SchedulerConfig(AppConfig):
             self.reschedule_cron_jobs()
             self.reschedule_repeatable_jobs()
             self.reschedule_scheduled_jobs()
-        except:
+        except Exception:
             # Django isn't ready yet, example a management command is being
             # executed
             pass
