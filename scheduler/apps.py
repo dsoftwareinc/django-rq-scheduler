@@ -20,22 +20,23 @@ class SchedulerConfig(AppConfig):
             pass
 
     def reschedule_cron_jobs(self):
-        CronJob = self.get_model('CronJob')
-        jobs = CronJob.objects.filter(enabled=True)
+        cron_job_class = self.get_model('CronJob')
+        jobs = cron_job_class.objects.filter(enabled=True)
         self.reschedule_jobs(jobs)
 
     def reschedule_repeatable_jobs(self):
-        RepeatableJob = self.get_model('RepeatableJob')
-        jobs = RepeatableJob.objects.filter(enabled=True)
+        repeatable_job_class = self.get_model('RepeatableJob')
+        jobs = repeatable_job_class.objects.filter(enabled=True)
         self.reschedule_jobs(jobs)
 
     def reschedule_scheduled_jobs(self):
-        ScheduledJob = self.get_model('ScheduledJob')
-        jobs = ScheduledJob.objects.filter(
+        scheduled_job_class = self.get_model('ScheduledJob')
+        jobs = scheduled_job_class.objects.filter(
             enabled=True, scheduled_time__lte=Now())
         self.reschedule_jobs(jobs)
 
-    def reschedule_jobs(self, jobs):
+    @staticmethod
+    def reschedule_jobs(jobs):
         for job in jobs:
             if job.is_scheduled() is False:
                 job.save()

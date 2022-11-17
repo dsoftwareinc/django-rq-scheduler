@@ -98,7 +98,7 @@ def count():
 
 7. Enter an **Interval**, and choose the **Interval unit**. This will calculate the time before the function is called again.
 
-8. In the **Repeat** field, enter the number of time the job is to be ran. Leaving the field empty, means the job will be scheduled to run forever.
+8. In the **Repeat** field, enter the number of time the job is to be run. Leaving the field empty, means the job will be scheduled to run forever.
 
 9. Click the **Save** button to schedule the job.
 
