@@ -201,6 +201,7 @@ class BaseJob(TimeStampedModel):
         self.unschedule()
         if self.is_schedulable() is False:
             return False
+        return True
 
     def unschedule(self) -> bool:
         if self.is_scheduled():
