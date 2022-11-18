@@ -29,7 +29,7 @@ python-versions = ">=3.5"
 dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy (>=0.900,!=0.940)", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "sphinx", "sphinx-notfound-page", "zope.interface"]
 docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
 tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "zope.interface"]
-tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
+tests-no-zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
 
 [[package]]
 name = "backports.zoneinfo"
@@ -100,7 +100,7 @@ optional = false
 python-versions = ">=3.6.0"
 
 [package.extras]
-unicode_backport = ["unicodedata2"]
+unicode-backport = ["unicodedata2"]
 
 [[package]]
 name = "cleo"
@@ -295,7 +295,7 @@ python-dateutil = ">=2.4"
 
 [[package]]
 name = "fakeredis"
-version = "1.10.1"
+version = "2.0.0"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
@@ -726,7 +726,7 @@ urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
-use_chardet_on_py3 = ["chardet (>=3.0.2,<6)"]
+use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "requests-toolbelt"
@@ -904,7 +904,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "00e39139f874358fd2414aa36684fc75b7a43a73164dcbfe678e2bcc5dd23cd0"
+content-hash = "515f1eb7b04ca8afeb4a50374f7d859db30c79cbf0ccded78410ba7a89b1d6ce"
 
 [metadata.files]
 asgiref = [
@@ -1213,8 +1213,8 @@ Faker = [
     {file = "Faker-15.3.2.tar.gz", hash = "sha256:0094fe3340ad73c490d3ffccc59cc171b161acfccccd52925c70970ba23e6d6b"},
 ]
 fakeredis = [
-    {file = "fakeredis-1.10.1-py3-none-any.whl", hash = "sha256:054ec109ec2cb4b1f0c6ed8d53603b07504c971bf8865dc6459eb5598e02ef1b"},
-    {file = "fakeredis-1.10.1.tar.gz", hash = "sha256:2d0d9163ce9ea7e3eae44c65d2e4ed168a8a3827a1d3ba430ca6f31ab0e762ff"},
+    {file = "fakeredis-2.0.0-py3-none-any.whl", hash = "sha256:fb3186cbbe4c549f922b0f08eb84b09c0e51ecf8efbed3572d20544254f93a97"},
+    {file = "fakeredis-2.0.0.tar.gz", hash = "sha256:6d1dc2417921b7ce56a80877afa390d6335a3154146f201a86e3a14417bdc79e"},
 ]
 filelock = [
     {file = "filelock-3.8.0-py3-none-any.whl", hash = "sha256:617eb4e5eedc82fc5f47b6d61e4d11cb837c56cb4544e39081099fa17ad109d4"},
