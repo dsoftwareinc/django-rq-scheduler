@@ -49,7 +49,7 @@ Flake8-pyproject = "^1.2"
 factory_boy = "^3"
 poetry = "^1.2"
 coverage = "^6.5"
-fakeredis = "^2.0.0"
+fakeredis = "^2.1.0"
 
 [tool.flake8]
 max-line-length = 119
