@@ -281,7 +281,7 @@ python-dateutil = ">=2.4"
 
 [[package]]
 name = "fakeredis"
-version = "2.0.0"
+version = "2.1.0"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
@@ -292,8 +292,8 @@ redis = "<4.5"
 sortedcontainers = ">=2.4.0,<3.0.0"
 
 [package.extras]
-aioredis = ["aioredis (>=2.0.1,<3.0.0)"]
-lua = ["lupa (>=1.13,<2.0)"]
+json = ["jsonpath-ng (>=1.5,<2.0)"]
+lua = ["lupa (>=1.14,<2.0)"]
 
 [[package]]
 name = "filelock"
@@ -881,7 +881,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "8705ed040109feedeb9cc3fffec07de216e496c852aabe0efbf15cf2952ce71d"
+content-hash = "b5b643ddf544ab691c6e06e4b123884ae5cd34a78632688890a84fa922e8522d"
 
 [metadata.files]
 asgiref = [
@@ -1186,8 +1186,8 @@ faker = [
     {file = "Faker-15.3.3.tar.gz", hash = "sha256:20d090e661bbe88a5d801ea5eb3d853564940352120c84c9a14968847aca2893"},
 ]
 fakeredis = [
-    {file = "fakeredis-2.0.0-py3-none-any.whl", hash = "sha256:fb3186cbbe4c549f922b0f08eb84b09c0e51ecf8efbed3572d20544254f93a97"},
-    {file = "fakeredis-2.0.0.tar.gz", hash = "sha256:6d1dc2417921b7ce56a80877afa390d6335a3154146f201a86e3a14417bdc79e"},
+    {file = "fakeredis-2.1.0-py3-none-any.whl", hash = "sha256:f85c535d38946d436f8fef14cb946ea2774c35437991ece72f2bc9cbfc9e7e65"},
+    {file = "fakeredis-2.1.0.tar.gz", hash = "sha256:1329b6150794d4f45d82cb643cc7e8192b33bdb3dc829fb9dcfdf2e82696b2dc"},
 ]
 filelock = [
     {file = "filelock-3.8.0-py3-none-any.whl", hash = "sha256:617eb4e5eedc82fc5f47b6d61e4d11cb837c56cb4544e39081099fa17ad109d4"},
