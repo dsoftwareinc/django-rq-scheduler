@@ -38,7 +38,7 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
 
 
 class JobAdmin(admin.ModelAdmin):
-    actions = ['delete_model', 'disable_selected', 'enable_selected', 'run_job_now']
+    actions = ['delete_model', 'disable_selected', 'enable_selected', 'run_job_now', 'run_job_now_asap']
     inlines = [JobArgInline, JobKwargInline]
     list_filter = ('enabled',)
     list_display = ('enabled', 'name', 'job_id', 'function_string', 'is_scheduled',)
@@ -114,7 +114,7 @@ class JobAdmin(admin.ModelAdmin):
     enable_selected.short_description = _("Enable selected %(verbose_name_plural)s")
     enable_selected.allowed_permissions = ('change',)
 
-    def run_job_now(self, request, queryset):
+    def run_job_now(self, request, queryset, asap=False):
         job_names = []
         for obj in queryset:
             kwargs = obj.parse_kwargs()
@@ -122,6 +122,9 @@ class JobAdmin(admin.ModelAdmin):
                 kwargs['timeout'] = obj.timeout
             if hasattr(obj, 'result_ttl') and obj.result_ttl is not None:
                 kwargs['job_result_ttl'] = obj.result_ttl
+            if asap:
+                kwargs['at_front'] = True  # setting kwargs at_front = True in the admin would also do the same
+
             obj.scheduler().enqueue_at(
                 utc(now()),
                 obj.callable_func(),
@@ -133,6 +136,12 @@ class JobAdmin(admin.ModelAdmin):
 
     run_job_now.short_description = "Run now"
     run_job_now.allowed_permissions = ('change',)
+
+    def run_job_now_asap(self, request, queryset):
+        return self.run_job_now(request, queryset, asap=True)
+
+    run_job_now_asap.short_description = "Run now (At Front of the Queue!)"
+    run_job_now_asap.allowed_permissions = ('change',)
 
 
 @admin.register(ScheduledJob)
