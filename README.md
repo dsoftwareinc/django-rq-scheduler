@@ -3,6 +3,11 @@
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/cunla/b756396efb895f0e34558c980f1ca0c7/raw/django-rq-scheduler-4.json)
 [![badge](https://img.shields.io/pypi/dm/django-rq-scheduler)](https://pypi.org/project/django-rq-scheduler/)
 
+> Notice:
+> Starting v2023.1, requirement for rq_scheduler was removed and instead
+> one of the django-rq workers should run with `--with-scheduler` parameter
+> as mentioned [here](https://github.com/rq/django-rq#support-for-scheduled-jobs).
+
 
 A database backed job scheduler for Django RQ.
 Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.
