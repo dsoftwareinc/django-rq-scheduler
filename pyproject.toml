@@ -22,9 +22,6 @@ classifiers = [
     'License :: OSI Approved :: MIT License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 3.6',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
@@ -36,7 +33,7 @@ classifiers = [
 homepage = "https://github.com/dsoftwareinc/django-rq-scheduler"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 django = ">=3.2, <=4.2"
 django-model-utils = "^4.3"
 django-rq = "^2.6"
