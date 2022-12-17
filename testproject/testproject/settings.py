@@ -116,7 +116,7 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
-
+RQ_SHOW_ADMIN_LINK = True
 RQ_QUEUES = {
     'default': {
         'URL': 'redis://localhost:6379/0',
