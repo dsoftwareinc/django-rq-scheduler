@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+import zoneinfo
 from datetime import datetime, timedelta
 from itertools import combinations
 
 import django_rq
 import factory
-import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -127,6 +127,13 @@ def test_args_kwargs(*args, **kwargs):
 
 
 test_non_callable = 'I am a teapot'
+
+
+def _get_job_from_queue(django_job):
+    queue = django_job.get_queue2()
+    jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
+    entry = next(i for i in jobs_to_schedule if i == django_job.job_id)
+    return queue.fetch_job(entry)
 
 
 class BaseTestCases:
@@ -341,26 +348,22 @@ class BaseTestCases:
 
         def test_callable_passthrough(self):
             job = self.JobClassFactory()
-            scheduler = django_rq.get_scheduler(job.queue)
-            entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+            entry = _get_job_from_queue(job)
             self.assertEqual(entry.func, test_job)
 
         def test_timeout_passthrough(self):
             job = self.JobClassFactory(timeout=500)
-            scheduler = django_rq.get_scheduler(job.queue)
-            entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+            entry = _get_job_from_queue(job)
             self.assertEqual(entry.timeout, 500)
 
         def test_callable_result(self):
             job = self.JobClassFactory()
-            scheduler = django_rq.get_scheduler(job.queue)
-            entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+            entry = _get_job_from_queue(job)
             self.assertEqual(entry.perform(), 2)
 
         def test_callable_empty_args_and_kwargs(self):
             job = self.JobClassFactory(callable='scheduler.tests.test_args_kwargs')
-            scheduler = django_rq.get_scheduler(job.queue)
-            entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+            entry = _get_job_from_queue(job)
             self.assertEqual(entry.perform(), 'test_args_kwargs()')
 
         def test_delete_args(self):
@@ -404,8 +407,7 @@ class BaseTestCases:
             JobKwargFactory(key='key2', arg_type='datetime_val', datetime_val=date, content_object=job)
             JobKwargFactory(key='key3', arg_type='bool_val', bool_val=False, content_object=job)
             job.save()
-            scheduler = django_rq.get_scheduler(job.queue)
-            entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+            entry = _get_job_from_queue(job)
             self.assertEqual(entry.perform(),
                              "test_args_kwargs('one', key1=2, key2={}, key3=False)".format(repr(date)))
 
@@ -490,10 +492,10 @@ class BaseTestCases:
 
         def test_schedule_time_utc(self):
             job = self.JobClass()
-            est = pytz.timezone('US/Eastern')
+            est = zoneinfo.ZoneInfo('US/Eastern')
             scheduled_time = datetime(2016, 12, 25, 8, 0, 0, tzinfo=est)
             job.scheduled_time = scheduled_time
-            utc = pytz.timezone('UTC')
+            utc = zoneinfo.ZoneInfo('UTC')
             expected = scheduled_time.astimezone(utc).isoformat()
             self.assertEqual(expected, job.schedule_time_utc().isoformat())
 
@@ -503,8 +505,7 @@ class BaseTestCases:
 
         def test_result_ttl_passthrough(self):
             job = self.JobClassFactory(result_ttl=500)
-            scheduler = django_rq.get_scheduler(job.queue)
-            entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+            entry = _get_job_from_queue(job)
             self.assertEqual(entry.result_ttl, 500)
 
 
@@ -700,14 +701,12 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
 
     def test_result_interval(self):
         job = self.JobClassFactory()
-        scheduler = django_rq.get_scheduler(job.queue)
-        entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+        entry = _get_job_from_queue(job)
         self.assertEqual(entry.meta['interval'], 3600)
 
     def test_repeat(self):
         job = self.JobClassFactory(repeat=10)
-        scheduler = django_rq.get_scheduler(job.queue)
-        entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+        entry = _get_job_from_queue(job)
         self.assertEqual(entry.meta['repeat'], 10)
 
     def test_repeat_old_job_exhausted(self):
@@ -750,6 +749,5 @@ class TestCronJob(BaseTestCases.TestBaseJob):
 
     def test_repeat(self):
         job = self.JobClassFactory(repeat=10)
-        scheduler = django_rq.get_scheduler(job.queue)
-        entry = next(i for i in scheduler.get_jobs() if i.id == job.job_id)
+        entry = _get_job_from_queue(job)
         self.assertEqual(entry.meta['repeat'], 10)

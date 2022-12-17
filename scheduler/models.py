@@ -1,19 +1,18 @@
 import importlib
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import croniter
-import django_rq
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
-from django.utils.timezone import now
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django_rq.queues import get_queue
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
-from rq_scheduler import Scheduler
 
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
@@ -158,7 +157,7 @@ class BaseJob(TimeStampedModel):
     def is_scheduled(self) -> bool:
         if not self.job_id:
             return False
-        return self.job_id in self.scheduler()
+        return self.job_id in self.get_queue2().scheduled_job_registry.get_job_ids()
 
     is_scheduled.short_description = _('is scheduled?')
     is_scheduled.boolean = True
@@ -189,8 +188,8 @@ class BaseJob(TimeStampedModel):
         kwargs = self.callable_kwargs.all()
         return dict([kwarg.value() for kwarg in kwargs])
 
-    def scheduler(self) -> Scheduler:
-        return django_rq.get_scheduler(self.queue, interval=RQ_SCHEDULER_INTERVAL)
+    def get_queue2(self):
+        return get_queue(self.queue)
 
     def is_schedulable(self) -> bool:
         if self.job_id:
@@ -205,7 +204,7 @@ class BaseJob(TimeStampedModel):
 
     def unschedule(self) -> bool:
         if self.is_scheduled():
-            self.scheduler().cancel(self.job_id)
+            self.get_queue2().remove(self.job_id)
         self.job_id = None
         return True
 
@@ -228,16 +227,16 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
 
     def schedule(self) -> bool:
         result = super(ScheduledJob, self).schedule()
-        if self.scheduled_time is not None and self.scheduled_time < now():
+        if self.scheduled_time is not None and self.scheduled_time < timezone.now():
             return False
         if result is False:
             return False
         kwargs = self.parse_kwargs()
         if self.timeout:
-            kwargs['timeout'] = self.timeout
+            kwargs['job_timeout'] = self.timeout
         if self.result_ttl is not None:
-            kwargs['job_result_ttl'] = self.result_ttl
-        job = self.scheduler().enqueue_at(
+            kwargs['result_ttl'] = self.result_ttl
+        job = self.get_queue2().enqueue_at(
             self.schedule_time_utc(),
             self.callable_func(),
             *self.parse_args(),
@@ -310,28 +309,29 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         and decrements that amount from the repeats remaining and updates the scheduled time to the next repeat.
         :return:
         """
-        while self.scheduled_time < now() and self.repeat and self.repeat > 0:
+        while self.scheduled_time < timezone.now() and self.repeat and self.repeat > 0:
             self.scheduled_time += timedelta(seconds=self.interval_seconds())
             self.repeat -= 1
 
     def schedule(self):
         result = super(RepeatableJob, self).schedule()
         self._prevent_duplicate_runs()
-        if self.scheduled_time < now():
+        if self.scheduled_time < timezone.now():
             return False
         if result is False:
             return False
         kwargs = dict(
-            interval=self.interval_seconds(),
-            repeat=self.repeat,
+            meta=dict(
+                interval=self.interval_seconds(),
+                repeat=self.repeat, ),
             args=self.parse_args(),
             kwargs=self.parse_kwargs(),
         )
         if self.timeout:
-            kwargs['timeout'] = self.timeout
+            kwargs['job_timeout'] = self.timeout
         if self.result_ttl is not None:
             kwargs['result_ttl'] = self.result_ttl
-        job = self.scheduler().schedule(
+        job = self.get_queue2().enqueue_at(
             self.schedule_time_utc(),
             self.callable_func(),
             **kwargs
@@ -343,6 +343,14 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         verbose_name = _('Repeatable Job')
         verbose_name_plural = _('Repeatable Jobs')
         ordering = ('name',)
+
+
+def _get_next_scheduled_time(cron_string, use_local_timezone=False):
+    """Calculate the next scheduled time by creating a crontab object
+    with a cron string"""
+    now = timezone.now()
+    itr = croniter.croniter(cron_string, now)
+    return itr.get_next(datetime)
 
 
 class CronJob(BaseJob):
@@ -371,14 +379,15 @@ class CronJob(BaseJob):
         if result is False:
             return False
         kwargs = dict(
-            repeat=self.repeat,
+            meta=dict(repeat=self.repeat, ),
             args=self.parse_args(),
             kwargs=self.parse_kwargs(),
         )
         if self.timeout:
-            kwargs['timeout'] = self.timeout
-        job = self.scheduler().cron(
-            self.cron_string,
+            kwargs['job_timeout'] = self.timeout
+        scheduled_time = _get_next_scheduled_time(self.cron_string, use_local_timezone=False)
+        job = self.get_queue2().enqueue_at(
+            scheduled_time,
             self.callable_func(),
             **kwargs
         )
