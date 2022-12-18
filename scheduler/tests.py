@@ -397,7 +397,8 @@ class BaseTestCases:
             JobKwargFactory(key='key2', arg_type='int_val', int_val=2, content_object=job)
             JobKwargFactory(key='key3', arg_type='bool_val', bool_val=True, content_object=job)
             JobKwargFactory(key='key4', arg_type='datetime_val', datetime_val=date, content_object=job)
-            self.assertEqual(job.parse_kwargs(), dict(key1='one', key2=2, key3=True, key4=date))
+            kwargs = job.schedule_kwargs()['kwargs']
+            self.assertEqual(kwargs, dict(key1='one', key2=2, key3=True, key4=date))
 
         def test_callable_args_and_kwargs(self):
             job = self.JobClassFactory(callable='scheduler.tests.test_args_kwargs')

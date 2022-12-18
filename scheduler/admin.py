@@ -46,7 +46,7 @@ class JobAdmin(admin.ModelAdmin):
     readonly_fields = ('job_id',)
     fieldsets = (
         (None, {
-            'fields': ('name', 'callable', 'enabled',),
+            'fields': ('name', 'callable', 'enabled', 'at_front',),
         }),
         (_('RQ Settings'), {
             'fields': ('queue', 'job_id',),

@@ -105,6 +105,7 @@ class BaseJob(TimeStampedModel):
     job_id = models.CharField(
         _('job id'), max_length=128, editable=False, blank=True, null=True)
     repeat = models.PositiveIntegerField(_('repeat'), blank=True, null=True)
+    at_front = models.BooleanField(_('At front'), default=False)
     timeout = models.IntegerField(
         _('timeout'), blank=True, null=True,
         help_text=_(
@@ -174,7 +175,7 @@ class BaseJob(TimeStampedModel):
         func = self.callable + "(\u200b{})"  # zero-width space allows textwrap
         args = self.parse_args()
         args_list = [repr(arg) for arg in args]
-        kwargs = self.parse_kwargs()
+        kwargs = self.schedule_kwargs()['kwargs']
         kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
         return func.format(', '.join(args_list + kwargs_list))
 
@@ -184,9 +185,21 @@ class BaseJob(TimeStampedModel):
         args = self.callable_args.all()
         return [arg.value() for arg in args]
 
-    def parse_kwargs(self):
+    def schedule_kwargs(self) -> dict:
         kwargs = self.callable_kwargs.all()
-        return dict([kwarg.value() for kwarg in kwargs])
+        res = dict(
+            meta=dict(
+                repeat=self.repeat, ),
+            args=self.parse_args(),
+            kwargs=dict([kwarg.value() for kwarg in kwargs])
+        )
+        if self.at_front:
+            res['at_front'] = self.at_front
+        if self.timeout:
+            res['job_timeout'] = self.timeout
+        if self.result_ttl is not None:
+            res['result_ttl'] = self.result_ttl
+        return res
 
     def get_queue2(self):
         return get_queue(self.queue)
@@ -231,15 +244,10 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
             return False
         if result is False:
             return False
-        kwargs = self.parse_kwargs()
-        if self.timeout:
-            kwargs['job_timeout'] = self.timeout
-        if self.result_ttl is not None:
-            kwargs['result_ttl'] = self.result_ttl
+        kwargs = self.schedule_kwargs()
         job = self.get_queue2().enqueue_at(
             self.schedule_time_utc(),
             self.callable_func(),
-            *self.parse_args(),
             **kwargs
         )
         self.job_id = job.id
@@ -320,17 +328,8 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
             return False
         if result is False:
             return False
-        kwargs = dict(
-            meta=dict(
-                interval=self.interval_seconds(),
-                repeat=self.repeat, ),
-            args=self.parse_args(),
-            kwargs=self.parse_kwargs(),
-        )
-        if self.timeout:
-            kwargs['job_timeout'] = self.timeout
-        if self.result_ttl is not None:
-            kwargs['result_ttl'] = self.result_ttl
+        kwargs = self.schedule_kwargs()
+        kwargs['meta']['interval'] = self.interval_seconds()
         job = self.get_queue2().enqueue_at(
             self.schedule_time_utc(),
             self.callable_func(),
@@ -345,7 +344,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         ordering = ('name',)
 
 
-def _get_next_scheduled_time(cron_string, use_local_timezone=False):
+def _get_next_scheduled_time(cron_string):
     """Calculate the next scheduled time by creating a crontab object
     with a cron string"""
     now = timezone.now()
@@ -378,14 +377,9 @@ class CronJob(BaseJob):
         result = super(CronJob, self).schedule()
         if result is False:
             return False
-        kwargs = dict(
-            meta=dict(repeat=self.repeat, ),
-            args=self.parse_args(),
-            kwargs=self.parse_kwargs(),
-        )
-        if self.timeout:
-            kwargs['job_timeout'] = self.timeout
-        scheduled_time = _get_next_scheduled_time(self.cron_string, use_local_timezone=False)
+
+        kwargs = self.schedule_kwargs()
+        scheduled_time = _get_next_scheduled_time(self.cron_string)
         job = self.get_queue2().enqueue_at(
             scheduled_time,
             self.callable_func(),
