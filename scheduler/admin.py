@@ -125,7 +125,7 @@ class JobAdmin(admin.ModelAdmin):
             if asap:
                 kwargs['at_front'] = True  # setting kwargs at_front = True in the admin would also do the same
 
-            obj.scheduler().enqueue_at(
+            obj.get_queue2().enqueue_at(
                 utc(now()),
                 obj.callable_func(),
                 *obj.parse_args(),
