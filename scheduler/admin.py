@@ -117,7 +117,7 @@ class JobAdmin(admin.ModelAdmin):
     def run_job_now(self, request, queryset, asap=False):
         job_names = []
         for obj in queryset:
-            kwargs = obj.parse_kwargs()
+            kwargs = obj.schedule_kwargs()
             if obj.timeout:
                 kwargs['timeout'] = obj.timeout
             if hasattr(obj, 'result_ttl') and obj.result_ttl is not None:
