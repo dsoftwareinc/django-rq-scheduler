@@ -506,6 +506,46 @@ class BaseTestCases:
             self.assertEqual(entry.func, test_job)
             self.assertEqual(200, res.status_code)
 
+        def test_admin_enable_job(self):
+            # arrange
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
+            client = Client()
+            client.login(username='admin', password='admin')
+            job = self.JobClassFactory(enabled=False)
+            job.save()
+            data = {
+                'action': 'enable_selected',
+                '_selected_action': [job.id, ],
+            }
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_changelist')
+            # act
+            res = client.post(url, data=data, follow=True)
+            # assert
+            self.assertEqual(200, res.status_code)
+            job = self.JobClass.objects.filter(id=job.id).first()
+            self.assertTrue(job.enabled)
+
+        def test_admin_disable_job(self):
+            # arrange
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
+            client = Client()
+            client.login(username='admin', password='admin')
+            job = self.JobClassFactory(enabled=True)
+            job.save()
+            data = {
+                'action': 'disable_selected',
+                '_selected_action': [job.id, ],
+            }
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_changelist')
+            # act
+            res = client.post(url, data=data, follow=True)
+            # assert
+            self.assertEqual(200, res.status_code)
+            job = self.JobClass.objects.filter(id=job.id).first()
+            self.assertFalse(job.enabled)
+
     class TestSchedulableJob(TestBaseJob):
         # Currently ScheduledJob and RepeatableJob
         JobClass = BaseJob
