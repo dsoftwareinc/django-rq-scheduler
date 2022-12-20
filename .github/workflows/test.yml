@@ -62,7 +62,7 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Create coverage badge
         if: ${{ matrix.coverage == 'yes' && github.event_name == 'push' }}
-        uses: schneegans/dynamic-badges-action@v1.1.0
+        uses: schneegans/dynamic-badges-action@v1.6.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: b756396efb895f0e34558c980f1ca0c7
