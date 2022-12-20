@@ -486,6 +486,26 @@ class BaseTestCases:
             # assert
             self.assertEqual(200, res.status_code)
 
+        def test_admin_run_job_now(self):
+            # arrange
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
+            client = Client()
+            client.login(username='admin', password='admin')
+            job = self.JobClassFactory()
+            job.save()
+            data = {
+                'action': 'run_job_now',
+                '_selected_action': [job.id, ],
+            }
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_changelist')
+            # act
+            res = client.post(url, data=data, follow=True)
+            # assert
+            entry = _get_job_from_queue(job)
+            self.assertEqual(entry.func, test_job)
+            self.assertEqual(200, res.status_code)
+
     class TestSchedulableJob(TestBaseJob):
         # Currently ScheduledJob and RepeatableJob
         JobClass = BaseJob
