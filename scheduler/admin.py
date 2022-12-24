@@ -117,7 +117,7 @@ class JobAdmin(admin.ModelAdmin):
                 **kwargs
             )
             job_names.append(obj.name)
-        self.message_user(request, "The following jobs have been run: %s".format(', '.join(job_names)))
+        self.message_user(request, "The following jobs have been run: %s" % (', '.join(job_names),))
 
     run_job_now.short_description = "Run now"
     run_job_now.allowed_permissions = ('change',)
