@@ -70,13 +70,9 @@ class JobAdmin(admin.ModelAdmin):
             rows_deleted += 1
         elif isinstance(queryset, QuerySet):
             rows_deleted, _ = queryset.delete()
-        if rows_deleted == 1:
-            message_bit = "1 job was"
-        else:
-            message_bit = f"{rows_deleted} jobs were"
-
+        message_bit = "1 job was" if rows_deleted == 1 else f"{rows_deleted} jobs were"
         level = messages.WARNING if not rows_deleted else messages.INFO
-        self.message_user(request, "%s successfully deleted." % message_bit, level=level)
+        self.message_user(request, f"{message_bit} successfully deleted.", level=level)
 
     delete_model.short_description = _("Delete selected %(verbose_name_plural)s")
     delete_model.allowed_permissions = ('delete',)
@@ -87,13 +83,11 @@ class JobAdmin(admin.ModelAdmin):
             obj.enabled = False
             obj.save()
             rows_updated += 1
-        if rows_updated == 1:
-            message_bit = "1 job was"
-        else:
-            message_bit = "%s jobs were" % rows_updated
+
+        message_bit = "1 job was" if rows_updated == 1 else f"{rows_updated} jobs were"
 
         level = messages.WARNING if not rows_updated else messages.INFO
-        self.message_user(request, "%s successfully disabled." % message_bit, level=level)
+        self.message_user(request, f"{message_bit} successfully disabled.", level=level)
 
     disable_selected.short_description = _("Disable selected %(verbose_name_plural)s")
     disable_selected.allowed_permissions = ('change',)
@@ -104,12 +98,10 @@ class JobAdmin(admin.ModelAdmin):
             obj.enabled = True
             obj.save()
             rows_updated += 1
-        if rows_updated == 1:
-            message_bit = "1 job was"
-        else:
-            message_bit = "%s jobs were" % rows_updated
+
+        message_bit = "1 job was" if rows_updated == 1 else f"{rows_updated} jobs were"
         level = messages.WARNING if not rows_updated else messages.INFO
-        self.message_user(request, "%s successfully enabled." % message_bit, level=level)
+        self.message_user(request, f"{message_bit} successfully enabled.", level=level)
 
     enable_selected.short_description = _("Enable selected %(verbose_name_plural)s")
     enable_selected.allowed_permissions = ('change',)
@@ -125,7 +117,7 @@ class JobAdmin(admin.ModelAdmin):
                 **kwargs
             )
             job_names.append(obj.name)
-        self.message_user(request, "The following jobs have been run: %s" % ', '.join(job_names))
+        self.message_user(request, "The following jobs have been run: %s".format(', '.join(job_names)))
 
     run_job_now.short_description = "Run now"
     run_job_now.allowed_permissions = ('change',)

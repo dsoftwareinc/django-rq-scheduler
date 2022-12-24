@@ -7,7 +7,7 @@ name = "django-rq-scheduler"
 packages = [
     { include = "scheduler" },
 ]
-version = "2023.1.0-beta3"
+version = "2023.1.0"
 description = "A database backed job scheduler for Django RQ with Django"
 readme = "README.md"
 keywords = ["django", "rq", "django-rq"]
