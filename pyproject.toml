@@ -12,7 +12,10 @@ description = "A database backed job scheduler for Django RQ with Django"
 readme = "README.md"
 keywords = ["django", "rq", "django-rq"]
 authors = [
-    "Daniel Moran <daniel.maruani@gmail.com>"
+    "Daniel Moran <daniel.maruani@gmail.com>",
+]
+maintainers = [
+    "Daniel Moran <daniel.maruani@gmail.com>",
 ]
 license = "MIT"
 classifiers = [
