@@ -7,7 +7,7 @@ name = "django-rq-scheduler"
 packages = [
     { include = "scheduler" },
 ]
-version = "2023.1.0"
+version = "2023.1.1"
 description = "A database backed job scheduler for Django RQ with Django"
 readme = "README.md"
 keywords = ["django", "rq", "django-rq"]
@@ -31,6 +31,10 @@ classifiers = [
     'Framework :: Django :: 3.2',
 ]
 homepage = "https://github.com/dsoftwareinc/django-rq-scheduler"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/dsoftwareinc/django-rq-scheduler/issues"
+"Funding" = "https://github.com/sponsors/cunla"
 
 [tool.poetry.dependencies]
 python = "^3.9"
