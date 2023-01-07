@@ -865,14 +865,14 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "pkginfo"
-version = "1.9.3"
+version = "1.9.5"
 description = "Query metadatdata from sdists / bdists / installed packages."
 category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "pkginfo-1.9.3-py3-none-any.whl", hash = "sha256:76eac3a1c370e1505a771ed98a7e33b4546fe3650fd719e6c57ebb4393c20768"},
-    {file = "pkginfo-1.9.3.tar.gz", hash = "sha256:37e77722f0e16758e5f360098ced6bc5cfc19e5d3d410507a0c3a5d648df5b7c"},
+    {file = "pkginfo-1.9.5-py3-none-any.whl", hash = "sha256:911a99a7dbcd52d0726b32e9f0df84d09081f4faf98deff1e3835b7880d14223"},
+    {file = "pkginfo-1.9.5.tar.gz", hash = "sha256:14ac884f19ef50abfce74b2793394903b3e2901e759908237ba5e18ca9d7524b"},
 ]
 
 [package.extras]
