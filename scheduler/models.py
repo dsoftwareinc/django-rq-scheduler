@@ -16,6 +16,10 @@ from model_utils.models import TimeStampedModel
 
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
+def callback_to_reschedule_cronjob(job, connection, result, *args, **kwargs):
+    cronjob = CronJob.objects.filter(job_id=job.id)
+    if cronjob:
+        cronjob.first().save()  # this will trigger a reschedule
 
 class BaseJobArg(models.Model):
     ARG_TYPE = Choices(
@@ -383,6 +387,8 @@ class CronJob(BaseJob):
         job = self.get_queue2().enqueue_at(
             scheduled_time,
             self.callable_func(),
+            on_success=callback_to_reschedule_cronjob,
+            on_failure=callback_to_reschedule_cronjob,
             **kwargs
         )
         self.job_id = job.id
