@@ -109,7 +109,7 @@ class BaseJob(TimeStampedModel):
     job_id = models.CharField(
         _('job id'), max_length=128, editable=False, blank=True, null=True)
     repeat = models.PositiveIntegerField(_('repeat'), blank=True, null=True)
-    at_front = models.BooleanField(_('At front'), default=False)
+    at_front = models.BooleanField(_('At front'), default=False, blank=True, null=True)
     timeout = models.IntegerField(
         _('timeout'), blank=True, null=True,
         help_text=_(
