@@ -2,6 +2,7 @@ import importlib
 from datetime import datetime, timedelta
 
 import croniter
+from django.apps import apps
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -17,10 +18,14 @@ from model_utils.models import TimeStampedModel
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
 
-def callback_to_reschedule_cronjob(job, connection, result, *args, **kwargs):
-    cronjob = CronJob.objects.filter(job_id=job.id)
-    if cronjob:
-        cronjob.first().save()  # this will trigger a reschedule
+def callback_save_job(job, connection, result, *args, **kwargs):
+    model_name = job.meta.get('job_type', None)
+    if model_name is None:
+        return
+    model = apps.get_model(app_label='scheduler', model_name=model_name)
+    scheduled_job = model.objects.filter(job_id=job.id).first()
+    if scheduled_job:
+        scheduled_job.save()
 
 
 class BaseJobArg(models.Model):
@@ -102,6 +107,7 @@ class JobKwarg(BaseJobArg):
 
 
 class BaseJob(TimeStampedModel):
+    JOB_TYPE = 'BaseJob'
     name = models.CharField(_('name'), max_length=128, unique=True)
     callable = models.CharField(_('callable'), max_length=2048)
     callable_args = GenericRelation(JobArg, related_query_name='args')
@@ -195,8 +201,12 @@ class BaseJob(TimeStampedModel):
         kwargs = self.callable_kwargs.all()
         res = dict(
             meta=dict(
-                repeat=self.repeat, ),
+                repeat=self.repeat,
+                job_type=self.JOB_TYPE,
+            ),
             args=self.parse_args(),
+            on_success=callback_save_job,
+            on_failure=callback_save_job,
             kwargs=dict([kwarg.value() for kwarg in kwargs])
         )
         if self.at_front:
@@ -243,6 +253,7 @@ class ScheduledTimeMixin(models.Model):
 
 class ScheduledJob(ScheduledTimeMixin, BaseJob):
     repeat = None
+    JOB_TYPE = 'ScheduledJob'
 
     def schedule(self) -> bool:
         result = super(ScheduledJob, self).schedule()
@@ -278,6 +289,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
     interval_unit = models.CharField(
         _('interval unit'), max_length=12, choices=UNITS, default=UNITS.hours
     )
+    JOB_TYPE = 'RepeatableJob'
 
     def clean(self):
         super(RepeatableJob, self).clean()
@@ -359,6 +371,7 @@ def _get_next_scheduled_time(cron_string):
 
 
 class CronJob(BaseJob):
+    JOB_TYPE = 'CronJob'
     result_ttl = None
 
     cron_string = models.CharField(
@@ -389,8 +402,6 @@ class CronJob(BaseJob):
         job = self.get_queue2().enqueue_at(
             scheduled_time,
             self.callable_func(),
-            on_success=callback_to_reschedule_cronjob,
-            on_failure=callback_to_reschedule_cronjob,
             **kwargs
         )
         self.job_id = job.id

@@ -356,6 +356,12 @@ class BaseTestCases:
             entry = _get_job_from_queue(job)
             self.assertEqual(entry.timeout, 500)
 
+        def test_at_front_passthrough(self):
+            job = self.JobClassFactory(at_front=True)
+            queue = job.get_queue2()
+            jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
+            self.assertIn(job.job_id, jobs_to_schedule)
+
         def test_callable_result(self):
             job = self.JobClassFactory()
             entry = _get_job_from_queue(job)
@@ -788,6 +794,16 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         self.assertEqual(job.scheduled_time, base_time + timedelta(minutes=30))
         self.assertEqual(job.is_scheduled(), True)
 
+    def test_check_rescheduled_after_execution(self):
+        job = self.JobClassFactory(scheduled_time=timezone.now() + timedelta(seconds=1))
+        queue = job.get_queue2()
+        first_run_id = job.job_id
+        entry = queue.fetch_job(first_run_id)
+        queue.run_sync(entry)
+        job.refresh_from_db()
+        self.assertTrue(job.is_scheduled())
+        self.assertNotEquals(job.job_id, first_run_id)
+
 
 class TestCronJob(BaseTestCases.TestBaseJob):
     JobClass = CronJob
@@ -812,3 +828,13 @@ class TestCronJob(BaseTestCases.TestBaseJob):
         job = self.JobClassFactory(repeat=10)
         entry = _get_job_from_queue(job)
         self.assertEqual(entry.meta['repeat'], 10)
+
+    def test_check_rescheduled_after_execution(self):
+        job = self.JobClassFactory()
+        queue = job.get_queue2()
+        first_run_id = job.job_id
+        entry = queue.fetch_job(first_run_id)
+        queue.run_sync(entry)
+        job.refresh_from_db()
+        self.assertTrue(job.is_scheduled())
+        self.assertNotEquals(job.job_id, first_run_id)
