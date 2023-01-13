@@ -212,6 +212,14 @@ class BaseTestCases:
         JobClass = BaseJob
         JobClassFactory = BaseJobFactory
 
+        @classmethod
+        def setUpTestData(cls) -> None:
+            try:
+                User.objects.create_superuser('admin', 'admin@a.com', 'admin')
+            except Exception:
+                pass
+            cls.client = Client()
+
         def test_callable_func(self):
             job = self.JobClass()
             job.callable = 'scheduler.tests.test_job'
@@ -435,29 +443,25 @@ class BaseTestCases:
 
         def test_admin_list_view(self):
             # arrange
-            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
-            client = Client()
-            client.login(username='admin', password='admin')
+            self.client.login(username='admin', password='admin')
             job = self.JobClassFactory()
             job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
-            res = client.get(url)
+            res = self.client.get(url)
             # assert
             self.assertEqual(200, res.status_code)
 
         def test_admin_list_view_delete_model(self):
             # arrange
-            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
-            client = Client()
-            client.login(username='admin', password='admin')
+            self.client.login(username='admin', password='admin')
             job = self.JobClassFactory()
             job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
-            res = client.post(url, data={
+            res = self.client.post(url, data={
                 'action': 'delete_model',
                 '_selected_action': [job.pk, ],
             })
@@ -466,37 +470,31 @@ class BaseTestCases:
 
         def test_admin_single_view(self):
             # arrange
-            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
-            client = Client()
-            client.login(username='admin', password='admin')
+            self.client.login(username='admin', password='admin')
             job = self.JobClassFactory()
             job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_change', args=[job.pk, ])
             # act
-            res = client.get(url)
+            res = self.client.get(url)
             # assert
             self.assertEqual(200, res.status_code)
 
         def test_admin_single_delete(self):
             # arrange
-            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
-            client = Client()
-            client.login(username='admin', password='admin')
+            self.client.login(username='admin', password='admin')
             job = self.JobClassFactory()
             job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_delete', args=[job.pk, ])
             # act
-            res = client.post(url)
+            res = self.client.post(url)
             # assert
             self.assertEqual(200, res.status_code)
 
         def test_admin_run_job_now(self):
             # arrange
-            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
-            client = Client()
-            client.login(username='admin', password='admin')
+            self.client.login(username='admin', password='admin')
             job = self.JobClassFactory()
             job.save()
             data = {
@@ -506,7 +504,7 @@ class BaseTestCases:
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
-            res = client.post(url, data=data, follow=True)
+            res = self.client.post(url, data=data, follow=True)
             # assert
             entry = _get_job_from_queue(job)
             self.assertEqual(entry.func, test_job)
@@ -514,9 +512,7 @@ class BaseTestCases:
 
         def test_admin_enable_job(self):
             # arrange
-            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
-            client = Client()
-            client.login(username='admin', password='admin')
+            self.client.login(username='admin', password='admin')
             job = self.JobClassFactory(enabled=False)
             job.save()
             data = {
@@ -526,7 +522,7 @@ class BaseTestCases:
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
-            res = client.post(url, data=data, follow=True)
+            res = self.client.post(url, data=data, follow=True)
             # assert
             self.assertEqual(200, res.status_code)
             job = self.JobClass.objects.filter(id=job.id).first()
@@ -534,9 +530,7 @@ class BaseTestCases:
 
         def test_admin_disable_job(self):
             # arrange
-            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
-            client = Client()
-            client.login(username='admin', password='admin')
+            self.client.login(username='admin', password='admin')
             job = self.JobClassFactory(enabled=True)
             job.save()
             data = {
@@ -546,7 +540,7 @@ class BaseTestCases:
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
-            res = client.post(url, data=data, follow=True)
+            res = self.client.post(url, data=data, follow=True)
             # assert
             self.assertEqual(200, res.status_code)
             job = self.JobClass.objects.filter(id=job.id).first()
