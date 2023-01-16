@@ -23,9 +23,10 @@ def callback_save_job(job, connection, result, *args, **kwargs):
     if model_name is None:
         return
     model = apps.get_model(app_label='scheduler', model_name=model_name)
-    scheduled_job = model.objects.filter(job_id=job.id).first()
-    if scheduled_job:
-        scheduled_job.save()
+    enabled_jobs = model.objects.filter(enabled=True)
+    for job in enabled_jobs:
+        if not job.is_scheduled() and model_name != 'ScheduledJob':  # No need to reschedule if ScheduledJob
+            job.save()
 
 
 class BaseJobArg(models.Model):
