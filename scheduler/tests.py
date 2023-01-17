@@ -3,7 +3,6 @@ import zoneinfo
 from datetime import datetime, timedelta
 from itertools import combinations
 
-import django_rq
 import factory
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -14,7 +13,6 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django_rq import job as jobdecorator
-from fakeredis import FakeStrictRedis, FakeRedis
 
 from scheduler.models import BaseJob, BaseJobArg, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
 
@@ -264,8 +262,8 @@ class BaseTestCases:
                 job.clean()
 
         def test_is_schedulable_already_scheduled(self):
-            job = self.JobClass()
-            job.job_id = 'something'
+            job = self.JobClassFactory()
+            job.schedule()
             self.assertFalse(job.is_schedulable())
 
         def test_is_schedulable_disabled(self):
@@ -818,3 +816,28 @@ class TestCronJob(BaseTestCases.TestBaseJob):
         job.refresh_from_db()
         self.assertTrue(job.is_scheduled())
         self.assertNotEquals(job.job_id, first_run_id)
+
+
+from django_rq.queues import get_queue
+
+
+class TestSchedulerJob(TestCase):
+    def test_scheduler_job_is_running(self):
+        queue = get_queue('default')
+        jobs = queue.scheduled_job_registry.get_job_ids()
+        jobs = [queue.fetch_job(job_id) for job_id in jobs]
+        scheduler_job = None
+        for job in jobs:
+            if job.func_name == 'scheduler.apps.reschedule_all_jobs':
+                scheduler_job = job
+                break
+
+        self.assertIsNotNone(scheduler_job)
+
+        cron_job = CronJobFactory()
+        cron_job.unschedule()
+        self.assertFalse(cron_job.is_scheduled())
+        cron_job.save()
+        queue.run_sync(scheduler_job)
+        cron_job.refresh_from_db()
+        self.assertTrue(cron_job.is_scheduled())

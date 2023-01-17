@@ -1,7 +1,18 @@
-
 from django.apps import AppConfig
-from django.db.models.functions import Now
+from django.apps import apps
 from django.utils.translation import gettext_lazy as _
+from django_rq import job
+
+
+@job
+def reschedule_all_jobs():
+    MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
+    for model_name in MODEL_NAMES:
+        model = apps.get_model(app_label='scheduler', model_name=model_name)
+        enabled_jobs = model.objects.filter(enabled=True)
+        unscheduled = filter(lambda job: not job.is_scheduled(), enabled_jobs)
+        for job in unscheduled:
+            job.save()
 
 
 class SchedulerConfig(AppConfig):
@@ -11,32 +22,18 @@ class SchedulerConfig(AppConfig):
 
     def ready(self):
         try:
-            self.reschedule_cron_jobs()
-            self.reschedule_repeatable_jobs()
-            self.reschedule_scheduled_jobs()
-        except Exception:
+            cronjob_model = apps.get_model(app_label='scheduler', model_name='CronJob')
+            scheduler_job = cronjob_model.objects.filter(name='Job scheduling jobs').first()
+            if scheduler_job is None:
+                scheduler_job = cronjob_model.objects.create(
+                    cron_string='* * * * *',
+                    name='Job scheduling jobs',
+                    callable='scheduler.apps.reschedule_all_jobs',
+                    enabled=True,
+                    queue='default',
+                )
+            scheduler_job.save()
+        except Exception as e:
             # Django isn't ready yet, example a management command is being
             # executed
             pass
-
-    def reschedule_cron_jobs(self):
-        cron_job_class = self.get_model('CronJob')
-        jobs = cron_job_class.objects.filter(enabled=True)
-        self.reschedule_jobs(jobs)
-
-    def reschedule_repeatable_jobs(self):
-        repeatable_job_class = self.get_model('RepeatableJob')
-        jobs = repeatable_job_class.objects.filter(enabled=True)
-        self.reschedule_jobs(jobs)
-
-    def reschedule_scheduled_jobs(self):
-        scheduled_job_class = self.get_model('ScheduledJob')
-        jobs = scheduled_job_class.objects.filter(
-            enabled=True, scheduled_time__lte=Now())
-        self.reschedule_jobs(jobs)
-
-    @staticmethod
-    def reschedule_jobs(jobs):
-        for job in jobs:
-            if job.is_scheduled() is False:
-                job.save()
