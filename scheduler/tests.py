@@ -24,20 +24,6 @@ from scheduler.models import BaseJob, BaseJobArg, CronJob, JobArg, JobKwarg, Rep
 # Set up the connection before RQ Django reads the settings.
 # The connection must be the same because in fakeredis connections
 # do not share the state. Therefore, we define a singleton object to reuse it.
-class FakeRedisConn:
-    """Singleton FakeRedis connection."""
-
-    def __init__(self):
-        self.conn = None
-
-    def __call__(self, _, strict):
-        if not self.conn:
-            self.conn = FakeStrictRedis() if strict else FakeRedis()
-        return self.conn
-
-
-django_rq.queues.get_redis_connection = FakeRedisConn()
-
 
 class BaseJobFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: 'Scheduled Job %d' % n)
@@ -130,7 +116,7 @@ test_non_callable = 'I am a teapot'
 
 
 def _get_job_from_queue(django_job):
-    queue = django_job.get_queue2()
+    queue = django_job.get_rqueue()
     jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
     entry = next(i for i in jobs_to_schedule if i == django_job.job_id)
     return queue.fetch_job(entry)
@@ -366,7 +352,7 @@ class BaseTestCases:
 
         def test_at_front_passthrough(self):
             job = self.JobClassFactory(at_front=True)
-            queue = job.get_queue2()
+            queue = job.get_rqueue()
             jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
             self.assertIn(job.job_id, jobs_to_schedule)
 
@@ -790,7 +776,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
 
     def test_check_rescheduled_after_execution(self):
         job = self.JobClassFactory(scheduled_time=timezone.now() + timedelta(seconds=1))
-        queue = job.get_queue2()
+        queue = job.get_rqueue()
         first_run_id = job.job_id
         entry = queue.fetch_job(first_run_id)
         queue.run_sync(entry)
@@ -825,7 +811,7 @@ class TestCronJob(BaseTestCases.TestBaseJob):
 
     def test_check_rescheduled_after_execution(self):
         job = self.JobClassFactory()
-        queue = job.get_queue2()
+        queue = job.get_rqueue()
         first_run_id = job.job_id
         entry = queue.fetch_job(first_run_id)
         queue.run_sync(entry)

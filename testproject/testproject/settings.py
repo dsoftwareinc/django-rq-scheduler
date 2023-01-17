@@ -14,6 +14,23 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import django_rq  # noqa: F401
+from fakeredis import FakeStrictRedis, FakeRedis
+
+
+class FakeRedisConnSingleton:
+    """Singleton FakeRedis connection."""
+
+    def __init__(self):
+        self.conn = None
+
+    def __call__(self, *args, **kwargs):
+        strict = kwargs.pop('strict', None)
+        if not self.conn:
+            self.conn = FakeStrictRedis() if strict else FakeRedis()
+        return self.conn
+
+
+django_rq.queues.get_redis_connection = FakeRedisConnSingleton()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

@@ -113,7 +113,10 @@ class BaseJob(TimeStampedModel):
     callable_args = GenericRelation(JobArg, related_query_name='args')
     callable_kwargs = GenericRelation(JobKwarg, related_query_name='kwargs')
     enabled = models.BooleanField(_('enabled'), default=True)
-    queue = models.CharField(_('queue'), max_length=16)
+    queue = models.CharField(
+        _('queue'),
+        max_length=16,
+        help_text='Queue name', )
     job_id = models.CharField(
         _('job id'), max_length=128, editable=False, blank=True, null=True)
     repeat = models.PositiveIntegerField(_('repeat'), blank=True, null=True)
@@ -170,7 +173,7 @@ class BaseJob(TimeStampedModel):
     def is_scheduled(self) -> bool:
         if not self.job_id:
             return False
-        return self.job_id in self.get_queue2().scheduled_job_registry.get_job_ids()
+        return self.job_id in self.get_rqueue().scheduled_job_registry.get_job_ids()
 
     is_scheduled.short_description = _('is scheduled?')
     is_scheduled.boolean = True
@@ -217,13 +220,11 @@ class BaseJob(TimeStampedModel):
             res['result_ttl'] = self.result_ttl
         return res
 
-    def get_queue2(self):
+    def get_rqueue(self):
         return get_queue(self.queue)
 
     def is_schedulable(self) -> bool:
-        if self.job_id:
-            return False
-        return self.enabled
+        return self.enabled and not self.is_scheduled()
 
     def schedule(self) -> bool:
         self.unschedule()
@@ -232,8 +233,10 @@ class BaseJob(TimeStampedModel):
         return True
 
     def unschedule(self) -> bool:
+        queue = self.get_rqueue()
         if self.is_scheduled():
-            self.get_queue2().remove(self.job_id)
+            queue.remove(self.job_id)
+            queue.scheduled_job_registry.remove(self.job_id)
         self.job_id = None
         return True
 
@@ -262,7 +265,7 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
         if result is False:
             return False
         kwargs = self.schedule_kwargs()
-        job = self.get_queue2().enqueue_at(
+        job = self.get_rqueue().enqueue_at(
             self.schedule_time_utc(),
             self.callable_func(),
             **kwargs
@@ -348,7 +351,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
             return False
         kwargs = self.schedule_kwargs()
         kwargs['meta']['interval'] = self.interval_seconds()
-        job = self.get_queue2().enqueue_at(
+        job = self.get_rqueue().enqueue_at(
             self.schedule_time_utc(),
             self.callable_func(),
             **kwargs
@@ -399,7 +402,7 @@ class CronJob(BaseJob):
 
         kwargs = self.schedule_kwargs()
         scheduled_time = _get_next_scheduled_time(self.cron_string)
-        job = self.get_queue2().enqueue_at(
+        job = self.get_rqueue().enqueue_at(
             scheduled_time,
             self.callable_func(),
             **kwargs
