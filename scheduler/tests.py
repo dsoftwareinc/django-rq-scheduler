@@ -821,6 +821,11 @@ class TestCronJob(BaseTestCases.TestBaseJob):
 
 class TestSchedulerJob(TestCase):
     def test_scheduler_job_is_running(self):
+        # assert job created
+        scheduler_cron_job = CronJob.objects.filter(name='Job scheduling jobs').first()
+        self.assertIsNotNone(scheduler_cron_job)
+
+        scheduler_cron_job.schedule()  # This should happen in ready
         queue = get_queue('default')
         jobs = queue.scheduled_job_registry.get_job_ids()
         jobs = [queue.fetch_job(job_id) for job_id in jobs]
@@ -829,7 +834,6 @@ class TestSchedulerJob(TestCase):
             if job.func_name == 'scheduler.apps.reschedule_all_jobs':
                 scheduler_job = job
                 break
-
         self.assertIsNotNone(scheduler_job)
 
         cron_job = CronJobFactory()

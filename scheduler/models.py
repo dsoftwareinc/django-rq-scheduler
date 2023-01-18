@@ -179,7 +179,8 @@ class BaseJob(TimeStampedModel):
     is_scheduled.boolean = True
 
     def save(self, **kwargs):
-        self.schedule()
+        if kwargs.get('schedule_job', True):
+            self.schedule()
         super(BaseJob, self).save(**kwargs)
 
     def delete(self, **kwargs):
