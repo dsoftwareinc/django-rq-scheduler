@@ -327,12 +327,14 @@ class BaseTestCases:
             self.assertFalse(job.is_scheduled())
 
         def test_job_build(self):
+            prev_count = self.JobClass.objects.count()
             self.JobClassFactory.build()
-            self.assertEqual(self.JobClass.objects.count(), 0)
+            self.assertEqual(self.JobClass.objects.count(), prev_count)
 
         def test_job_create(self):
+            prev_count = self.JobClass.objects.count()
             self.JobClassFactory.create()
-            self.assertEqual(self.JobClass.objects.count(), 1)
+            self.assertEqual(self.JobClass.objects.count(), prev_count + 1)
 
         def test_str(self):
             name = "test"
