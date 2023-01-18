@@ -165,6 +165,7 @@ class CronJobAdmin(JobAdmin):
                 'cron_string',
                 'repeat',
                 'timeout',
+                'result_ttl',
             ),
         }),
     )
