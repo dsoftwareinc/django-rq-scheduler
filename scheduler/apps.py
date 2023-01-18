@@ -10,9 +10,9 @@ def reschedule_all_jobs():
     for model_name in MODEL_NAMES:
         model = apps.get_model(app_label='scheduler', model_name=model_name)
         enabled_jobs = model.objects.filter(enabled=True)
-        unscheduled = filter(lambda job: not job.is_scheduled(), enabled_jobs)
-        for job in unscheduled:
-            job.save()
+        unscheduled_jobs = filter(lambda job: not job.is_scheduled(), enabled_jobs)
+        for item in unscheduled_jobs:
+            item.save()
 
 
 class SchedulerConfig(AppConfig):
@@ -33,7 +33,7 @@ class SchedulerConfig(AppConfig):
                     queue='default',
                 )
             scheduler_job.save()
-        except Exception as e:
+        except Exception:
             # Django isn't ready yet, example a management command is being
             # executed
             pass

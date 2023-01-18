@@ -13,6 +13,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from django_rq import job as jobdecorator
+from django_rq.queues import get_queue
 
 from scheduler.models import BaseJob, BaseJobArg, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
 
@@ -816,9 +817,6 @@ class TestCronJob(BaseTestCases.TestBaseJob):
         job.refresh_from_db()
         self.assertTrue(job.is_scheduled())
         self.assertNotEquals(job.job_id, first_run_id)
-
-
-from django_rq.queues import get_queue
 
 
 class TestSchedulerJob(TestCase):
