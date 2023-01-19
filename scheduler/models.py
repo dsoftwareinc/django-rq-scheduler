@@ -376,7 +376,6 @@ def _get_next_scheduled_time(cron_string):
 
 class CronJob(BaseJob):
     JOB_TYPE = 'CronJob'
-    result_ttl = None
 
     cron_string = models.CharField(
         _('cron string'), max_length=64,
