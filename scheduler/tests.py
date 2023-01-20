@@ -775,6 +775,15 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         self.assertEqual(job.scheduled_time, base_time + timedelta(minutes=30))
         self.assertEqual(job.is_scheduled(), True)
 
+    def test_repeat_none_interval_2_min(self):
+        base_time = timezone.now()
+        job = self.JobClassFactory(scheduled_time=base_time - timedelta(minutes=29), repeat=None)
+        job.interval = 120
+        job.interval_unit = 'seconds'
+        job.schedule()
+        self.assertTrue(job.scheduled_time > base_time)
+        self.assertEqual(job.is_scheduled(), True)
+
     def test_check_rescheduled_after_execution(self):
         job = self.JobClassFactory(scheduled_time=timezone.now() + timedelta(seconds=1))
         queue = job.get_rqueue()
