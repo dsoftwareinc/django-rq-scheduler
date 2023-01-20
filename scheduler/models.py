@@ -339,9 +339,10 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         and decrements that amount from the repeats remaining and updates the scheduled time to the next repeat.
         :return:
         """
-        while self.scheduled_time < timezone.now() and self.repeat and self.repeat > 0:
+        while self.scheduled_time < timezone.now() and (self.repeat is None or (self.repeat and self.repeat > 0)):
             self.scheduled_time += timedelta(seconds=self.interval_seconds())
-            self.repeat -= 1
+            if self.repeat and self.repeat > 0:
+                self.repeat -= 1
 
     def schedule(self):
         result = super(RepeatableJob, self).schedule()
