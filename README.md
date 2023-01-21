@@ -11,6 +11,7 @@ Django RQ Scheduler
 > as mentioned [here](https://github.com/rq/django-rq#support-for-scheduled-jobs).
 
 
+
 A database backed job scheduler for Django RQ.
 Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.
 
