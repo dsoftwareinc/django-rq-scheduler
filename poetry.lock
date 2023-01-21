@@ -604,14 +604,14 @@ doc = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
 
 [[package]]
 name = "faker"
-version = "16.6.0"
+version = "16.4.0"
 description = "Faker is a Python package that generates fake data for you."
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "Faker-16.6.0-py3-none-any.whl", hash = "sha256:0a74514d654db0a3d37b9ca681f2d9182d2ec556f78b4f1a842a2ccc944660cd"},
-    {file = "Faker-16.6.0.tar.gz", hash = "sha256:dc8b2a8bf0d852d26eacf7763afd5e7d6e9e50d80ec648b51b8ecd3c505435fd"},
+    {file = "Faker-16.4.0-py3-none-any.whl", hash = "sha256:5420467fad3fa582094057754e5e81326cb1f51ab822bf9df96c077cfb35ae49"},
+    {file = "Faker-16.4.0.tar.gz", hash = "sha256:dcffdca8ec9a715982bcd5f53ee688dc4784cd112f9910f8f7183773eb3ec276"},
 ]
 
 [package.dependencies]
@@ -1319,14 +1319,14 @@ requests = ">=2.0.1,<3.0.0"
 
 [[package]]
 name = "rq"
-version = "1.12.0"
+version = "1.11.1"
 description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
 category = "main"
 optional = false
 python-versions = ">=3.5"
 files = [
-    {file = "rq-1.12.0-py2.py3-none-any.whl", hash = "sha256:b268947a94a1da7de3c5f3925a59db60bffdede782ca1f23da654bf985a83c7a"},
-    {file = "rq-1.12.0.tar.gz", hash = "sha256:16ebbfa8891ece999485cb7d1e0559550ac576da43585138e6951db23654bbf6"},
+    {file = "rq-1.11.1-py2.py3-none-any.whl", hash = "sha256:433882bde50ac462eb489dc1ffa476209c42b284d0031270631da26363923702"},
+    {file = "rq-1.11.1.tar.gz", hash = "sha256:31c07e55255bdc05c804902d4e15779185603b04b9161b43c3e7bcac84b3343b"},
 ]
 
 [package.dependencies]
@@ -1423,14 +1423,14 @@ files = [
 
 [[package]]
 name = "trove-classifiers"
-version = "2023.1.20"
+version = "2023.1.12"
 description = "Canonical source for classifiers on PyPI (pypi.org)."
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "trove-classifiers-2023.1.20.tar.gz", hash = "sha256:ed3fd4e1d2ea77ca9ed379380582566e6003a54d70a3e5521a9b2a7896609362"},
-    {file = "trove_classifiers-2023.1.20-py3-none-any.whl", hash = "sha256:e4fb91e744a1b8a4e416226dbd4c3a58717295f54608e412cee526287d5d14d0"},
+    {file = "trove-classifiers-2023.1.12.tar.gz", hash = "sha256:eba460d83260fcf3648d7c8acbf2204344fd785f890fbaecb6864a7fb9f0692e"},
+    {file = "trove_classifiers-2023.1.12-py3-none-any.whl", hash = "sha256:b10b3cbdefc342fbce9aa5b49907c7df4b33b14252a8e0ee4122cbf918a5cab4"},
 ]
 
 [[package]]
