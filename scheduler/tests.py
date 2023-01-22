@@ -52,7 +52,7 @@ class RepeatableJobFactory(BaseJobFactory):
     result_ttl = None
     interval = 1
     interval_unit = 'hours'
-    repeat = 0
+    repeat = None
 
     @factory.lazy_attribute
     def scheduled_time(self):
