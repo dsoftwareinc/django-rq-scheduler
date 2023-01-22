@@ -661,7 +661,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
     def test_unschedulable_old_job(self):
         job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1), repeat=0)
         self.assertFalse(job.is_scheduled())
-    
+
     def test_schedulable_old_job_repeat_none(self):
         # If repeat is None, the job should be scheduled
         job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1), repeat=None)
