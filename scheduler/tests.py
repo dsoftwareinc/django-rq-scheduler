@@ -538,6 +538,7 @@ class BaseTestCases:
         JobClass = BaseJob
         JobClassFactory = BaseJobFactory
         RepeatableJobClassFactory = RepeatableJobFactory
+        ScheduledJobClassFactory = ScheduledJobFactory
 
         def test_schedule_time_utc(self):
             job = self.JobClass()
@@ -549,7 +550,7 @@ class BaseTestCases:
             self.assertEqual(expected, job.schedule_time_utc().isoformat())
 
         def test_unschedulable_old_job(self):
-            job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1))
+            job = self.ScheduledJobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1))
             self.assertFalse(job.is_scheduled())
 
         def test_schedulable_old_job_repeat_none(self):
@@ -788,7 +789,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         job.interval_unit = 'seconds'
         job.schedule()
         self.assertTrue(job.scheduled_time > base_time)
-        self.assertEqual(job.is_scheduled(), True)
+        self.assertTrue(job.is_scheduled())
 
     def test_check_rescheduled_after_execution(self):
         job = self.JobClassFactory(scheduled_time=timezone.now() + timedelta(seconds=1))
