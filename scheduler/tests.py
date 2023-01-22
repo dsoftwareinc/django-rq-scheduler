@@ -537,8 +537,6 @@ class BaseTestCases:
         # Currently ScheduledJob and RepeatableJob
         JobClass = BaseJob
         JobClassFactory = BaseJobFactory
-        RepeatableJobClassFactory = RepeatableJobFactory
-        ScheduledJobClassFactory = ScheduledJobFactory
 
         def test_schedule_time_utc(self):
             job = self.JobClass()
@@ -548,15 +546,6 @@ class BaseTestCases:
             utc = zoneinfo.ZoneInfo('UTC')
             expected = scheduled_time.astimezone(utc).isoformat()
             self.assertEqual(expected, job.schedule_time_utc().isoformat())
-
-        def test_unschedulable_old_job(self):
-            job = self.ScheduledJobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1))
-            self.assertFalse(job.is_scheduled())
-
-        def test_schedulable_old_job_repeat_none(self):
-            # If repeat is None, the job should be scheduled
-            job = self.RepeatableJobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1), repeat=None)
-            self.assertTrue(job.is_scheduled())
 
         def test_result_ttl_passthrough(self):
             job = self.JobClassFactory(result_ttl=500)
@@ -660,10 +649,23 @@ class TestScheduledJob(BaseTestCases.TestSchedulableJob):
         job.callable = 'scheduler.tests.test_job'
         self.assertIsNone(job.clean())
 
+    def test_unschedulable_old_job(self):
+        job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1))
+        self.assertFalse(job.is_scheduled())
+
 
 class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
     JobClass = RepeatableJob
     JobClassFactory = RepeatableJobFactory
+
+    def test_unschedulable_old_job(self):
+        job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1), repeat=0)
+        self.assertFalse(job.is_scheduled())
+    
+    def test_schedulable_old_job_repeat_none(self):
+        # If repeat is None, the job should be scheduled
+        job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1), repeat=None)
+        self.assertTrue(job.is_scheduled())
 
     def test_clean(self):
         job = self.JobClass()
