@@ -1,5 +1,5 @@
 ---
-site_name: fakeredis
+site_name: django-rq-scheduler
 site_author: Daniel Moran
 site_description: >-
   Documentation for django-rq-scheduler django library
