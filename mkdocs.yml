@@ -38,3 +38,7 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
+
+theme:
+  analytics:
+    gtag: G-GRY8R9SXZ0
