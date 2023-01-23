@@ -547,10 +547,6 @@ class BaseTestCases:
             expected = scheduled_time.astimezone(utc).isoformat()
             self.assertEqual(expected, job.schedule_time_utc().isoformat())
 
-        def test_unschedulable_old_job(self):
-            job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1))
-            self.assertFalse(job.is_scheduled())
-
         def test_result_ttl_passthrough(self):
             job = self.JobClassFactory(result_ttl=500)
             entry = _get_job_from_queue(job)
@@ -653,10 +649,23 @@ class TestScheduledJob(BaseTestCases.TestSchedulableJob):
         job.callable = 'scheduler.tests.test_job'
         self.assertIsNone(job.clean())
 
+    def test_unschedulable_old_job(self):
+        job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1))
+        self.assertFalse(job.is_scheduled())
+
 
 class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
     JobClass = RepeatableJob
     JobClassFactory = RepeatableJobFactory
+
+    def test_unschedulable_old_job(self):
+        job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1), repeat=0)
+        self.assertFalse(job.is_scheduled())
+
+    def test_schedulable_old_job_repeat_none(self):
+        # If repeat is None, the job should be scheduled
+        job = self.JobClassFactory(scheduled_time=timezone.now() - timedelta(hours=1), repeat=None)
+        self.assertTrue(job.is_scheduled())
 
     def test_clean(self):
         job = self.JobClass()
@@ -774,6 +783,15 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         self.assertEqual(job.repeat, 4)
         self.assertEqual(job.scheduled_time, base_time + timedelta(minutes=30))
         self.assertEqual(job.is_scheduled(), True)
+
+    def test_repeat_none_interval_2_min(self):
+        base_time = timezone.now()
+        job = self.JobClassFactory(scheduled_time=base_time - timedelta(minutes=29), repeat=None)
+        job.interval = 120
+        job.interval_unit = 'seconds'
+        job.schedule()
+        self.assertTrue(job.scheduled_time > base_time)
+        self.assertTrue(job.is_scheduled())
 
     def test_check_rescheduled_after_execution(self):
         job = self.JobClassFactory(scheduled_time=timezone.now() + timedelta(seconds=1))
