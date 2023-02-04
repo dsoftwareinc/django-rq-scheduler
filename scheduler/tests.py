@@ -16,6 +16,7 @@ from django_rq import job as jobdecorator
 from django_rq.queues import get_queue
 
 from scheduler.models import BaseJob, BaseJobArg, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler.scheduler import DjangoRQScheduler
 
 
 # RQ
@@ -863,3 +864,11 @@ class TestSchedulerJob(TestCase):
         queue.run_sync(scheduler_job)
         cron_job.refresh_from_db()
         self.assertTrue(cron_job.is_scheduled())
+
+    def test_scheduler_process_is_running(self):
+        scheduler = DjangoRQScheduler(interval=1)
+        t = scheduler.start()
+        assert scheduler.thread == t
+        assert scheduler.thread.name == 'Scheduler'
+        scheduler.request_stop()
+        t.join()

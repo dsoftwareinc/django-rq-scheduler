@@ -3,6 +3,8 @@ from django.apps import apps
 from django.utils.translation import gettext_lazy as _
 from django_rq import job
 
+from scheduler.scheduler import DjangoRQScheduler
+
 
 @job
 def reschedule_all_jobs():
@@ -27,3 +29,5 @@ class SchedulerConfig(AppConfig):
             # Django isn't ready yet, example a management command is being
             # executed
             pass
+        scheduler = DjangoRQScheduler()
+        scheduler.start()

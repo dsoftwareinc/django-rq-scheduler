@@ -6,9 +6,8 @@ Django RQ Scheduler
 [![badge](https://img.shields.io/pypi/dm/django-rq-scheduler)](https://pypi.org/project/django-rq-scheduler/)
 
 > Notice:
-> Starting v2023.1, requirement for rq_scheduler was removed and instead
-> one of the django-rq workers should run with `--with-scheduler` parameter
-> as mentioned [here](https://github.com/rq/django-rq#support-for-scheduled-jobs).
+> Starting v2023.3, requirement for rq_scheduler was removed and instead
+> django-rq-scheduler will run its own scheduler in a separate thread.
 
 
 A database backed job scheduler for Django RQ.
