@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 from django.apps import apps
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django_rq import job
 
@@ -29,5 +30,6 @@ class SchedulerConfig(AppConfig):
             # Django isn't ready yet, example a management command is being
             # executed
             pass
-        scheduler = DjangoRQScheduler()
+        interval = getattr(settings, 'SCHEDULER_INTERVAL', 60)
+        scheduler = DjangoRQScheduler(interval=interval)
         scheduler.start()
