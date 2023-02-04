@@ -30,6 +30,8 @@ class SchedulerConfig(AppConfig):
             # Django isn't ready yet, example a management command is being
             # executed
             pass
-        interval = getattr(settings, 'SCHEDULER_INTERVAL', 60)
-        scheduler = DjangoRQScheduler(interval=interval)
-        scheduler.start()
+        start_scheduler_as_thread = getattr(settings, 'SCHEDULER_THREAD', True)
+        if start_scheduler_as_thread:
+            interval = getattr(settings, 'SCHEDULER_INTERVAL', 60)
+            scheduler = DjangoRQScheduler(interval=interval)
+            scheduler.start()

@@ -17,7 +17,7 @@ import django_rq  # noqa: F401
 from fakeredis import FakeStrictRedis, FakeRedis
 
 SCHEDULER_INTERVAL = 1
-
+SCHEDULER_THREAD = True
 
 class FakeRedisConnSingleton:
     """Singleton FakeRedis connection."""
