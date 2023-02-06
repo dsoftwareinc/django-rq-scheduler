@@ -619,14 +619,14 @@ python-dateutil = ">=2.4"
 
 [[package]]
 name = "fakeredis"
-version = "2.7.0"
+version = "2.7.1"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "fakeredis-2.7.0-py3-none-any.whl", hash = "sha256:67850c489861d85721edd6433af8d04a050fac377e9092b49d5439b94a83cb3a"},
-    {file = "fakeredis-2.7.0.tar.gz", hash = "sha256:20264fb69e584b8582ac1842b904324cda7c82b69224c62b07690073795b834f"},
+    {file = "fakeredis-2.7.1-py3-none-any.whl", hash = "sha256:e2f7a88dad23be1191ad6212008e170d75c2d63dde979c2694be8cbfd917428e"},
+    {file = "fakeredis-2.7.1.tar.gz", hash = "sha256:854d758794dab9953be16b9a0f7fbd4bbd6b6964db7a9684e163291c1342ece6"},
 ]
 
 [package.dependencies]
