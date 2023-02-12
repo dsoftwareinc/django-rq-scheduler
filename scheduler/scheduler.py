@@ -21,6 +21,9 @@ class DjangoRQScheduler(RQScheduler):
         redis_conn = django_rq.get_connection()
         super(DjangoRQScheduler, self).__init__(queues, redis_conn, *args, **kwargs)
 
+    def instance(self):
+        return self._instance
+
     def _install_signal_handlers(self):
         return None
 
