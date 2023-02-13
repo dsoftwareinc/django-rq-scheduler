@@ -134,3 +134,8 @@ def job_args_kwargs(*args, **kwargs):
 
 Please report issues via [GitHub Issues](https://github.com/dsoftwareinc/django-rq-scheduler/issues) .
 
+## Security contact information
+
+To report a security vulnerability, please use the
+[Tidelift security contact](https://tidelift.com/security).
+Tidelift will coordinate the fix and disclosure.
