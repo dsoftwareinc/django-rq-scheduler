@@ -34,6 +34,7 @@ classifiers = [
     'Framework :: Django :: 3.2',
 ]
 homepage = "https://github.com/dsoftwareinc/django-rq-scheduler"
+documentation = "https://django-rq-scheduler.readthedocs.io/en/latest/"
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/dsoftwareinc/django-rq-scheduler/issues"
