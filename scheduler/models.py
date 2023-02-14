@@ -155,7 +155,7 @@ class BaseJob(TimeStampedModel):
     def clean_callable(self):
         try:
             self.callable_func()
-        except TypeError:
+        except Exception:
             raise ValidationError({
                 'callable': ValidationError(
                     _('Invalid callable, must be importable'), code='invalid')
