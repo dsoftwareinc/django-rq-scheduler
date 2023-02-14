@@ -621,14 +621,14 @@ python-dateutil = ">=2.4"
 
 [[package]]
 name = "fakeredis"
-version = "2.8.0"
+version = "2.9.0"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
-python-versions = ">=3.8.1,<4.0"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "fakeredis-2.8.0-py3-none-any.whl", hash = "sha256:f1130bc2da77d5063c7aeee643b456d2bd486f3bd0236976646af1fb6b7e08fb"},
-    {file = "fakeredis-2.8.0.tar.gz", hash = "sha256:2d5487e765894714d08fca50351c3a224e705eb02c02b2d012c00ed98b979616"},
+    {file = "fakeredis-2.9.0-py3-none-any.whl", hash = "sha256:fc0c48216bb40a01e51b002c70966cd17242cf7406e7ced4ff85235f4971d096"},
+    {file = "fakeredis-2.9.0.tar.gz", hash = "sha256:ea29b10277efce23ade22ef33ccd273e365db658313ceace299e4027b066bbd6"},
 ]
 
 [package.dependencies]
@@ -1622,4 +1622,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "9602af88311b683b17a9965c61d8dfbbf1ee52603481b617f51c417f5d27c830"
+content-hash = "245ee0e829a5c7dddcdacc0a71d36a2a223eabbeb5abcf770d2e97eb0dac6de0"
