@@ -6,6 +6,7 @@ from django.templatetags.tz import utc
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
+from scheduler import tools
 from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob, BaseJob
 
 QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
@@ -63,6 +64,7 @@ class JobAdmin(admin.ModelAdmin):
         queue_field.choices = QUEUES
         return super(JobAdmin, self).get_form(request, obj, **kwargs)
 
+    @admin.action(description=_("Delete selected %(verbose_name_plural)s"), permissions=('delete',))
     def delete_model(self, request, queryset):
         rows_deleted = 0
         if isinstance(queryset, BaseJob):
@@ -74,9 +76,7 @@ class JobAdmin(admin.ModelAdmin):
         level = messages.WARNING if not rows_deleted else messages.INFO
         self.message_user(request, f"{message_bit} successfully deleted.", level=level)
 
-    delete_model.short_description = _("Delete selected %(verbose_name_plural)s")
-    delete_model.allowed_permissions = ('delete',)
-
+    @admin.action(description=_("Disable selected %(verbose_name_plural)s"), permissions=('change',))
     def disable_selected(self, request, queryset):
         rows_updated = 0
         for obj in queryset.filter(enabled=True).iterator():
@@ -89,9 +89,7 @@ class JobAdmin(admin.ModelAdmin):
         level = messages.WARNING if not rows_updated else messages.INFO
         self.message_user(request, f"{message_bit} successfully disabled.", level=level)
 
-    disable_selected.short_description = _("Disable selected %(verbose_name_plural)s")
-    disable_selected.allowed_permissions = ('change',)
-
+    @admin.action(description=_("Enable selected %(verbose_name_plural)s"), permissions=('change',))
     def enable_selected(self, request, queryset):
         rows_updated = 0
         for obj in queryset.filter(enabled=False).iterator():
@@ -103,9 +101,7 @@ class JobAdmin(admin.ModelAdmin):
         level = messages.WARNING if not rows_updated else messages.INFO
         self.message_user(request, f"{message_bit} successfully enabled.", level=level)
 
-    enable_selected.short_description = _("Enable selected %(verbose_name_plural)s")
-    enable_selected.allowed_permissions = ('change',)
-
+    @admin.action(description="Run now", permissions=('change',))
     def run_job_now(self, request, queryset):
         job_names = []
         for obj in queryset:
@@ -118,9 +114,6 @@ class JobAdmin(admin.ModelAdmin):
             )
             job_names.append(obj.name)
         self.message_user(request, "The following jobs have been run: %s" % (', '.join(job_names),))
-
-    run_job_now.short_description = "Run now"
-    run_job_now.allowed_permissions = ('change',)
 
 
 @admin.register(ScheduledJob)
@@ -157,7 +150,7 @@ class RepeatableJobAdmin(JobAdmin):
 
 @admin.register(CronJob)
 class CronJobAdmin(JobAdmin):
-    list_display = JobAdmin.list_display + ('cron_string',)
+    list_display = JobAdmin.list_display + ('cron_string', 'next_run')
 
     fieldsets = JobAdmin.fieldsets + (
         (_('Scheduling'), {
@@ -169,3 +162,7 @@ class CronJobAdmin(JobAdmin):
             ),
         }),
     )
+
+    @admin.display(description='Next run')
+    def next_run(self, o):
+        return tools.get_next_cron_time(o.cron_string)

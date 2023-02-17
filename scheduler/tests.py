@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 import zoneinfo
 from datetime import datetime, timedelta
 from itertools import combinations
@@ -8,13 +9,13 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.test import Client
-from django.test import TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django_rq import job as jobdecorator
 from django_rq.queues import get_queue
 
+from scheduler import tools
 from scheduler.models import BaseJob, BaseJobArg, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
 from scheduler.scheduler import DjangoRQScheduler
 
@@ -842,17 +843,19 @@ class TestCronJob(BaseTestCases.TestBaseJob):
 
 class TestSchedulerJob(TestCase):
     def test_scheduler_job_is_running(self):
+        tools.reschedule_all_jobs()
         # assert job created
         scheduler_cron_job = CronJob.objects.filter(name='Job scheduling jobs').first()
         self.assertIsNotNone(scheduler_cron_job)
 
+        scheduler_cron_job.unschedule()
         scheduler_cron_job.schedule()  # This should happen in ready
         queue = get_queue('default')
         jobs = queue.scheduled_job_registry.get_job_ids()
         jobs = [queue.fetch_job(job_id) for job_id in jobs]
         scheduler_job = None
         for job in jobs:
-            if job.func_name == 'scheduler.apps.reschedule_all_jobs':
+            if job.func_name == 'scheduler.tools.reschedule_all_jobs':
                 scheduler_job = job
                 break
         self.assertIsNotNone(scheduler_job)
@@ -865,10 +868,31 @@ class TestSchedulerJob(TestCase):
         cron_job.refresh_from_db()
         self.assertTrue(cron_job.is_scheduled())
 
-    def test_scheduler_process_is_running(self):
-        scheduler = DjangoRQScheduler(interval=1)
-        t = scheduler.start()
-        assert scheduler.thread == t
-        assert scheduler.thread.name == 'Scheduler'
+    def test_scheduler_thread_is_running(self):
+        tools.start_scheduler_thread()
+        time.sleep(1)
+        scheduler = DjangoRQScheduler.instance()
+        self.assertIsNotNone(scheduler.thread)
+        self.assertEqual(scheduler.thread.name, 'Scheduler')
+        self.assertTrue(scheduler.thread.is_alive())
         scheduler.request_stop()
-        t.join()
+        scheduler.thread.join()
+
+    @override_settings(SCHEDULER_INTERVAL=2)
+    def test_scheduler_thread_is_running_interval_40(self):
+        tools.start_scheduler_thread()
+        scheduler = DjangoRQScheduler.instance()
+        scheduler.request_stop()
+        scheduler.thread.join()
+        tools.start_scheduler_thread()
+        self.assertEqual(scheduler.interval, 2)
+        scheduler.request_stop()
+        scheduler.thread.join()
+
+    @override_settings(SCHEDULER_THREAD=False)
+    def test_scheduler_process_is_not_running(self):
+        scheduler = DjangoRQScheduler.instance()
+        scheduler.request_stop()
+        scheduler.thread.join()
+        tools.start_scheduler_thread()
+        assert scheduler.thread is None

@@ -1,9 +1,9 @@
-import importlib
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import croniter
 from django.apps import apps
 from django.conf import settings
+from django.contrib import admin
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -15,6 +15,8 @@ from django_rq.queues import get_queue
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
+from scheduler import tools
+
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
 
@@ -25,6 +27,7 @@ def callback_save_job(job, connection, result, *args, **kwargs):
     model = apps.get_model(app_label='scheduler', model_name=model_name)
     scheduled_job = model.objects.filter(job_id=job.id).first()
     if scheduled_job:
+        scheduled_job.unschedule()
         scheduled_job.save()
 
 
@@ -141,12 +144,7 @@ class BaseJob(TimeStampedModel):
         return self.name
 
     def callable_func(self):
-        path = self.callable.split('.')
-        module = importlib.import_module('.'.join(path[:-1]))
-        func = getattr(module, path[-1])
-        if callable(func) is False:
-            raise TypeError("'{}' is not callable".format(self.callable))
-        return func
+        return tools.callable_func(self.callable)
 
     def clean(self):
         self.clean_callable()
@@ -154,7 +152,7 @@ class BaseJob(TimeStampedModel):
 
     def clean_callable(self):
         try:
-            self.callable_func()
+            tools.callable_func(self.callable)
         except Exception:
             raise ValidationError({
                 'callable': ValidationError(
@@ -170,16 +168,15 @@ class BaseJob(TimeStampedModel):
                         ', '.join(queue_keys))), code='invalid')
             })
 
+    @admin.display(boolean=True, description=_('is scheduled?'))
     def is_scheduled(self) -> bool:
         if not self.job_id:
             return False
         return self.job_id in self.get_rqueue().scheduled_job_registry.get_job_ids()
 
-    is_scheduled.short_description = _('is scheduled?')
-    is_scheduled.boolean = True
-
     def save(self, **kwargs):
         if kwargs.get('schedule_job', True):
+            self.unschedule()
             self.schedule()
         super(BaseJob, self).save(**kwargs)
 
@@ -187,6 +184,7 @@ class BaseJob(TimeStampedModel):
         self.unschedule()
         super(BaseJob, self).delete(**kwargs)
 
+    @admin.display(description='Callable')
     def function_string(self) -> str:
         func = self.callable + "(\u200b{})"  # zero-width space allows textwrap
         args = self.parse_args()
@@ -194,8 +192,6 @@ class BaseJob(TimeStampedModel):
         kwargs = self.schedule_kwargs()['kwargs']
         kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
         return func.format(', '.join(args_list + kwargs_list))
-
-    function_string.short_description = 'Callable'
 
     def parse_args(self):
         args = self.callable_args.all()
@@ -260,10 +256,9 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
     JOB_TYPE = 'ScheduledJob'
 
     def schedule(self) -> bool:
-        result = super(ScheduledJob, self).schedule()
-        if self.scheduled_time is not None and self.scheduled_time < timezone.now():
+        if super(ScheduledJob, self).schedule() is False:
             return False
-        if result is False:
+        if self.scheduled_time is not None and self.scheduled_time < timezone.now():
             return False
         kwargs = self.schedule_kwargs()
         job = self.get_rqueue().enqueue_at(
@@ -345,11 +340,10 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
                 self.repeat -= 1
 
     def schedule(self):
-        result = super(RepeatableJob, self).schedule()
+        if super(RepeatableJob, self).schedule() is False:
+            return False
         self._prevent_duplicate_runs()
         if self.scheduled_time < timezone.now():
-            return False
-        if result is False:
             return False
         kwargs = self.schedule_kwargs()
         kwargs['meta']['interval'] = self.interval_seconds()
@@ -365,14 +359,6 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         verbose_name = _('Repeatable Job')
         verbose_name_plural = _('Repeatable Jobs')
         ordering = ('name',)
-
-
-def _get_next_scheduled_time(cron_string):
-    """Calculate the next scheduled time by creating a crontab object
-    with a cron string"""
-    now = timezone.now()
-    itr = croniter.croniter(cron_string, now)
-    return itr.get_next(datetime)
 
 
 class CronJob(BaseJob):
@@ -397,12 +383,13 @@ class CronJob(BaseJob):
             })
 
     def schedule(self):
-        result = super(CronJob, self).schedule()
-        if result is False:
+        if self.is_scheduled():
+            return
+        if super(CronJob, self).schedule() is False:
             return False
 
         kwargs = self.schedule_kwargs()
-        scheduled_time = _get_next_scheduled_time(self.cron_string)
+        scheduled_time = tools.get_next_cron_time(self.cron_string)
         job = self.get_rqueue().enqueue_at(
             scheduled_time,
             self.callable_func(),

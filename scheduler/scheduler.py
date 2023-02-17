@@ -21,16 +21,23 @@ class DjangoRQScheduler(RQScheduler):
         redis_conn = django_rq.get_connection()
         super(DjangoRQScheduler, self).__init__(queues, redis_conn, *args, **kwargs)
 
-    def instance(self):
-        return self._instance
+    @classmethod
+    def instance(cls):
+        return cls._instance
 
     def _install_signal_handlers(self):
         return None
 
     def start(self):
+        if self.thread is not None and self.thread.is_alive():
+            return self.thread
         self.thread = threading.Thread(target=run, args=(self,), name='Scheduler')
         self.thread.start()
         return self.thread
+
+    def work(self):
+        super(DjangoRQScheduler, self).work()
+        self.thread = None
 
 
 def run(scheduler):
