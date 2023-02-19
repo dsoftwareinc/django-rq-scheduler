@@ -1,10 +1,16 @@
+import multiprocessing
 import os
+import signal
 import threading
 import traceback
 
 import django_rq
 from django.conf import settings
 from rq.scheduler import RQScheduler
+
+
+class StopThreadException(Exception):
+    pass
 
 
 class DjangoRQScheduler(RQScheduler):
@@ -28,10 +34,15 @@ class DjangoRQScheduler(RQScheduler):
     def _install_signal_handlers(self):
         return None
 
+    def stop(self, *args, **kwargs):
+        pass
+
     def start(self):
         if self.thread is not None and self.thread.is_alive():
             return self.thread
-        self.thread = threading.Thread(target=run, args=(self,), name='Scheduler')
+        self.thread = threading.Thread(
+            target=run, args=(self,), name='Scheduler', daemon=True)
+
         self.thread.start()
         return self.thread
 

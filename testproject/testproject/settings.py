@@ -14,10 +14,12 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import django_rq  # noqa: F401
+import rq  # noqa: F401
 from fakeredis import FakeStrictRedis, FakeRedis
 
 SCHEDULER_INTERVAL = 1
 SCHEDULER_THREAD = True
+
 
 class FakeRedisConnSingleton:
     """Singleton FakeRedis connection."""
@@ -33,6 +35,7 @@ class FakeRedisConnSingleton:
 
 
 django_rq.queues.get_redis_connection = FakeRedisConnSingleton()
+rq.connections.get_current_connection = FakeRedisConnSingleton()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
