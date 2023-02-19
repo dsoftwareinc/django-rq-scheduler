@@ -1321,14 +1321,14 @@ requests = ">=2.0.1,<3.0.0"
 
 [[package]]
 name = "rq"
-version = "1.12.0"
+version = "1.13.0"
 description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
 category = "main"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 files = [
-    {file = "rq-1.12.0-py2.py3-none-any.whl", hash = "sha256:b268947a94a1da7de3c5f3925a59db60bffdede782ca1f23da654bf985a83c7a"},
-    {file = "rq-1.12.0.tar.gz", hash = "sha256:16ebbfa8891ece999485cb7d1e0559550ac576da43585138e6951db23654bbf6"},
+    {file = "rq-1.13.0-py2.py3-none-any.whl", hash = "sha256:621966d7cbf96d5609557a4bd3fd77f749d6d10997d2e353a3e89a14e08eea16"},
+    {file = "rq-1.13.0.tar.gz", hash = "sha256:5bb0380a17597200520731686766bb72faf16ebffb602663560d91ea2c9e7103"},
 ]
 
 [package.dependencies]
@@ -1353,14 +1353,14 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "shellingham"
-version = "1.5.1"
+version = "1.5.0.post1"
 description = "Tool to Detect Surrounding Shell"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "shellingham-1.5.1-py2.py3-none-any.whl", hash = "sha256:ce5f6d0062c719deabf696bccfab5273e09a6ea1b0ed32867aff03392adbdc51"},
-    {file = "shellingham-1.5.1.tar.gz", hash = "sha256:41bc81fa8d74afb04338e0398f9732ee2217407ade778ae1e2709bde89d85c45"},
+    {file = "shellingham-1.5.0.post1-py2.py3-none-any.whl", hash = "sha256:368bf8c00754fd4f55afb7bbb86e272df77e4dc76ac29dbcbb81a59e9fc15744"},
+    {file = "shellingham-1.5.0.post1.tar.gz", hash = "sha256:823bc5fb5c34d60f285b624e7264f4dda254bc803a3774a147bf99c0e3004a28"},
 ]
 
 [[package]]
@@ -1605,14 +1605,14 @@ cffi = ">=1.0"
 
 [[package]]
 name = "zipp"
-version = "3.13.0"
+version = "3.14.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "zipp-3.13.0-py3-none-any.whl", hash = "sha256:e8b2a36ea17df80ffe9e2c4fda3f693c3dad6df1697d3cd3af232db680950b0b"},
-    {file = "zipp-3.13.0.tar.gz", hash = "sha256:23f70e964bc11a34cef175bc90ba2914e1e4545ea1e3e2f67c079671883f9cb6"},
+    {file = "zipp-3.14.0-py3-none-any.whl", hash = "sha256:188834565033387710d046e3fe96acfc9b5e86cbca7f39ff69cf21a4128198b7"},
+    {file = "zipp-3.14.0.tar.gz", hash = "sha256:9e5421e176ef5ab4c0ad896624e87a7b2f07aca746c9b2aa305952800cb8eecb"},
 ]
 
 [package.extras]
