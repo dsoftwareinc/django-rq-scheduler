@@ -8,6 +8,8 @@ from django_rq import job
 
 from scheduler.scheduler import DjangoRQScheduler
 
+MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
+
 
 def callable_func(callable_str: str):
     path = callable_str.split('.')
@@ -28,7 +30,6 @@ def get_next_cron_time(cron_string):
 
 @job
 def reschedule_all_jobs():
-    MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
     for model_name in MODEL_NAMES:
         model = apps.get_model(app_label='scheduler', model_name=model_name)
         enabled_jobs = model.objects.filter(enabled=True)
@@ -41,5 +42,21 @@ def start_scheduler_thread():
     start_scheduler_as_thread = getattr(settings, 'SCHEDULER_THREAD', True)
     if start_scheduler_as_thread:
         interval = getattr(settings, 'SCHEDULER_INTERVAL', 60)
+        interval = max(1, interval)
         scheduler = DjangoRQScheduler(interval=interval)
         scheduler.start()
+
+
+def run_job(job_model: str, job_id: int):
+    """Run a job
+    """
+    if job_model not in MODEL_NAMES:
+        raise ValueError(f'Job Model {job_model} does not exist, choices are {MODEL_NAMES}')
+    model = apps.get_model(app_label='scheduler', model_name=job_model)
+    job = model.objects.filter(id=job_id).first()
+    if job is None:
+        raise ValueError(f'Job {job_model}:{job_id} does not exit')
+    args = job.parse_args()
+    kwargs = job.parse_kwargs()
+    res = job.callable_func()(*args, **kwargs)
+    return res

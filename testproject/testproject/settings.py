@@ -15,7 +15,7 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import django_rq  # noqa: F401
 import rq  # noqa: F401
-from fakeredis import FakeStrictRedis, FakeRedis
+from fakeredis import FakeStrictRedis, FakeRedis, FakeServer
 
 SCHEDULER_INTERVAL = 1
 SCHEDULER_THREAD = True
@@ -26,11 +26,12 @@ class FakeRedisConnSingleton:
 
     def __init__(self):
         self.conn = None
+        self.server = FakeServer()
 
     def __call__(self, *args, **kwargs):
         strict = kwargs.pop('strict', None)
         if not self.conn:
-            self.conn = FakeStrictRedis() if strict else FakeRedis()
+            self.conn = FakeStrictRedis(server=self.server) if strict else FakeRedis(server=self.server)
         return self.conn
 
 

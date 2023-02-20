@@ -23,7 +23,7 @@ class JobArgInline(HiddenMixin, GenericStackedInline):
     extra = 0
     fieldsets = (
         (None, {
-            'fields': ('arg_type', 'str_val', 'int_val', 'bool_val', 'datetime_val',),
+            'fields': ('arg_type', 'val',),
         }),
     )
 
@@ -33,7 +33,7 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
     extra = 0
     fieldsets = (
         (None, {
-            'fields': ('key', 'arg_type', 'str_val', 'int_val', 'bool_val', 'datetime_val',),
+            'fields': ('key', 'arg_type', 'val',),
         }),
     )
 

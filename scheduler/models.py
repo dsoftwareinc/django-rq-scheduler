@@ -1,4 +1,6 @@
-from datetime import timedelta
+import logging
+from datetime import timedelta, datetime
+from typing import Callable
 
 import croniter
 from django.apps import apps
@@ -19,6 +21,8 @@ from scheduler import tools
 
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
+logger = logging.getLogger(__name__)
+
 
 def callback_save_job(job, connection, result, *args, **kwargs):
     model_name = job.meta.get('job_type', None)
@@ -28,54 +32,54 @@ def callback_save_job(job, connection, result, *args, **kwargs):
     scheduled_job = model.objects.filter(job_id=job.id).first()
     if scheduled_job:
         scheduled_job.unschedule()
+        scheduled_job.schedule()
         scheduled_job.save()
+
+
+ARG_TYPE_TYPES_DICT = {
+    'str': str,
+    'int': int,
+    'bool': bool,
+    'datetime': datetime,
+    'callable': Callable,
+}
 
 
 class BaseJobArg(models.Model):
     ARG_TYPE = Choices(
-        ('str_val', _('string')),
-        ('int_val', _('int')),
-        ('bool_val', _('boolean')),
-        ('datetime_val', _('Datetime')),
+        ('str', _('string')),
+        ('int', _('int')),
+        ('bool', _('boolean')),
+        ('datetime', _('datetime')),
+        ('callable', _('callable')),
     )
     arg_type = models.CharField(
-        _('Argument Type'), max_length=12, choices=ARG_TYPE, default=ARG_TYPE.str_val
+        _('Argument Type'), max_length=12, choices=ARG_TYPE, default=ARG_TYPE.str
     )
-    str_val = models.CharField(_('String Value'), blank=True, max_length=255)
-    int_val = models.IntegerField(_('Int Value'), blank=True, null=True)
-    bool_val = models.BooleanField(_('Boolean Value'), default=False)
-    datetime_val = models.DateTimeField(_('Datetime Value'), blank=True, null=True)
-
+    val = models.CharField(_('Argument Value'), blank=True, max_length=255)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey()
 
     def __repr__(self):
-        return repr(self.value())
+        return f'arg_type={self.arg_type},val={self.value()}'
 
     def __str__(self):
-        return str(self.value())
+        return f'arg_type={self.arg_type},val={self.value()}'
 
     def clean(self):
-        self.clean_one_value()
-
-    def clean_one_value(self):
-        count = 0
-        count += 1 if self.str_val != '' else 0
-        count += 1 if self.int_val else 0
-        count += 1 if self.datetime_val else 0
-        count += 1 if self.bool_val else 0
-        # Catch case where bool_val is intended to be false and bool is selected.
-        count += 1 if self.arg_type == 'bool_val' and self.bool_val is False else 0
-        if count == 0:
+        _type = ARG_TYPE_TYPES_DICT.get(self.arg_type)
+        if self.arg_type not in ARG_TYPE_TYPES_DICT:
             raise ValidationError({
                 'arg_type': ValidationError(
-                    _('At least one arg type must have a value'), code='invalid')
+                    _(f'Could not parse {self.arg_type}, options are: {ARG_TYPE_TYPES_DICT.keys()}'), code='invalid')
             })
-        if count > 1:
+        try:
+            self.value()
+        except Exception:
             raise ValidationError({
                 'arg_type': ValidationError(
-                    _('There are multiple arg types with values'), code='invalid')
+                    _(f'Could not parse {self.val} as {self.arg_type}'), code='invalid')
             })
 
     def save(self, **kwargs):
@@ -87,7 +91,15 @@ class BaseJobArg(models.Model):
         self.content_object.save()
 
     def value(self):
-        return getattr(self, self.arg_type)
+        if self.arg_type == 'callable':
+            res = tools.callable_func(self.val)()
+        elif self.arg_type == 'datetime':
+            res = datetime.fromisoformat(self.val)
+        elif self.arg_type == 'bool':
+            res = self.val.lower() == 'true'
+        else:
+            res = ARG_TYPE_TYPES_DICT[self.arg_type](self.val)
+        return res
 
     class Meta:
         abstract = True
@@ -175,10 +187,12 @@ class BaseJob(TimeStampedModel):
         return self.job_id in self.get_rqueue().scheduled_job_registry.get_job_ids()
 
     def save(self, **kwargs):
-        if kwargs.get('schedule_job', True):
+        schedule_job = kwargs.pop('schedule_job', True)
+        super(BaseJob, self).save(**kwargs)
+        if schedule_job:
             self.unschedule()
             self.schedule()
-        super(BaseJob, self).save(**kwargs)
+            super(BaseJob, self).save()
 
     def delete(self, **kwargs):
         self.unschedule()
@@ -189,7 +203,7 @@ class BaseJob(TimeStampedModel):
         func = self.callable + "(\u200b{})"  # zero-width space allows textwrap
         args = self.parse_args()
         args_list = [repr(arg) for arg in args]
-        kwargs = self.schedule_kwargs()['kwargs']
+        kwargs = self.parse_kwargs()
         kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
         return func.format(', '.join(args_list + kwargs_list))
 
@@ -197,17 +211,18 @@ class BaseJob(TimeStampedModel):
         args = self.callable_args.all()
         return [arg.value() for arg in args]
 
-    def schedule_kwargs(self) -> dict:
+    def parse_kwargs(self):
         kwargs = self.callable_kwargs.all()
+        return dict([kwarg.value() for kwarg in kwargs])
+
+    def schedule_kwargs(self) -> dict:
         res = dict(
             meta=dict(
                 repeat=self.repeat,
                 job_type=self.JOB_TYPE,
             ),
-            args=self.parse_args(),
             on_success=callback_save_job,
             on_failure=callback_save_job,
-            kwargs=dict([kwarg.value() for kwarg in kwargs])
         )
         if self.at_front:
             res['at_front'] = self.at_front
@@ -263,7 +278,8 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
         kwargs = self.schedule_kwargs()
         job = self.get_rqueue().enqueue_at(
             self.schedule_time_utc(),
-            self.callable_func(),
+            tools.run_job,
+            args=(self.JOB_TYPE, self.id),
             **kwargs
         )
         self.job_id = job.id
@@ -298,9 +314,10 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
     def clean_interval_unit(self):
         if RQ_SCHEDULER_INTERVAL > self.interval_seconds():
             raise ValidationError(
-                _("Job interval is set lower than %(queue)r queue's interval."),
+                _("Job interval is set lower than %(queue)r queue's interval. "
+                  "minimum interval is %(interval)"),
                 code='invalid',
-                params={'queue': self.queue})
+                params={'queue': self.queue, 'interval': RQ_SCHEDULER_INTERVAL})
         if self.interval_seconds() % RQ_SCHEDULER_INTERVAL:
             raise ValidationError(
                 _("Job interval is not a multiple of rq_scheduler's interval frequency: %(interval)ss"),
@@ -332,11 +349,12 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         """
         Counts the number of repeats lapsed between scheduled time and now
         and decrements that amount from the repeats remaining and updates the scheduled time to the next repeat.
-        :return:
+
+        self.repeat is None ==> Run forever.
         """
         while self.scheduled_time < timezone.now() and (self.repeat is None or self.repeat > 0):
             self.scheduled_time += timedelta(seconds=self.interval_seconds())
-            if self.repeat and self.repeat > 0:
+            if self.repeat is not None and self.repeat > 0:
                 self.repeat -= 1
 
     def schedule(self):
@@ -349,8 +367,9 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         kwargs['meta']['interval'] = self.interval_seconds()
         job = self.get_rqueue().enqueue_at(
             self.schedule_time_utc(),
-            self.callable_func(),
-            **kwargs
+            tools.run_job,
+            args=(self.JOB_TYPE, self.id),
+            **kwargs,
         )
         self.job_id = job.id
         return True
@@ -392,7 +411,8 @@ class CronJob(BaseJob):
         scheduled_time = tools.get_next_cron_time(self.cron_string)
         job = self.get_rqueue().enqueue_at(
             scheduled_time,
-            self.callable_func(),
+            tools.run_job,
+            args=(self.JOB_TYPE, self.id),
             **kwargs
         )
         self.job_id = job.id
