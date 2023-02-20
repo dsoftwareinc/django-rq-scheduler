@@ -68,7 +68,6 @@ class BaseJobArg(models.Model):
         return f'arg_type={self.arg_type},val={self.value()}'
 
     def clean(self):
-        _type = ARG_TYPE_TYPES_DICT.get(self.arg_type)
         if self.arg_type not in ARG_TYPE_TYPES_DICT:
             raise ValidationError({
                 'arg_type': ValidationError(
