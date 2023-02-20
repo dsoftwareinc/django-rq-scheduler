@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('scheduler', '0004_cronjob_at_front_repeatablejob_at_front_and_more'),
     ]

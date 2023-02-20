@@ -1,6 +1,4 @@
 from django import template
-from django.shortcuts import render
-from django_rq.utils import get_statistics
 
 from scheduler.scheduler import DjangoRQScheduler
 

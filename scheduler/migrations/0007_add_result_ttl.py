@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('scheduler', '0006_auto_20230118_1640'),
     ]
@@ -13,7 +12,9 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='cronjob',
             name='result_ttl',
-            field=models.IntegerField(blank=True, help_text='The TTL value (in seconds) of the job result. -1: Result never expires, you should delete jobs manually. 0: Result gets deleted immediately. >0: Result expires after n seconds.', null=True, verbose_name='result ttl'),
+            field=models.IntegerField(blank=True,
+                                      help_text='The TTL value (in seconds) of the job result. -1: Result never expires, you should delete jobs manually. 0: Result gets deleted immediately. >0: Result expires after n seconds.',
+                                      null=True, verbose_name='result ttl'),
         ),
         migrations.AlterField(
             model_name='cronjob',

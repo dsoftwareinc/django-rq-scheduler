@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('scheduler', '0007_add_result_ttl'),
     ]
@@ -47,11 +46,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='jobarg',
             name='arg_type',
-            field=models.CharField(choices=[('str_val', 'string'), ('int_val', 'int'), ('bool_val', 'boolean'), ('datetime_val', 'Datetime'), ('callable', 'Callable')], default='str_val', max_length=12, verbose_name='Argument Type'),
+            field=models.CharField(choices=[('str_val', 'string'), ('int_val', 'int'), ('bool_val', 'boolean'),
+                                            ('datetime_val', 'Datetime'), ('callable', 'Callable')], default='str_val',
+                                   max_length=12, verbose_name='Argument Type'),
         ),
         migrations.AlterField(
             model_name='jobkwarg',
             name='arg_type',
-            field=models.CharField(choices=[('str_val', 'string'), ('int_val', 'int'), ('bool_val', 'boolean'), ('datetime_val', 'Datetime'), ('callable', 'Callable')], default='str_val', max_length=12, verbose_name='Argument Type'),
+            field=models.CharField(choices=[('str_val', 'string'), ('int_val', 'int'), ('bool_val', 'boolean'),
+                                            ('datetime_val', 'Datetime'), ('callable', 'Callable')], default='str_val',
+                                   max_length=12, verbose_name='Argument Type'),
         ),
     ]
