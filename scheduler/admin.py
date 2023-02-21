@@ -13,7 +13,6 @@ QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
 
 
 class HiddenMixin(object):
-    # pass
     class Media:
         js = ['admin/js/jquery.init.js', 'scheduler/js/base.js']
 
@@ -105,7 +104,7 @@ class JobAdmin(admin.ModelAdmin):
     def run_job_now(self, request, queryset):
         job_names = []
         for obj in queryset:
-            kwargs = obj.schedule_kwargs()
+            kwargs = obj.enqueue_args()
             obj.get_rqueue().enqueue_at(
                 utc(now()),
                 obj.callable_func(),
