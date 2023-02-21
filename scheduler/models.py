@@ -152,7 +152,7 @@ class BaseJob(TimeStampedModel):
     )
 
     def __str__(self):
-        return self.name
+        return f'{self.JOB_TYPE}[{self.name}={self.callable}()]'
 
     def callable_func(self):
         return tools.callable_func(self.callable)

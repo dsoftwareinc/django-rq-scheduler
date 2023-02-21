@@ -6,6 +6,8 @@ import django_rq
 from django.conf import settings
 from rq.scheduler import RQScheduler
 
+from scheduler import logger
+
 
 class StopThreadException(Exception):
     pass
@@ -38,8 +40,8 @@ class DjangoRQScheduler(RQScheduler):
     def start(self):
         if self.thread is not None and self.thread.is_alive():
             return self.thread
-        self.thread = threading.Thread(
-            target=run, args=(self,), name='Scheduler', daemon=True)
+        logger.info(f'Starting scheduler thread with interval {self.interval}')
+        self.thread = threading.Thread(target=run, args=(self,), name='Scheduler', daemon=True)
 
         self.thread.start()
         return self.thread
@@ -50,14 +52,10 @@ class DjangoRQScheduler(RQScheduler):
 
 
 def run(scheduler):
-    scheduler.log.info("Scheduler for %s started with PID %s",
-                       ','.join(scheduler._queue_names), os.getpid())
+    logger.info("Scheduler for %s started with PID %s", ','.join(scheduler._queue_names), os.getpid())
     try:
         scheduler.work()
     except Exception as e:  # noqa
-        scheduler.log.error(
-            'Scheduler [PID %s] raised an exception.\n%s',
-            os.getpid(), traceback.format_exc()
-        )
+        logger.error(f'Scheduler [PID {os.getpid()}] raised an exception.\n{traceback.format_exc()}')
         raise
-    scheduler.log.info("Scheduler with PID %s has stopped", os.getpid())
+    logger.info("Scheduler with PID %s has stopped", os.getpid())

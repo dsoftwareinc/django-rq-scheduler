@@ -239,7 +239,7 @@ class BaseTestCases:
         def test_str(self):
             name = "test"
             job = job_instance(self.JobClass, name=name)
-            self.assertEqual(str(job), name)
+            self.assertEqual(f'{self.JobClass.__name__}[{name}={job.callable}()]', str(job))
 
         def test_callable_passthrough(self):
             job = job_instance(self.JobClass)
