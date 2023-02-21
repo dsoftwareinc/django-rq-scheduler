@@ -10,7 +10,7 @@
 
 A database backed job scheduler for Django RQ.
 
-!!! danger
+!!! warning
     In v2023.3.0, django-rq-scheduler was refactored significantly to support
     calculation of parameters in runtime.
     
@@ -21,11 +21,6 @@ A database backed job scheduler for Django RQ.
     2. Once you upgraded, recreate your jobs.
 
 
-!!! tip
-    Starting v2023.1, requirement for rq_scheduler was removed and instead
-    one of the django-rq workers should run with `--with-scheduler` parameter
-    as mentioned [here](https://github.com/rq/django-rq#support-for-scheduled-jobs).
-    
 This allows remembering scheduled jobs, their parameters, etc.
 
 Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.
