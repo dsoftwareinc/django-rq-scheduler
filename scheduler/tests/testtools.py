@@ -7,16 +7,19 @@ from django.utils import timezone
 from scheduler.models import CronJob, JobKwarg, RepeatableJob, ScheduledJob
 
 
-def sequence():
+def sequence_gen():
     n = 1
     while True:
         yield n
         n += 1
 
 
+seq = sequence_gen()
+
+
 def job_factory(cls, **kwargs):
     values = dict(
-        name='Scheduled Job %d' % next(sequence()),
+        name='Scheduled Job %d' % next(seq),
         job_id=None,
         queue=list(settings.RQ_QUEUES.keys())[0],
         callable='scheduler.tests.jobs.test_job',
@@ -52,7 +55,7 @@ def jobarg_factory(cls, **kwargs):
         content_object=content_object,
     )
     if cls == JobKwarg:
-        values['key'] = 'key%d' % next(sequence()),
+        values['key'] = 'key%d' % next(seq),
     values.update(kwargs)
     instance = cls.objects.create(**values)
     return instance

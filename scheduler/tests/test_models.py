@@ -27,57 +27,57 @@ class BaseTestCases:
             cls.client = Client()
 
         def test_callable_func(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.callable = 'scheduler.tests.jobs.test_job'
             func = job.callable_func()
             self.assertEqual(jobs.test_job, func)
 
         def test_callable_func_not_callable(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.callable = 'scheduler.tests.jobs.test_non_callable'
             with self.assertRaises(TypeError):
                 job.callable_func()
 
         def test_clean_callable(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.callable = 'scheduler.tests.jobs.test_job'
             self.assertIsNone(job.clean_callable())
 
         def test_clean_callable_invalid(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.callable = 'scheduler.tests.jobs.test_non_callable'
             with self.assertRaises(ValidationError):
                 job.clean_callable()
 
         def test_clean_queue(self):
             for queue in settings.RQ_QUEUES.keys():
-                job = self.JobClass()
+                job = job_factory(self.JobClass)
                 job.queue = queue
                 self.assertIsNone(job.clean_queue())
 
         def test_clean_queue_invalid(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.queue = 'xxxxxx'
             job.callable = 'scheduler.tests.jobs.test_job'
             with self.assertRaises(ValidationError):
                 job.clean()
 
         # next 2 check the above are included in job.clean() function
-        def test_clean(self):
-            job = self.JobClass()
+        def test_clean_base(self):
+            job = job_factory(self.JobClass)
             job.queue = list(settings.RQ_QUEUES)[0]
             job.callable = 'scheduler.tests.jobs.test_job'
             self.assertIsNone(job.clean())
 
         def test_clean_invalid_callable(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.queue = list(settings.RQ_QUEUES)[0]
             job.callable = 'scheduler.tests.jobs.test_non_callable'
             with self.assertRaises(ValidationError):
                 job.clean()
 
         def test_clean_invalid_queue(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.queue = 'xxxxxx'
             job.callable = 'scheduler.tests.jobs.test_job'
             with self.assertRaises(ValidationError):
@@ -89,7 +89,7 @@ class BaseTestCases:
             self.assertTrue(job.is_scheduled())
 
         def test_is_schedulable_disabled(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.enabled = False
             self.assertFalse(job.enabled)
 
@@ -129,7 +129,7 @@ class BaseTestCases:
             self.assertTrue(job.is_scheduled())
 
         def test_schedule2(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             job.queue = list(settings.RQ_QUEUES)[0]
             job.enabled = False
             job.scheduled_time = timezone.now() + timedelta(minutes=1)
@@ -353,7 +353,7 @@ class BaseTestCases:
         JobClass = ScheduledJob
 
         def test_schedule_time_utc(self):
-            job = self.JobClass()
+            job = job_factory(self.JobClass)
             est = zoneinfo.ZoneInfo('US/Eastern')
             scheduled_time = datetime(2016, 12, 25, 8, 0, 0, tzinfo=est)
             job.scheduled_time = scheduled_time
@@ -371,7 +371,7 @@ class TestScheduledJob(BaseTestCases.TestSchedulableJob):
     JobClass = ScheduledJob
 
     def test_clean(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         self.assertIsNone(job.clean())
@@ -394,7 +394,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         self.assertTrue(job.is_scheduled())
 
     def test_clean(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         job.interval = 1
@@ -402,7 +402,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         self.assertIsNone(job.clean())
 
     def test_clean_seconds(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         job.interval = 60
@@ -411,7 +411,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         self.assertIsNone(job.clean())
 
     def test_clean_too_frequent(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         job.interval = 10
@@ -421,7 +421,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
             job.clean_interval_unit()
 
     def test_clean_not_multiple(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         job.interval = 121
@@ -430,7 +430,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
             job.clean_interval_unit()
 
     def test_clean_short_result_ttl(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         job.interval = 1
@@ -442,7 +442,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
             job.clean_result_ttl()
 
     def test_clean_indefinite_result_ttl(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         job.interval = 1
@@ -451,7 +451,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         job.clean_result_ttl()
 
     def test_clean_undefined_result_ttl(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         job.interval = 1
@@ -534,14 +534,14 @@ class TestCronJob(BaseTestCases.TestBaseJob):
     JobClass = CronJob
 
     def test_clean(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.cron_string = '* * * * *'
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
         self.assertIsNone(job.clean())
 
     def test_clean_cron_string_invalid(self):
-        job = self.JobClass()
+        job = job_factory(self.JobClass)
         job.cron_string = 'not-a-cron-string'
         job.queue = list(settings.RQ_QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
