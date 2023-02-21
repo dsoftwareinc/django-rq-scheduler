@@ -183,13 +183,13 @@ class BaseJob(TimeStampedModel):
     def is_scheduled(self) -> bool:
         if not self.job_id:
             return False
-        return self.job_id in self.get_rqueue().scheduled_job_registry.get_job_ids()
+        scheduled_jobs = self._get_rqueue().scheduled_job_registry.get_job_ids()
+        return self.job_id in scheduled_jobs
 
     def save(self, **kwargs):
         schedule_job = kwargs.pop('schedule_job', True)
         super(BaseJob, self).save(**kwargs)
         if schedule_job:
-            self.unschedule()
             self.schedule()
             super(BaseJob, self).save()
 
@@ -214,7 +214,7 @@ class BaseJob(TimeStampedModel):
         kwargs = self.callable_kwargs.all()
         return dict([kwarg.value() for kwarg in kwargs])
 
-    def schedule_kwargs(self) -> dict:
+    def enqueue_args(self) -> dict:
         res = dict(
             meta=dict(
                 repeat=self.repeat,
@@ -231,25 +231,44 @@ class BaseJob(TimeStampedModel):
             res['result_ttl'] = self.result_ttl
         return res
 
-    def get_rqueue(self):
+    def _get_rqueue(self):
         return get_queue(self.queue)
 
-    def is_schedulable(self) -> bool:
-        return self.enabled and not self.is_scheduled()
+    def _enqueue_job(self, schedule_time):
+        kwargs = self.enqueue_args()
+        job = self._get_rqueue().enqueue_at(
+            schedule_time,
+            tools.run_job,
+            args=(self.JOB_TYPE, self.id),
+            **kwargs,
+        )
+        self.job_id = job.id
+        return True
 
-    def schedule(self) -> bool:
-        self.unschedule()
-        if self.is_schedulable() is False:
+    def ready_for_schedule(self) -> bool:
+        if self.is_scheduled():
+            logger.debug(f'Job {self.name} already scheduled')
+            return False
+        if not self.enabled:
+            logger.debug(f'Job {str(self)} disabled, enable job before scheduling')
             return False
         return True
 
+    def schedule(self) -> bool:
+        if not self.ready_for_schedule():
+            return False
+        return self._enqueue_job(self._schedule_time())
+
     def unschedule(self) -> bool:
-        queue = self.get_rqueue()
+        queue = self._get_rqueue()
         if self.is_scheduled():
             queue.remove(self.job_id)
             queue.scheduled_job_registry.remove(self.job_id)
         self.job_id = None
         return True
+
+    def _schedule_time(self):
+        raise NotImplementedError
 
     class Meta:
         abstract = True
@@ -261,6 +280,9 @@ class ScheduledTimeMixin(models.Model):
     def schedule_time_utc(self):
         return utc(self.scheduled_time)
 
+    def _schedule_time(self):
+        return utc(self.scheduled_time)
+
     class Meta:
         abstract = True
 
@@ -269,19 +291,11 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
     repeat = None
     JOB_TYPE = 'ScheduledJob'
 
-    def schedule(self) -> bool:
-        if super(ScheduledJob, self).schedule() is False:
+    def ready_for_schedule(self) -> bool:
+        if super(ScheduledJob, self).ready_for_schedule() is False:
             return False
         if self.scheduled_time is not None and self.scheduled_time < timezone.now():
             return False
-        kwargs = self.schedule_kwargs()
-        job = self.get_rqueue().enqueue_at(
-            self.schedule_time_utc(),
-            tools.run_job,
-            args=(self.JOB_TYPE, self.id),
-            **kwargs
-        )
-        self.job_id = job.id
         return True
 
     class Meta:
@@ -339,9 +353,7 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         return '{} {}'.format(self.interval, self.get_interval_unit_display())
 
     def interval_seconds(self):
-        kwargs = {
-            self.interval_unit: self.interval,
-        }
+        kwargs = {self.interval_unit: self.interval, }
         return timedelta(**kwargs).total_seconds()
 
     def _prevent_duplicate_runs(self):
@@ -356,21 +368,17 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
             if self.repeat is not None and self.repeat > 0:
                 self.repeat -= 1
 
-    def schedule(self):
-        if super(RepeatableJob, self).schedule() is False:
+    def enqueue_args(self):
+        res = super(RepeatableJob, self).enqueue_args()
+        res['meta']['interval'] = self.interval_seconds()
+        return res
+
+    def ready_for_schedule(self):
+        if super(RepeatableJob, self).ready_for_schedule() is False:
             return False
         self._prevent_duplicate_runs()
         if self.scheduled_time < timezone.now():
             return False
-        kwargs = self.schedule_kwargs()
-        kwargs['meta']['interval'] = self.interval_seconds()
-        job = self.get_rqueue().enqueue_at(
-            self.schedule_time_utc(),
-            tools.run_job,
-            args=(self.JOB_TYPE, self.id),
-            **kwargs,
-        )
-        self.job_id = job.id
         return True
 
     class Meta:
@@ -400,22 +408,8 @@ class CronJob(BaseJob):
                     _(str(e)), code='invalid')
             })
 
-    def schedule(self):
-        if self.is_scheduled():
-            return
-        if super(CronJob, self).schedule() is False:
-            return False
-
-        kwargs = self.schedule_kwargs()
-        scheduled_time = tools.get_next_cron_time(self.cron_string)
-        job = self.get_rqueue().enqueue_at(
-            scheduled_time,
-            tools.run_job,
-            args=(self.JOB_TYPE, self.id),
-            **kwargs
-        )
-        self.job_id = job.id
-        return True
+    def _schedule_time(self):
+        return tools.get_next_cron_time(self.cron_string)
 
     class Meta:
         verbose_name = _('Cron Job')

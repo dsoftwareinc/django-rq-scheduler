@@ -59,7 +59,7 @@ def jobarg_factory(cls, **kwargs):
 
 
 def _get_job_from_queue(django_job):
-    queue = django_job.get_rqueue()
+    queue = django_job._get_rqueue()
     jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
     entry = next(i for i in jobs_to_schedule if i == django_job.job_id)
     return queue.fetch_job(entry)

@@ -105,7 +105,7 @@ class JobAdmin(admin.ModelAdmin):
         job_names = []
         for obj in queryset:
             kwargs = obj.enqueue_args()
-            obj.get_rqueue().enqueue_at(
+            obj._get_rqueue().enqueue_at(
                 utc(now()),
                 obj.callable_func(),
                 *obj.parse_args(),
