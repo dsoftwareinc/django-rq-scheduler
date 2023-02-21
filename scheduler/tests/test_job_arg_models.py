@@ -9,6 +9,11 @@ from .testtools import jobarg_factory
 class TestAllJobArg(TestCase):
     JobArgClass = JobArg
 
+    def test_bad_arg_type(self):
+        arg = jobarg_factory(self.JobArgClass, arg_type='bad_arg_type', val='something')
+        with self.assertRaises(ValidationError):
+            arg.clean()
+
     def test_clean_one_value_invalid_str_int(self):
         arg = jobarg_factory(self.JobArgClass, arg_type='int', val='not blank', )
         with self.assertRaises(ValidationError):
@@ -26,6 +31,11 @@ class TestAllJobArg(TestCase):
 
 class TestJobArg(TestCase):
     JobArgClass = JobArg
+
+    def test_str(self):
+        arg = jobarg_factory(self.JobArgClass)
+        self.assertEqual(
+            f'JobArg[arg_type={arg.arg_type},value={arg.value()}]', str(arg))
 
     def test_value(self):
         arg = jobarg_factory(self.JobArgClass, arg_type='str', val='something')
@@ -69,26 +79,31 @@ class TestJobArg(TestCase):
 class TestJobKwarg(TestAllJobArg):
     JobArgClass = JobKwarg
 
+    def test_str(self):
+        arg = jobarg_factory(self.JobArgClass)
+        self.assertEqual(
+            f'JobKwarg[key={arg.key},arg_type={arg.arg_type},value={arg.val}]', str(arg))
+
     def test_value(self):
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='str', val='value')
         self.assertEqual(kwarg.value(), ('key', 'value'))
 
     def test__str__str_val(self):
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='str', val='something')
-        self.assertEqual("key=key value=something", str(kwarg))
+        self.assertEqual(f'JobKwarg[key=key,arg_type=str,value=something]', str(kwarg))
 
     def test__str__int_val(self):
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='int', val=1)
-        self.assertEqual("key=key value=1", str(kwarg))
+        self.assertEqual('JobKwarg[key=key,arg_type=int,value=1]', str(kwarg))
 
     def test__str__datetime_val(self):
         _time = timezone.now()
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='datetime', val=str(_time))
-        self.assertEqual("key=key value={}".format(_time), str(kwarg))
+        self.assertEqual(f'JobKwarg[key=key,arg_type=datetime,value={_time}]', str(kwarg))
 
     def test__str__bool_val(self):
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='bool', val='True')
-        self.assertEqual("key=key value=True", str(kwarg))
+        self.assertEqual('JobKwarg[key=key,arg_type=bool,value=True]', str(kwarg))
 
     def test__repr__str_val(self):
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='str', val='something')

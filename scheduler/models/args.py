@@ -35,9 +35,6 @@ class BaseJobArg(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey()
 
-    def __str__(self):
-        return f'arg_type={self.arg_type},val={self.value()}'
-
     def clean(self):
         if self.arg_type not in ARG_TYPE_TYPES_DICT:
             raise ValidationError({
@@ -77,7 +74,8 @@ class BaseJobArg(models.Model):
 
 
 class JobArg(BaseJobArg):
-    pass
+    def __str__(self):
+        return f'JobArg[arg_type={self.arg_type},value={self.value()}]'
 
 
 class JobKwarg(BaseJobArg):
@@ -85,7 +83,7 @@ class JobKwarg(BaseJobArg):
 
     def __str__(self):
         key, value = self.value()
-        return 'key={} value={}'.format(key, value)
+        return f'JobKwarg[key={key},arg_type={self.arg_type},value={self.val}]'
 
     def value(self):
         return self.key, super(JobKwarg, self).value()
