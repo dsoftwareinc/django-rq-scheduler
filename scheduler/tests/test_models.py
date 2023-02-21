@@ -359,7 +359,7 @@ class BaseTestCases:
             job.scheduled_time = scheduled_time
             utc = zoneinfo.ZoneInfo('UTC')
             expected = scheduled_time.astimezone(utc).isoformat()
-            self.assertEqual(expected, job.schedule_time_utc().isoformat())
+            self.assertEqual(expected, job._schedule_time().isoformat())
 
         def test_result_ttl_passthrough(self):
             job = job_factory(self.JobClass, result_ttl=500)

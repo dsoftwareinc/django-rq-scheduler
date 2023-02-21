@@ -1,0 +1,91 @@
+from datetime import datetime
+from typing import Callable
+
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from model_utils import Choices
+
+from scheduler import tools
+
+ARG_TYPE_TYPES_DICT = {
+    'str': str,
+    'int': int,
+    'bool': bool,
+    'datetime': datetime,
+    'callable': Callable,
+}
+
+
+class BaseJobArg(models.Model):
+    ARG_TYPE = Choices(
+        ('str', _('string')),
+        ('int', _('int')),
+        ('bool', _('boolean')),
+        ('datetime', _('datetime')),
+        ('callable', _('callable')),
+    )
+    arg_type = models.CharField(
+        _('Argument Type'), max_length=12, choices=ARG_TYPE, default=ARG_TYPE.str
+    )
+    val = models.CharField(_('Argument Value'), blank=True, max_length=255)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey()
+
+    def __str__(self):
+        return f'arg_type={self.arg_type},val={self.value()}'
+
+    def clean(self):
+        if self.arg_type not in ARG_TYPE_TYPES_DICT:
+            raise ValidationError({
+                'arg_type': ValidationError(
+                    _(f'Could not parse {self.arg_type}, options are: {ARG_TYPE_TYPES_DICT.keys()}'), code='invalid')
+            })
+        try:
+            self.value()
+        except Exception:
+            raise ValidationError({
+                'arg_type': ValidationError(
+                    _(f'Could not parse {self.val} as {self.arg_type}'), code='invalid')
+            })
+
+    def save(self, **kwargs):
+        super(BaseJobArg, self).save(**kwargs)
+        self.content_object.save()
+
+    def delete(self, **kwargs):
+        super(BaseJobArg, self).delete(**kwargs)
+        self.content_object.save()
+
+    def value(self):
+        if self.arg_type == 'callable':
+            res = tools.callable_func(self.val)()
+        elif self.arg_type == 'datetime':
+            res = datetime.fromisoformat(self.val)
+        elif self.arg_type == 'bool':
+            res = self.val.lower() == 'true'
+        else:
+            res = ARG_TYPE_TYPES_DICT[self.arg_type](self.val)
+        return res
+
+    class Meta:
+        abstract = True
+        ordering = ['id']
+
+
+class JobArg(BaseJobArg):
+    pass
+
+
+class JobKwarg(BaseJobArg):
+    key = models.CharField(max_length=255)
+
+    def __str__(self):
+        key, value = self.value()
+        return 'key={} value={}'.format(key, value)
+
+    def value(self):
+        return self.key, super(JobKwarg, self).value()

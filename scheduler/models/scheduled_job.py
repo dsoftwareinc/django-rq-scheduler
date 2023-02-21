@@ -1,13 +1,11 @@
-import logging
-from datetime import timedelta, datetime
-from typing import Callable
+import math
+from datetime import timedelta
 
 import croniter
 from django.apps import apps
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
@@ -17,11 +15,10 @@ from django_rq.queues import get_queue
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
-from scheduler import tools
+from scheduler import tools, logger
+from scheduler.models.args import JobArg, JobKwarg
 
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
-
-logger = logging.getLogger(__name__)
 
 
 def callback_save_job(job, connection, result, *args, **kwargs):
@@ -34,90 +31,6 @@ def callback_save_job(job, connection, result, *args, **kwargs):
         scheduled_job.unschedule()
         scheduled_job.schedule()
         scheduled_job.save()
-
-
-ARG_TYPE_TYPES_DICT = {
-    'str': str,
-    'int': int,
-    'bool': bool,
-    'datetime': datetime,
-    'callable': Callable,
-}
-
-
-class BaseJobArg(models.Model):
-    ARG_TYPE = Choices(
-        ('str', _('string')),
-        ('int', _('int')),
-        ('bool', _('boolean')),
-        ('datetime', _('datetime')),
-        ('callable', _('callable')),
-    )
-    arg_type = models.CharField(
-        _('Argument Type'), max_length=12, choices=ARG_TYPE, default=ARG_TYPE.str
-    )
-    val = models.CharField(_('Argument Value'), blank=True, max_length=255)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey()
-
-    def __repr__(self):
-        return f'arg_type={self.arg_type},val={self.value()}'
-
-    def __str__(self):
-        return f'arg_type={self.arg_type},val={self.value()}'
-
-    def clean(self):
-        if self.arg_type not in ARG_TYPE_TYPES_DICT:
-            raise ValidationError({
-                'arg_type': ValidationError(
-                    _(f'Could not parse {self.arg_type}, options are: {ARG_TYPE_TYPES_DICT.keys()}'), code='invalid')
-            })
-        try:
-            self.value()
-        except Exception:
-            raise ValidationError({
-                'arg_type': ValidationError(
-                    _(f'Could not parse {self.val} as {self.arg_type}'), code='invalid')
-            })
-
-    def save(self, **kwargs):
-        super(BaseJobArg, self).save(**kwargs)
-        self.content_object.save()
-
-    def delete(self, **kwargs):
-        super(BaseJobArg, self).delete(**kwargs)
-        self.content_object.save()
-
-    def value(self):
-        if self.arg_type == 'callable':
-            res = tools.callable_func(self.val)()
-        elif self.arg_type == 'datetime':
-            res = datetime.fromisoformat(self.val)
-        elif self.arg_type == 'bool':
-            res = self.val.lower() == 'true'
-        else:
-            res = ARG_TYPE_TYPES_DICT[self.arg_type](self.val)
-        return res
-
-    class Meta:
-        abstract = True
-        ordering = ['id']
-
-
-class JobArg(BaseJobArg):
-    pass
-
-
-class JobKwarg(BaseJobArg):
-    key = models.CharField(max_length=255)
-
-    def __str__(self):
-        key, value = self.value()
-        return 'key={} value={}'.format(key, value)
-
-    def value(self):
-        return self.key, super(JobKwarg, self).value()
 
 
 class BaseJob(TimeStampedModel):
@@ -234,17 +147,6 @@ class BaseJob(TimeStampedModel):
     def _get_rqueue(self):
         return get_queue(self.queue)
 
-    def _enqueue_job(self, schedule_time):
-        kwargs = self.enqueue_args()
-        job = self._get_rqueue().enqueue_at(
-            schedule_time,
-            tools.run_job,
-            args=(self.JOB_TYPE, self.id),
-            **kwargs,
-        )
-        self.job_id = job.id
-        return True
-
     def ready_for_schedule(self) -> bool:
         if self.is_scheduled():
             logger.debug(f'Job {self.name} already scheduled')
@@ -257,7 +159,15 @@ class BaseJob(TimeStampedModel):
     def schedule(self) -> bool:
         if not self.ready_for_schedule():
             return False
-        return self._enqueue_job(self._schedule_time())
+        schedule_time = self._schedule_time()
+        kwargs = self.enqueue_args()
+        job = self._get_rqueue().enqueue_at(
+            schedule_time,
+            tools.run_job,
+            args=(self.JOB_TYPE, self.id),
+            **kwargs, )
+        self.job_id = job.id
+        return True
 
     def unschedule(self) -> bool:
         queue = self._get_rqueue()
@@ -276,9 +186,6 @@ class BaseJob(TimeStampedModel):
 
 class ScheduledTimeMixin(models.Model):
     scheduled_time = models.DateTimeField(_('scheduled time'))
-
-    def schedule_time_utc(self):
-        return utc(self.scheduled_time)
 
     def _schedule_time(self):
         return utc(self.scheduled_time)
@@ -363,10 +270,6 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
 
         self.repeat is None ==> Run forever.
         """
-        while self.scheduled_time < timezone.now() and (self.repeat is None or self.repeat > 0):
-            self.scheduled_time += timedelta(seconds=self.interval_seconds())
-            if self.repeat is not None and self.repeat > 0:
-                self.repeat -= 1
 
     def enqueue_args(self):
         res = super(RepeatableJob, self).enqueue_args()
@@ -376,7 +279,12 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
     def ready_for_schedule(self):
         if super(RepeatableJob, self).ready_for_schedule() is False:
             return False
-        self._prevent_duplicate_runs()
+        if self.scheduled_time < timezone.now():
+            gap = math.ceil((timezone.now().timestamp() - self.scheduled_time.timestamp()) / self.interval_seconds())
+            if self.repeat is None or self.repeat >= gap:
+                self.scheduled_time += timedelta(seconds=self.interval_seconds() * gap)
+                self.repeat = (self.repeat - gap) if self.repeat is not None else None
+
         if self.scheduled_time < timezone.now():
             return False
         return True
