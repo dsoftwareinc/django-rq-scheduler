@@ -25,6 +25,14 @@ Documentation can be found in https://django-rq-scheduler.readthedocs.io/en/late
 > one of the django-rq workers should run with `--with-scheduler` parameter
 > as mentioned [here](https://github.com/rq/django-rq#support-for-scheduled-jobs).
 
+
+# Sponsor
+
+django-rq-scheduler is developed for free.
+
+You can support this project by becoming a sponsor using [this link](https://github.com/sponsors/cunla).
+
+
 ## Security contact information
 
 To report a security vulnerability, please use the
