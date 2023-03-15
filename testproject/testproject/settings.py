@@ -15,7 +15,7 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import django_rq  # noqa: F401
 import rq  # noqa: F401
-from fakeredis import FakeStrictRedis, FakeRedis, FakeServer
+from fakeredis import FakeStrictRedis, FakeRedis, FakeServer, FakeConnection
 
 SCHEDULER_INTERVAL = 1
 SCHEDULER_THREAD = True
@@ -75,7 +75,17 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'testproject.urls'
-
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': [
+            'redis://127.0.0.1:6379',  # leader
+        ],
+        'OPTIONS': {
+            'connection_class': FakeConnection
+        }
+    }
+}
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
