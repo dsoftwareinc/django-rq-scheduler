@@ -51,7 +51,7 @@ croniter = "^1.3"
 [tool.poetry.dev-dependencies]
 poetry = "^1.4"
 coverage = "^7"
-fakeredis = "^2.9"
+fakeredis = "^2.10"
 Flake8-pyproject = "^1.2"
 
 [tool.flake8]
