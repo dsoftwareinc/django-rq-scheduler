@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 
 import os
 
+import django
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import django_rq  # noqa: F401
 import rq  # noqa: F401
@@ -75,17 +76,18 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'testproject.urls'
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': [
-            'redis://127.0.0.1:6379',  # leader
-        ],
-        'OPTIONS': {
-            'connection_class': FakeConnection
+if django.VERSION > (4, 0):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': [
+                'redis://127.0.0.1:6379',  # leader
+            ],
+            'OPTIONS': {
+                'connection_class': FakeConnection
+            }
         }
     }
-}
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
