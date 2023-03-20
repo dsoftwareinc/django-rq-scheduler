@@ -90,7 +90,7 @@ class TestJobKwarg(TestAllJobArg):
 
     def test__str__str_val(self):
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='str', val='something')
-        self.assertEqual(f'JobKwarg[key=key,arg_type=str,value=something]', str(kwarg))
+        self.assertEqual('JobKwarg[key=key,arg_type=str,value=something]', str(kwarg))
 
     def test__str__int_val(self):
         kwarg = jobarg_factory(self.JobArgClass, key='key', arg_type='int', val=1)
