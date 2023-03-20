@@ -103,28 +103,19 @@ class JobAdmin(admin.ModelAdmin):
     @admin.action(description="Enqueue now", permissions=('change',))
     def enqueue_job_now(self, request, queryset):
         job_names = []
-        for obj in queryset:
-            kwargs = obj.enqueue_args()
-            obj._get_rqueue().enqueue_at(
-                utc(now()),
-                obj.callable_func(),
-                *obj.parse_args(),
-                **kwargs
-            )
-            job_names.append(obj.name)
+        for job in queryset:
+            job.schedule(utc(now()))
+            job.save()
+            job_names.append(job.name)
         self.message_user(request, "The following jobs have been enqueued: %s" % (', '.join(job_names),))
 
     @admin.action(description="Run now", permissions=('change',))
     def run_job_now(self, request, queryset):
         job_names = []
-        for obj in queryset:
-            kwargs = obj.enqueue_args()
-            obj._get_rqueue().enqueue(
-                obj.callable_func(),
-                *obj.parse_args(),
-                **kwargs
-            )
-            job_names.append(obj.name)
+        for job in queryset:
+            job.enqueue()
+            job.save()
+            job_names.append(job.name)
         self.message_user(request, "The following jobs have been run: %s" % (', '.join(job_names),))
 
 
