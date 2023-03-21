@@ -16,13 +16,13 @@ class EnqueueJobNowTestCase(TestCase):
         self.job.unschedule()
         self.job.save()
 
-    def test_enqueue_job_now_enqueues_job_at(self):
+    def test_schedule_job_now_enqueues_job_at(self):
         request = Mock()
         cron_jobs = CronJob.objects.filter(id=self.job.id)
         cron_job = cron_jobs.first()
         self.assertIsNotNone(cron_jobs)
         queue = get_queue(cron_job.queue)
-        self.admin.enqueue_job_now(request, cron_jobs)
+        self.admin.schedule_job_now(request, cron_jobs)
         self.scheduler.enqueue_scheduled_jobs()
         cron_job.refresh_from_db()
         self.assertIsNotNone(cron_job)
@@ -31,7 +31,7 @@ class EnqueueJobNowTestCase(TestCase):
     @patch.object(CronJobAdmin, 'message_user')
     def test_run_job_now_returns_message(self, mock_message_user):
         request = Mock()
-        self.admin.enqueue_job_now(request, CronJob.objects.filter(id=self.job.id))
+        self.admin.schedule_job_now(request, CronJob.objects.filter(id=self.job.id))
         mock_message_user.assert_called_once_with(request, f'The following jobs have been enqueued: {self.job.name}')
 
 

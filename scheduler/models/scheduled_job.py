@@ -170,7 +170,7 @@ class BaseJob(TimeStampedModel):
         self.job_id = job.id
         return True
 
-    def enqueue(self) -> bool:
+    def enqueue_to_run(self) -> bool:
         kwargs = self.enqueue_args()
         job = self._get_rqueue().enqueue(
             tools.run_job,
