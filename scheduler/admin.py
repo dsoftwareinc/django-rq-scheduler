@@ -38,7 +38,7 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
 
 
 class JobAdmin(admin.ModelAdmin):
-    actions = ['delete_model', 'disable_selected', 'enable_selected', 'schedule_job_now']
+    actions = ['delete_model', 'disable_selected', 'enable_selected', 'run_job_now']
     inlines = [JobArgInline, JobKwargInline]
     list_filter = ('enabled',)
     list_display = ('enabled', 'name', 'job_id', 'function_string', 'is_scheduled',)
@@ -101,22 +101,13 @@ class JobAdmin(admin.ModelAdmin):
         self.message_user(request, f"{message_bit} successfully enabled.", level=level)
 
     @admin.action(description="Run now", permissions=('change',))
-    def schedule_job_now(self, request, queryset):
+    def run_job_now(self, request, queryset):
         job_names = []
         for job in queryset:
             job.schedule(utc(now()))
             job.save()
             job_names.append(job.name)
         self.message_user(request, "The following jobs have been enqueued: %s" % (', '.join(job_names),))
-
-    # @admin.action(description="Run now", permissions=('change',))
-    # def run_job_now(self, request, queryset):
-    #     job_names = []
-    #     for job in queryset:
-    #         job.enqueue_to_run()
-    #         job.save()
-    #         job_names.append(job.name)
-    #     self.message_user(request, "The following jobs have been run: %s" % (', '.join(job_names),))
 
 
 @admin.register(ScheduledJob)
