@@ -38,7 +38,7 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
 
 
 class JobAdmin(admin.ModelAdmin):
-    actions = ['delete_model', 'disable_selected', 'enable_selected', 'run_job_now']
+    actions = ['delete_model', 'disable_selected', 'enable_selected', 'schedule_job_now']
     inlines = [JobArgInline, JobKwargInline]
     list_filter = ('enabled',)
     list_display = ('enabled', 'name', 'job_id', 'function_string', 'is_scheduled',)
