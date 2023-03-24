@@ -35,23 +35,23 @@ class EnqueueJobNowTestCase(TestCase):
         mock_message_user.assert_called_once_with(request, f'The following jobs have been enqueued: {self.job.name}')
 
 
-class RunJobNowTestCase(TestCase):
-    def setUp(self):
-        self.job = job_factory(CronJob, enabled=False)
-        self.job.unschedule()
-        self.job.save()
-        self.admin = CronJobAdmin(CronJob, AdminSite())
+# class RunJobNowTestCase(TestCase):
+#     def setUp(self):
+#         self.job = job_factory(CronJob, enabled=False)
+#         self.job.unschedule()
+#         self.job.save()
+#         self.admin = CronJobAdmin(CronJob, AdminSite())
 
-    def test_run_job_now_enqueues_job(self):
-        request = Mock()
-        queue = get_queue(self.job.queue)
-        initial_queue_len = len(queue)
-        self.admin.run_job_now(request, CronJob.objects.filter(id=self.job.id))
-        self.assertEqual(len(queue), initial_queue_len + 1)
-        self.assertEqual(self.job.is_scheduled(), False)
+#     def test_run_job_now_enqueues_job(self):
+#         request = Mock()
+#         queue = get_queue(self.job.queue)
+#         initial_queue_len = len(queue)
+#         self.admin.run_job_now(request, CronJob.objects.filter(id=self.job.id))
+#         self.assertEqual(len(queue), initial_queue_len + 1)
+#         self.assertEqual(self.job.is_scheduled(), False)
 
-    @patch.object(CronJobAdmin, 'message_user')
-    def test_run_job_now_returns_message(self, mock_message_user):
-        request = Mock()
-        self.admin.run_job_now(request, CronJob.objects.filter(id=self.job.id))
-        mock_message_user.assert_called_once_with(request, f'The following jobs have been run: {self.job.name}')
+#     @patch.object(CronJobAdmin, 'message_user')
+#     def test_run_job_now_returns_message(self, mock_message_user):
+#         request = Mock()
+#         self.admin.run_job_now(request, CronJob.objects.filter(id=self.job.id))
+#         mock_message_user.assert_called_once_with(request, f'The following jobs have been run: {self.job.name}')

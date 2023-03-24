@@ -100,7 +100,7 @@ class JobAdmin(admin.ModelAdmin):
         level = messages.WARNING if not rows_updated else messages.INFO
         self.message_user(request, f"{message_bit} successfully enabled.", level=level)
 
-    @admin.action(description="Schedule now", permissions=('change',))
+    @admin.action(description="Run now", permissions=('change',))
     def schedule_job_now(self, request, queryset):
         job_names = []
         for job in queryset:
@@ -109,14 +109,14 @@ class JobAdmin(admin.ModelAdmin):
             job_names.append(job.name)
         self.message_user(request, "The following jobs have been enqueued: %s" % (', '.join(job_names),))
 
-    @admin.action(description="Run now", permissions=('change',))
-    def run_job_now(self, request, queryset):
-        job_names = []
-        for job in queryset:
-            job.enqueue_to_run()
-            job.save()
-            job_names.append(job.name)
-        self.message_user(request, "The following jobs have been run: %s" % (', '.join(job_names),))
+    # @admin.action(description="Run now", permissions=('change',))
+    # def run_job_now(self, request, queryset):
+    #     job_names = []
+    #     for job in queryset:
+    #         job.enqueue_to_run()
+    #         job.save()
+    #         job_names.append(job.name)
+    #     self.message_user(request, "The following jobs have been run: %s" % (', '.join(job_names),))
 
 
 @admin.register(ScheduledJob)
