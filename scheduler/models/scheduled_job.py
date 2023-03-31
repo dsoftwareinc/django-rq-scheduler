@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from django_rq.queues import get_queue
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
+from django.utils.timezone import now
 
 from scheduler import tools, logger
 from scheduler.models.args import JobArg, JobKwarg
@@ -163,6 +164,17 @@ class BaseJob(TimeStampedModel):
         kwargs = self.enqueue_args()
         job = self._get_rqueue().enqueue_at(
             schedule_time,
+            tools.run_job,
+            args=(self.JOB_TYPE, self.id),
+            **kwargs,
+        )
+        self.job_id = job.id
+        return True
+
+    def schedule_now(self) -> bool:
+        kwargs = self.enqueue_args()
+        job = self._get_rqueue().enqueue_at(
+            utc(now()),
             tools.run_job,
             args=(self.JOB_TYPE, self.id),
             **kwargs,
