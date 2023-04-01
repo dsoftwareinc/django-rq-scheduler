@@ -2,8 +2,6 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.db.models import QuerySet
-from django.templatetags.tz import utc
-from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
 from scheduler import tools
@@ -103,16 +101,11 @@ class JobAdmin(admin.ModelAdmin):
     @admin.action(description="Run now", permissions=('change',))
     def run_job_now(self, request, queryset):
         job_names = []
-        for obj in queryset:
-            kwargs = obj.enqueue_args()
-            obj._get_rqueue().enqueue_at(
-                utc(now()),
-                obj.callable_func(),
-                *obj.parse_args(),
-                **kwargs
-            )
-            job_names.append(obj.name)
-        self.message_user(request, "The following jobs have been run: %s" % (', '.join(job_names),))
+        for job in queryset:
+            job.schedule_now()
+            job.save()
+            job_names.append(job.name)
+        self.message_user(request, "The following jobs have been enqueued: %s" % (', '.join(job_names),))
 
 
 @admin.register(ScheduledJob)
