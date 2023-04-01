@@ -14,12 +14,10 @@ import os
 
 import django
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import django_rq  # noqa: F401
 import rq  # noqa: F401
 from fakeredis import FakeStrictRedis, FakeRedis, FakeServer, FakeConnection
 
-SCHEDULER_INTERVAL = 1
-SCHEDULER_THREAD = True
+import scheduler
 
 
 class FakeRedisConnSingleton:
@@ -36,7 +34,7 @@ class FakeRedisConnSingleton:
         return self.conn
 
 
-django_rq.queues.get_redis_connection = FakeRedisConnSingleton()
+# scheduler.queues.get_redis_connection = FakeRedisConnSingleton()
 rq.connections.get_current_connection = FakeRedisConnSingleton()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -61,7 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_rq',
+    # 'django_rq',
     'scheduler',
 ]
 
@@ -151,7 +149,6 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
-RQ_SHOW_ADMIN_LINK = True
 RQ_QUEUES = {
     'default': {
         'URL': 'redis://localhost:6379/0',
@@ -160,7 +157,7 @@ RQ_QUEUES = {
         'URL': 'redis://localhost:6379/0',
     },
     'high': {
-        'URL': 'redis://localhost:6379/0',
+        'URL': 'redis://localhost:6379/1',
     },
 }
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

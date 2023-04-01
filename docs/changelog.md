@@ -1,5 +1,26 @@
 # Changelog
 
+## v2023.5.0b1 🌈
+
+### 🚀 Breaking changes
+
+* Remove django-rq dependency
+* Remove threaded scheduler support
+
+### 🚀 Features
+
+* Migrate all required features from django-rq:
+    * management commands to create worker (rqworker), stats, etc.
+    * admin view of queues
+* admin view for workers
+* admin views are significantly more informative
+* job-ids and worker-ids are more informative
+
+### 🚀 Roadmap
+
+* Merge all scheduled jobs to one model
+* job executions inline in each job
+
 ## v2023.4.0 🌈
 
 ### 🚀 Features
@@ -41,7 +62,7 @@
 
 ## v2023.3.0 🌈
 
-### 🚀 Breaking changes¶
+### 🚀 Breaking changes
 
 * Remove rq-scheduler dependency
 

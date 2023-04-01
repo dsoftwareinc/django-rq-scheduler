@@ -1,7 +1,9 @@
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.test import Client, TestCase
 from django.utils import timezone
 
 from scheduler.models import CronJob, JobKwarg, RepeatableJob, ScheduledJob
@@ -66,3 +68,13 @@ def _get_job_from_queue(django_job):
     jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
     entry = next(i for i in jobs_to_schedule if i == django_job.job_id)
     return queue.fetch_job(entry)
+
+
+class SchedulerBaseCase(TestCase):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        try:
+            User.objects.create_superuser('admin', 'admin@a.com', 'admin')
+        except Exception:
+            pass
+        cls.client = Client()

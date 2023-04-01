@@ -13,12 +13,12 @@ from django.templatetags.tz import utc
 from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
-from django_rq.queues import get_queue
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
 from scheduler import tools, logger
 from scheduler.models.args import JobArg, JobKwarg
+from scheduler.queues import get_queue
 
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
@@ -41,30 +41,34 @@ class BaseJob(TimeStampedModel):
     callable = models.CharField(_('callable'), max_length=2048)
     callable_args = GenericRelation(JobArg, related_query_name='args')
     callable_kwargs = GenericRelation(JobKwarg, related_query_name='kwargs')
-    enabled = models.BooleanField(_('enabled'), default=True)
+    enabled = models.BooleanField(
+        _('enabled'), default=True,
+        help_text=_('Should job be scheduled? This field is useful to keep '
+                    'past jobs that should no longer be scheduled'),
+    )
     queue = models.CharField(
-        _('queue'),
-        max_length=16,
-        help_text='Queue name', )
+        _('queue'), max_length=16,
+        help_text=_('Queue name'), )
     job_id = models.CharField(
-        _('job id'), max_length=128, editable=False, blank=True, null=True)
-    repeat = models.PositiveIntegerField(_('repeat'), blank=True, null=True)
-    at_front = models.BooleanField(_('At front'), default=False, blank=True, null=True)
+        _('job id'), max_length=128, editable=False, blank=True, null=True,
+        help_text=_('Current job_id on queue'))
+    repeat = models.PositiveIntegerField(
+        _('repeat'), blank=True, null=True,
+        help_text=_('Number of times to repeat the job'), )
+    at_front = models.BooleanField(
+        _('At front'), default=False, blank=True, null=True,
+        help_text=_('When scheduling the job, add it in the front of the queue'), )
     timeout = models.IntegerField(
         _('timeout'), blank=True, null=True,
-        help_text=_(
-            'Timeout specifies the maximum runtime, in seconds, for the job '
-            'before it\'ll be considered \'lost\'. Blank uses the default '
-            'timeout.'
-        )
-    )
+        help_text=_("Timeout specifies the maximum runtime, in seconds, for the job "
+                    "before it'll be considered 'lost'. Blank uses the default "
+                    "timeout."), )
     result_ttl = models.IntegerField(
         _('result ttl'), blank=True, null=True,
-        help_text=_('The TTL value (in seconds) of the job result. -1: '
-                    'Result never expires, you should delete jobs manually. '
-                    '0: Result gets deleted immediately. >0: Result expires '
-                    'after n seconds.')
-    )
+        help_text=_("The TTL value (in seconds) of the job result. -1: "
+                    "Result never expires, you should delete jobs manually. "
+                    "0: Result gets deleted immediately. >0: Result expires "
+                    "after n seconds."), )
 
     def __str__(self):
         func = self.callable + "({})"  # zero-width space allows textwrap
@@ -78,34 +82,17 @@ class BaseJob(TimeStampedModel):
     def callable_func(self):
         return tools.callable_func(self.callable)
 
-    def clean(self):
-        self.clean_callable()
-        self.clean_queue()
-
-    def clean_callable(self):
-        try:
-            tools.callable_func(self.callable)
-        except Exception:
-            raise ValidationError({
-                'callable': ValidationError(
-                    _('Invalid callable, must be importable'), code='invalid')
-            })
-
-    def clean_queue(self):
-        queue_keys = settings.RQ_QUEUES.keys()
-        if self.queue not in queue_keys:
-            raise ValidationError({
-                'queue': ValidationError(
-                    _('Invalid queue, must be one of: {}'.format(
-                        ', '.join(queue_keys))), code='invalid')
-            })
-
     @admin.display(boolean=True, description=_('is scheduled?'))
     def is_scheduled(self) -> bool:
         if not self.job_id:
             return False
         scheduled_jobs = self._get_rqueue().scheduled_job_registry.get_job_ids()
-        return self.job_id in scheduled_jobs
+        enqueued_jobs = self._get_rqueue().get_job_ids()
+        res = (self.job_id in scheduled_jobs) or (self.job_id in enqueued_jobs)
+        if not res:
+            self.job_id = None
+            super(BaseJob, self).save()
+        return res
 
     def save(self, **kwargs):
         schedule_job = kwargs.pop('schedule_job', True)
@@ -120,7 +107,7 @@ class BaseJob(TimeStampedModel):
 
     @admin.display(description='Callable')
     def function_string(self) -> str:
-        func = self.callable + "(\u200b{})"  # zero-width space allows textwrap
+        func = self.callable + "({})"  # zero-width space allows textwrap
         args = self.parse_args()
         args_list = [repr(arg) for arg in args]
         kwargs = self.parse_kwargs()
@@ -140,9 +127,11 @@ class BaseJob(TimeStampedModel):
             meta=dict(
                 repeat=self.repeat,
                 job_type=self.JOB_TYPE,
+                scheduled_job_id=self.id,
             ),
             on_success=callback_save_job,
             on_failure=callback_save_job,
+            job_id=f'{self.queue}:{self.name}:{timezone.now()}'
         )
         if self.at_front:
             res['at_front'] = self.at_front
@@ -173,20 +162,9 @@ class BaseJob(TimeStampedModel):
             schedule_time,
             tools.run_job,
             args=(self.JOB_TYPE, self.id),
-            **kwargs,
-        )
+            **kwargs, )
         self.job_id = job.id
-        return True
-
-    def schedule_now(self) -> bool:
-        kwargs = self.enqueue_args()
-        job = self._get_rqueue().enqueue_at(
-            utc(now()),
-            tools.run_job,
-            args=(self.JOB_TYPE, self.id),
-            **kwargs,
-        )
-        self.job_id = job.id
+        super(BaseJob, self).save()
         return True
 
     def enqueue_to_run(self) -> bool:
@@ -197,6 +175,7 @@ class BaseJob(TimeStampedModel):
             **kwargs,
         )
         self.job_id = job.id
+        super(BaseJob, self).save()
         return True
 
     def unschedule(self) -> bool:
@@ -229,6 +208,29 @@ class BaseJob(TimeStampedModel):
             result_ttl=self.result_ttl,
         )
 
+    # Job form validation methods
+    def clean(self):
+        self.clean_callable()
+        self.clean_queue()
+
+    def clean_callable(self):
+        try:
+            tools.callable_func(self.callable)
+        except Exception:
+            raise ValidationError({
+                'callable': ValidationError(
+                    _('Invalid callable, must be importable'), code='invalid')
+            })
+
+    def clean_queue(self):
+        queue_keys = settings.RQ_QUEUES.keys()
+        if self.queue not in queue_keys:
+            raise ValidationError({
+                'queue': ValidationError(
+                    _('Invalid queue, must be one of: {}'.format(
+                        ', '.join(queue_keys))), code='invalid')
+            })
+
     class Meta:
         abstract = True
 
@@ -248,11 +250,9 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
     JOB_TYPE = 'ScheduledJob'
 
     def ready_for_schedule(self) -> bool:
-        if super(ScheduledJob, self).ready_for_schedule() is False:
-            return False
-        if self.scheduled_time is not None and self.scheduled_time < timezone.now():
-            return False
-        return True
+        return (super(ScheduledJob, self).ready_for_schedule()
+                and (self.scheduled_time is None
+                     or self.scheduled_time >= timezone.now()))
 
     def to_dict(self) -> Dict:
         res = super(ScheduledJob, self).to_dict()

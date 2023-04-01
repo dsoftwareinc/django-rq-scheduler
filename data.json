@@ -1,0 +1,96 @@
+[
+  {
+    "model": "ScheduledJob",
+    "name": "Scheduled Job 1",
+    "callable": "scheduler.tests.jobs.test_args_kwargs",
+    "callable_args": [
+      {
+        "arg_type": "datetime",
+        "val": "2022-02-01"
+      }
+    ],
+    "callable_kwargs": [],
+    "enabled": true,
+    "queue": "default",
+    "at_front": false,
+    "timeout": null,
+    "result_ttl": null,
+    "scheduled_time": "2023-02-21T14:06:06"
+  },
+  {
+    "model": "ScheduledJob",
+    "name": "Scheduled Job 2",
+    "callable": "scheduler.tests.jobs.test_args_kwargs",
+    "callable_args": [
+      {
+        "arg_type": "datetime",
+        "val": "2022-02-01"
+      }
+    ],
+    "callable_kwargs": [],
+    "enabled": true,
+    "queue": "default",
+    "at_front": false,
+    "timeout": null,
+    "result_ttl": null,
+    "scheduled_time": "2023-02-21T14:06:06"
+  },
+  {
+    "model": "ScheduledJob",
+    "name": "Scheduled Job 3",
+    "callable": "scheduler.tests.jobs.test_args_kwargs",
+    "callable_args": [
+      {
+        "arg_type": "datetime",
+        "val": "2022-02-01"
+      }
+    ],
+    "callable_kwargs": [
+      {
+        "key": "key",
+        "arg_type": "datetime",
+        "val": "2022-02-01"
+      }
+    ],
+    "enabled": true,
+    "queue": "default",
+    "at_front": false,
+    "timeout": null,
+    "result_ttl": null,
+    "scheduled_time": "2023-02-21T14:06:06"
+  },
+  {
+    "model": "CronJob",
+    "name": "Cron job 1",
+    "callable": "scheduler.tests.jobs.test_args_kwargs",
+    "callable_args": [],
+    "callable_kwargs": [],
+    "enabled": true,
+    "queue": "default",
+    "repeat": null,
+    "at_front": false,
+    "timeout": null,
+    "result_ttl": null,
+    "cron_string": "* * * * *"
+  },
+  {
+    "model": "CronJob",
+    "name": "Cron job 2",
+    "callable": "scheduler.tests.jobs.test_args_kwargs",
+    "callable_args": [],
+    "callable_kwargs": [
+      {
+        "key": "key",
+        "arg_type": "datetime",
+        "val": "2022-02-01"
+      }
+    ],
+    "enabled": true,
+    "queue": "default",
+    "repeat": null,
+    "at_front": false,
+    "timeout": null,
+    "result_ttl": null,
+    "cron_string": "* * * * *"
+  }
+]
