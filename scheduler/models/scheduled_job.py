@@ -11,11 +11,11 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
 from django.utils import timezone
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django_rq.queues import get_queue
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
-from django.utils.timezone import now
 
 from scheduler import tools, logger
 from scheduler.models.args import JobArg, JobKwarg
@@ -72,7 +72,7 @@ class BaseJob(TimeStampedModel):
         args_list = [repr(arg) for arg in args]
         kwargs = self.parse_kwargs()
         kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
-        callable=func.format(', '.join(args_list + kwargs_list))
+        callable = func.format(', '.join(args_list + kwargs_list))
         return f'{self.JOB_TYPE}[{self.name}={callable}]'
 
     def callable_func(self):

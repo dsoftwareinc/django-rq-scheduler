@@ -5,8 +5,8 @@ import click
 from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
-from scheduler.models import JobArg, JobKwarg
 
+from scheduler.models import JobArg, JobKwarg
 from scheduler.tools import MODEL_NAMES
 
 
@@ -82,7 +82,7 @@ class Command(BaseCommand):
             try:
                 jobs = json.load(file)
             except json.decoder.JSONDecodeError:
-                click.echo(f'Error decoding json', err=True)
+                click.echo('Error decoding json', err=True)
 
         if options.get("format") == 'yaml':
             try:
