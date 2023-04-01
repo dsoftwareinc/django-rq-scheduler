@@ -1,5 +1,6 @@
 import math
 from datetime import timedelta
+from typing import Dict
 
 import croniter
 from django.apps import apps
@@ -66,7 +67,13 @@ class BaseJob(TimeStampedModel):
     )
 
     def __str__(self):
-        return f'{self.JOB_TYPE}[{self.name}={self.callable}()]'
+        func = self.callable + "({})"  # zero-width space allows textwrap
+        args = self.parse_args()
+        args_list = [repr(arg) for arg in args]
+        kwargs = self.parse_kwargs()
+        kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
+        callable=func.format(', '.join(args_list + kwargs_list))
+        return f'{self.JOB_TYPE}[{self.name}={callable}]'
 
     def callable_func(self):
         return tools.callable_func(self.callable)
@@ -157,10 +164,10 @@ class BaseJob(TimeStampedModel):
             return False
         return True
 
-    def schedule(self, when=None) -> bool:
-        if not self.ready_for_schedule() and when is None:
+    def schedule(self) -> bool:
+        if not self.ready_for_schedule():
             return False
-        schedule_time = self._schedule_time() if when is None else when
+        schedule_time = self._schedule_time()
         kwargs = self.enqueue_args()
         job = self._get_rqueue().enqueue_at(
             schedule_time,
@@ -203,6 +210,25 @@ class BaseJob(TimeStampedModel):
     def _schedule_time(self):
         raise NotImplementedError
 
+    def to_dict(self) -> Dict:
+        return dict(
+            model=self.JOB_TYPE,
+            name=self.name,
+            callable=self.callable,
+            callable_args=[
+                dict(arg_type=arg.arg_type, val=arg.val, )
+                for arg in self.callable_args.all()],
+            callable_kwargs=[
+                dict(arg_type=arg.arg_type, key=arg.key, val=arg.val, )
+                for arg in self.callable_kwargs.all()],
+            enabled=self.enabled,
+            queue=self.queue,
+            repeat=self.repeat,
+            at_front=self.at_front,
+            timeout=self.timeout,
+            result_ttl=self.result_ttl,
+        )
+
     class Meta:
         abstract = True
 
@@ -228,6 +254,12 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
             return False
         return True
 
+    def to_dict(self) -> Dict:
+        res = super(ScheduledJob, self).to_dict()
+        res['scheduled_time'] = self.scheduled_time.isoformat()
+        del res['repeat']
+        return res
+
     class Meta:
         verbose_name = _('Scheduled Job')
         verbose_name_plural = _('Scheduled Jobs')
@@ -248,6 +280,15 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         _('interval unit'), max_length=12, choices=UNITS, default=UNITS.hours
     )
     JOB_TYPE = 'RepeatableJob'
+
+    def to_dict(self) -> Dict:
+        res = super(RepeatableJob, self).to_dict()
+        res.update(dict(
+            scheduled_time=self.scheduled_time.isoformat(),
+            interval=self.interval,
+            interval_unit=self.interval_unit,
+        ))
+        return res
 
     def clean(self):
         super(RepeatableJob, self).clean()
@@ -325,6 +366,11 @@ class CronJob(BaseJob):
         _('cron string'), max_length=64,
         help_text=_('Define the schedule in a crontab like syntax. Times are in UTC.')
     )
+
+    def to_dict(self) -> Dict:
+        res = super(CronJob, self).to_dict()
+        res['cron_string'] = self.cron_string
+        return res
 
     def clean(self):
         super(CronJob, self).clean()
