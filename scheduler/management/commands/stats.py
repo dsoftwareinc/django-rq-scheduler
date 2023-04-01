@@ -38,6 +38,7 @@ class Command(BaseCommand):
 
     def _print_separator(self):
         click.echo('-' * self.table_width)
+
     def _print_stats_dashboard(self, statistics, prev_stats=None):
         if self.interval:
             click.clear()

@@ -190,7 +190,7 @@ def get_queues(*queue_names, **kwargs) -> List[DjangoQueue]:
     # do consistency checks while building return list
     for name in queue_names[1:]:
         queue = get_queue(name, **kwargs)
-        if type(queue) is not type(QUEUES[0]):
+        if type(queue) is not type(QUEUES[0]):  # noqa: E721
             raise ValueError(
                 'Queues must have the same class.'
                 '"{0}" and "{1}" have '

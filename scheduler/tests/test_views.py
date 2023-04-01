@@ -51,7 +51,6 @@ class ViewTest(TestCase):
         """Job data is displayed properly"""
         queue = get_queue('default')
         job = queue.enqueue(access_self)
-        queue_index = get_queue_index('default')
 
         url = reverse('job_details', args=[job.id, ])
         response = self.client.get(url)
@@ -66,7 +65,6 @@ class ViewTest(TestCase):
     def test_job_details_on_deleted_dependency(self):
         """Page doesn't crash even if job.dependency has been deleted"""
         queue = get_queue('default')
-        queue_index = get_queue_index('default')
 
         job = queue.enqueue(access_self)
         second_job = queue.enqueue(access_self, depends_on=job)
@@ -307,7 +305,6 @@ class ViewTest(TestCase):
 
     def test_worker_details(self):
         """Worker index page should show workers for a specific queue"""
-        queue_index = get_queue_index('django_rq_test')
 
         worker = create_worker('django_rq_test', name=uuid.uuid4().hex)
         worker.register_birth()

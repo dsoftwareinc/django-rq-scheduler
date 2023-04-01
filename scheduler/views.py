@@ -42,7 +42,7 @@ def get_scheduler_pid(queue):
         # TODO: (RQ>= 1.13) return queue.scheduler_pid
         pid = queue.connection.get(RQScheduler.get_locking_key(queue.name))
         return int(pid.decode()) if pid is not None else None
-    except Exception as e:
+    except Exception as e:  # noqa: F841
         pass  # Return None
     return None
 
@@ -422,7 +422,7 @@ def job_detail(request, job_id):
     try:
         job.func_name
         data_is_valid = True
-    except:
+    except Exception:
         data_is_valid = False
 
     try:

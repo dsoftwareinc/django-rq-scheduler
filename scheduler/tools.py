@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from scheduler import logger
 from scheduler.decorators import job
-from scheduler.queues import get_queues, get_all_workers
+from scheduler.queues import get_queues
 from scheduler.rq_classes import DjangoWorker
 
 MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']

@@ -1,7 +1,6 @@
 from django.urls import reverse
 
 from scheduler.tests.testtools import SchedulerBaseCase
-from scheduler.tools import create_worker
 
 
 class TestWorker(SchedulerBaseCase):

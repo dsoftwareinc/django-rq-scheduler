@@ -11,7 +11,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
 from django.utils import timezone
-from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from model_utils import Choices
 from model_utils.models import TimeStampedModel

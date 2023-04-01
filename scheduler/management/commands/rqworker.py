@@ -45,8 +45,9 @@ class Command(BaseCommand):
                             help='Default worker timeout to be used')
         parser.add_argument('--max-jobs', action='store', default=None, dest='max_jobs', type=int,
                             help='Maximum number of jobs to execute before terminating worker')
-        parser.add_argument('args', nargs='*', type=str,
-                            help='The queues to work on, separated by space, all queues should be using the same redis')
+        parser.add_argument(
+            'args', nargs='*', type=str,
+            help='The queues to work on, separated by space, all queues should be using the same redis')
 
     def handle(self, *args, **options):
         pid = options.get('pid')
