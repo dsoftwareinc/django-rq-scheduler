@@ -10,6 +10,12 @@ repo_url: https://github.com/dsoftwareinc/django-rq-scheduler
 # Copyright
 copyright: Copyright &copy; 2022 - 2023 Daniel Moran
 
+extra:
+  generator: false
+  analytics:
+    provider: google
+    property: G-GJBJBKXT19
+
 markdown_extensions:
   - abbr
   - admonition
