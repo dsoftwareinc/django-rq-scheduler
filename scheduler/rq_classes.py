@@ -39,4 +39,5 @@ class DjangoQueue(Queue):
     """
 
     def __init__(self, *args, **kwargs):
+        kwargs['job_class'] = JobExecution
         super(DjangoQueue, self).__init__(*args, **kwargs)

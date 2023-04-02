@@ -76,15 +76,8 @@ def get_queue(
     """
     from .settings import QUEUES
 
-    if kwargs.get('async') is not None:
-        is_async = kwargs['async']
-        warnings.warn('The `async` keyword is deprecated. Use `is_async` instead', DeprecationWarning)
-
-    # If is_async is provided, use it, otherwise, get it from the configuration
     if is_async is None:
         is_async = QUEUES[name].get('ASYNC', True)
-    # same for job_class
-    job_class = JobExecution
 
     if default_timeout is None:
         default_timeout = QUEUES[name].get('DEFAULT_TIMEOUT')
@@ -95,7 +88,6 @@ def get_queue(
         default_timeout=default_timeout,
         connection=connection,
         is_async=is_async,
-        job_class=job_class,
         autocommit=autocommit,
         **kwargs
     )
