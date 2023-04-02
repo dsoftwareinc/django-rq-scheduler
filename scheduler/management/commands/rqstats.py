@@ -1,4 +1,3 @@
-import sys
 import time
 
 import click
@@ -77,7 +76,7 @@ class Command(BaseCommand):
 
         if options.get("json"):
             import json
-            click.secho(json.dumps(get_statistics(), indent=2),)
+            click.secho(json.dumps(get_statistics(), indent=2), )
             return
 
         if options.get("yaml"):
@@ -87,7 +86,7 @@ class Command(BaseCommand):
                 click.secho("Aborting. yaml not supported", err=True, fg='red')
                 return
 
-            click.secho(yaml.dump(get_statistics(), default_flow_style=False),)
+            click.secho(yaml.dump(get_statistics(), default_flow_style=False), )
             return
 
         self.interval = options.get("interval")

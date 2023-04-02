@@ -69,7 +69,7 @@ class BaseJob(TimeStampedModel):
         help_text=mark_safe(
             """The TTL value (in seconds) of the job result.<br/>
                -1: Result never expires, you should delete jobs manually. <br/>
-                0: Result gets deleted immediately. <br/> 
+                0: Result gets deleted immediately. <br/>
                 >0: Result expires after n seconds."""), )
 
     def callable_func(self):
@@ -397,7 +397,7 @@ class CronJob(BaseJob):
     cron_string = models.CharField(
         _('cron string'), max_length=64,
         help_text=mark_safe(
-            '''Define the schedule in a crontab like syntax. 
+            '''Define the schedule in a crontab like syntax.
             Times are in UTC. Use <a href="https://crontab.guru/">crontab.guru</a> to create a cron string.''')
     )
 

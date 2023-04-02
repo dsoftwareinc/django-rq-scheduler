@@ -38,8 +38,8 @@ markdown_extensions:
   - pymdownx.keys
   - pymdownx.magiclink:
       repo_url_shorthand: true
-      user: squidfunk
-      repo: mkdocs-material
+      user: dsoftware-inc
+      repo: django-rq-scheduler
   - pymdownx.mark
   - pymdownx.smartsymbols
   - pymdownx.superfences:
