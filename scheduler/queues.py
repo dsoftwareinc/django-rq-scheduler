@@ -1,13 +1,11 @@
-import logging
 import warnings
 from typing import List
 
 import redis
 from redis.sentinel import Sentinel
 
+from . import logger
 from .rq_classes import JobExecution, DjangoQueue, DjangoWorker
-
-logger = logging.getLogger("scheduler.queues")
 
 
 def _get_redis_connection(config, use_strict_redis=False):

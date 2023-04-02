@@ -13,29 +13,9 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 
 import django
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import rq  # noqa: F401
 from fakeredis import FakeStrictRedis, FakeRedis, FakeServer, FakeConnection
 
 import scheduler
-
-
-class FakeRedisConnSingleton:
-    """Singleton FakeRedis connection."""
-
-    def __init__(self):
-        self.conn = None
-        self.server = FakeServer()
-
-    def __call__(self, *args, **kwargs):
-        strict = kwargs.pop('strict', None)
-        if not self.conn:
-            self.conn = FakeStrictRedis(server=self.server) if strict else FakeRedis(server=self.server)
-        return self.conn
-
-
-# scheduler.queues.get_redis_connection = FakeRedisConnSingleton()
-rq.connections.get_current_connection = FakeRedisConnSingleton()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -59,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'django_rq',
     'scheduler',
 ]
 

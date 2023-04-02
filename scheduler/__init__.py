@@ -4,4 +4,4 @@ __version__ = importlib.metadata.version('django-rq-scheduler')
 
 import logging
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger("scheduler")
