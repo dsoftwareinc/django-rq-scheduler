@@ -1,13 +1,14 @@
 import importlib
+import os
 
 import croniter
 from django.apps import apps
-from django.conf import settings
 from django.utils import timezone
-from django_rq import job
 
 from scheduler import logger
-from scheduler.scheduler import DjangoRQScheduler
+from scheduler.decorators import job
+from scheduler.queues import get_queues
+from scheduler.rq_classes import DjangoWorker
 
 MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
 
@@ -41,34 +42,39 @@ def reschedule_all_jobs():
             item.save()
 
 
-def start_scheduler_thread():
-    start_scheduler_as_thread = getattr(settings, 'SCHEDULER_THREAD', True)
-    if not start_scheduler_as_thread:
-        logger.info("Scheduler thread is turned off in the project settings")
-        logger.info("Make sure a scheduler is running")
-        return
-    if start_scheduler_as_thread:
-        interval = getattr(settings, 'SCHEDULER_INTERVAL', 60)
-        interval = max(1, interval)
-        if interval < 10:
-            logger.warn(
-                f"SCHEDULER_INTERVAL is set to {interval} - "
-                f"it is not recommended to have the interval less than 10 seconds")
-        scheduler = DjangoRQScheduler(interval=interval)
-        scheduler.start()
+def get_scheduled_job(task_model: str, task_id: int):
+    if task_model not in MODEL_NAMES:
+        raise ValueError(f'Job Model {task_model} does not exist, choices are {MODEL_NAMES}')
+    model = apps.get_model(app_label='scheduler', model_name=task_model)
+    task = model.objects.filter(id=task_id).first()
+    if task is None:
+        raise ValueError(f'Job {task_model}:{task_id} does not exit')
+    return task
 
 
-def run_job(job_model: str, job_id: int):
-    """Run a job
+def run_job(task_model: str, task_id: int):
+    """Run a scheduled job
     """
-    if job_model not in MODEL_NAMES:
-        raise ValueError(f'Job Model {job_model} does not exist, choices are {MODEL_NAMES}')
-    model = apps.get_model(app_label='scheduler', model_name=job_model)
-    job = model.objects.filter(id=job_id).first()
-    if job is None:
-        raise ValueError(f'Job {job_model}:{job_id} does not exit')
-    logger.debug(f'Running job {str(job)}')
-    args = job.parse_args()
-    kwargs = job.parse_kwargs()
-    res = job.callable_func()(*args, **kwargs)
+    scheduled_job = get_scheduled_job(task_model, task_id)
+    logger.debug(f'Running task {str(scheduled_job)}')
+    args = scheduled_job.parse_args()
+    kwargs = scheduled_job.parse_kwargs()
+    res = scheduled_job.callable_func()(*args, **kwargs)
     return res
+
+
+def create_worker(*queue_names, **kwargs):
+    """
+    Returns a Django worker for all queues or specified ones.
+    """
+    queues = get_queues(*queue_names)
+    existing_workers = DjangoWorker.all(connection=queues[0].connection)
+    existing_worker_names = set(map(lambda w: w.name, existing_workers))
+    hostname = os.uname()[1]
+    c = 1
+    worker_name = f'{hostname}-worker:{c}'
+    while worker_name in existing_worker_names:
+        c += 1
+        worker_name = f'{hostname}-worker:{c}'
+    kwargs['name'] = worker_name
+    return DjangoWorker(queues, connection=queues[0].connection, **kwargs)

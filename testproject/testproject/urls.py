@@ -20,6 +20,6 @@ from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('django-rq/', include('django_rq.urls')),
+    path('scheduler/', include('scheduler.urls')),
     path('test-view/', views.my_view, ),
 ]

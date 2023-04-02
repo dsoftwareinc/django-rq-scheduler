@@ -1,4 +1,4 @@
-from django_rq import job as jobdecorator
+from scheduler.decorators import job as jobdecorator
 
 
 @jobdecorator

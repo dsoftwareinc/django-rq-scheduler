@@ -91,7 +91,7 @@ class Command(BaseCommand):
                 click.echo("Aborting. LibYAML is not installed.")
                 return
             # Disable YAML alias
-            yaml.Dumper.ignore_aliases = lambda *args: True
+            yaml.Dumper.ignore_aliases = lambda *x: True
             jobs = yaml.load(file, yaml.SafeLoader)
 
         if options.get('reset'):
