@@ -62,6 +62,11 @@ class ViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('DeserializationError', response.content.decode())
 
+        # Bad job-id shouild return 404
+        url = reverse('job_details', args=['bad_job_id', ])
+        response = self.client.get(url)
+        self.assertEqual(404, response.status_code)
+
     def test_job_details_on_deleted_dependency(self):
         """Page doesn't crash even if job.dependency has been deleted"""
         queue = get_queue('default')

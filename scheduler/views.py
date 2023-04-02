@@ -1,14 +1,11 @@
-from __future__ import division
-from __future__ import division
-
 from math import ceil
 
 from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import Http404, JsonResponse
-from django.http.response import HttpResponseNotFound
+from django.http import JsonResponse
+from django.http.response import HttpResponseNotFound, Http404
 from django.shortcuts import redirect
-from django.shortcuts import render  # noqa: F401
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from redis.exceptions import ResponseError
@@ -20,31 +17,14 @@ from rq.registry import (
     FinishedJobRegistry,
     ScheduledJobRegistry,
     StartedJobRegistry,
-)
-from rq.registry import (
     clean_registries,
 )
-from rq.worker import Worker
 from rq.worker_registration import clean_worker_registry
 
 from .queues import get_connection, get_all_workers
 from .queues import get_queue_by_index
-from .rq_classes import JobExecution, ExecutionStatus
+from .rq_classes import JobExecution, ExecutionStatus, DjangoWorker
 from .settings import QUEUES_LIST
-
-
-def get_scheduler_pid(queue):
-    """Checks whether there's a scheduler-lock on a particular queue, and returns the PID.
-    """
-    try:
-        from rq.scheduler import RQScheduler
-        # When a scheduler acquires a lock it adds an expiring key: (e.g: rq:scheduler-lock:<queue.name>)
-        # TODO: (RQ>= 1.13) return queue.scheduler_pid
-        pid = queue.connection.get(RQScheduler.get_locking_key(queue.name))
-        return int(pid.decode()) if pid is not None else None
-    except Exception as e:  # noqa: F841
-        pass  # Return None
-    return None
 
 
 # Create your views here.
@@ -95,11 +75,11 @@ def get_statistics(run_maintenance_tasks=False):
             'oldest_job_timestamp': oldest_job_timestamp,
             'index': index,
             'connection_kwargs': connection_kwargs,
-            'scheduler_pid': get_scheduler_pid(queue),
+            'scheduler_pid': queue.scheduler_pid,
         }
 
         connection = get_connection(queue.name)
-        queue_data['workers'] = Worker.count(queue=queue)
+        queue_data['workers'] = DjangoWorker.count(queue=queue)
 
         finished_job_registry = FinishedJobRegistry(queue.name, connection)
         started_job_registry = StartedJobRegistry(queue.name, connection)
@@ -121,9 +101,9 @@ def get_jobs(queue, job_ids, registry=None):
     1. If job data is not present in Redis, discard the result
     2. If `registry` argument is supplied, delete empty jobs from registry
     """
-    jobs = JobExecution.fetch_many(job_ids, connection=queue.connection)
+    job_list = JobExecution.fetch_many(job_ids, connection=queue.connection)
     valid_jobs = []
-    for i, job in enumerate(jobs):
+    for i, job in enumerate(job_list):
         if job is None:
             if registry:
                 registry.remove(job_ids[i])
@@ -147,16 +127,16 @@ def jobs(request, queue_index):
         last_page = int(ceil(num_jobs / items_per_page))
         page_range = range(1, last_page + 1)
         offset = items_per_page * (page - 1)
-        jobs = queue.get_jobs(offset, items_per_page)
+        job_list = queue.get_jobs(offset, items_per_page)
     else:
-        jobs = []
+        job_list = []
         page_range = []
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'queue_index': queue_index,
-        'jobs': jobs,
+        'jobs': job_list,
         'num_jobs': num_jobs,
         'page': page,
         'page_range': page_range,
@@ -172,33 +152,37 @@ def finished_jobs(request, queue_index):
     queue = get_queue_by_index(queue_index)
 
     registry = FinishedJobRegistry(queue.name, queue.connection)
-
-    items_per_page = 100
-    num_jobs = len(registry)
     page = int(request.GET.get('page', 1))
-    jobs = []
-
-    if num_jobs > 0:
-        last_page = int(ceil(num_jobs / items_per_page))
-        page_range = range(1, last_page + 1)
-        offset = items_per_page * (page - 1)
-        job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
-        jobs = get_jobs(queue, job_ids, registry)
-
-    else:
-        page_range = []
+    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'queue_index': queue_index,
-        'jobs': jobs,
+        'jobs': job_list,
         'num_jobs': num_jobs,
         'page': page,
         'page_range': page_range,
         'job_status': 'Finished',
     }
     return render(request, 'admin/scheduler/jobs.html', context_data)
+
+
+def _get_registry_job_list(queue, registry, page):
+    items_per_page = 100
+    num_jobs = len(registry)
+    job_list = []
+
+    if num_jobs > 0:
+        last_page = int(ceil(num_jobs / items_per_page))
+        page_range = range(1, last_page + 1)
+        offset = items_per_page * (page - 1)
+        job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
+        job_list = get_jobs(queue, job_ids, registry)
+
+    else:
+        page_range = []
+    return job_list, num_jobs, page_range
 
 
 @never_cache
@@ -208,27 +192,14 @@ def failed_jobs(request, queue_index):
     queue = get_queue_by_index(queue_index)
 
     registry = FailedJobRegistry(queue.name, queue.connection)
-
-    items_per_page = 100
-    num_jobs = len(registry)
     page = int(request.GET.get('page', 1))
-    jobs = []
-
-    if num_jobs > 0:
-        last_page = int(ceil(num_jobs / items_per_page))
-        page_range = range(1, last_page + 1)
-        offset = items_per_page * (page - 1)
-        job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
-        jobs = get_jobs(queue, job_ids, registry)
-
-    else:
-        page_range = []
+    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'queue_index': queue_index,
-        'jobs': jobs,
+        'jobs': job_list,
         'num_jobs': num_jobs,
         'page': page,
         'page_range': page_range,
@@ -244,30 +215,14 @@ def scheduled_jobs(request, queue_index):
     queue = get_queue_by_index(queue_index)
 
     registry = ScheduledJobRegistry(queue.name, queue.connection)
-
-    items_per_page = 100
-    num_jobs = len(registry)
     page = int(request.GET.get('page', 1))
-    jobs = []
-
-    if num_jobs > 0:
-        last_page = int(ceil(num_jobs / items_per_page))
-        page_range = range(1, last_page + 1)
-        offset = items_per_page * (page - 1)
-        job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
-
-        jobs = get_jobs(queue, job_ids, registry)
-        for job in jobs:
-            job.scheduled_at = registry.get_scheduled_time(job)
-
-    else:
-        page_range = []
+    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'queue_index': queue_index,
-        'jobs': jobs,
+        'jobs': job_list,
         'num_jobs': num_jobs,
         'page': page,
         'page_range': page_range,
@@ -283,27 +238,14 @@ def started_jobs(request, queue_index):
     queue = get_queue_by_index(queue_index)
 
     registry = StartedJobRegistry(queue.name, queue.connection)
-
-    items_per_page = 100
-    num_jobs = len(registry)
     page = int(request.GET.get('page', 1))
-    jobs = []
-
-    if num_jobs > 0:
-        last_page = int(ceil(num_jobs / items_per_page))
-        page_range = range(1, last_page + 1)
-        offset = items_per_page * (page - 1)
-        job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
-        jobs = get_jobs(queue, job_ids, registry)
-
-    else:
-        page_range = []
+    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'queue_index': queue_index,
-        'jobs': jobs,
+        'jobs': job_list,
         'num_jobs': num_jobs,
         'page': page,
         'page_range': page_range,
@@ -318,14 +260,14 @@ def queue_workers(request, queue_index):
     queue_index = int(queue_index)
     queue = get_queue_by_index(queue_index)
     clean_worker_registry(queue)
-    all_workers = Worker.all(queue.connection)
-    workers = [worker for worker in all_workers if queue.name in worker.queue_names()]
+    all_workers = DjangoWorker.all(queue.connection)
+    worker_list = [worker for worker in all_workers if queue.name in worker.queue_names()]
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'queue_index': queue_index,
-        'workers': workers,
+        'workers': worker_list,
     }
     return render(request, 'admin/scheduler/queue_workers.html', context_data)
 
@@ -334,11 +276,11 @@ def queue_workers(request, queue_index):
 @staff_member_required
 def workers(request):
     all_workers = get_all_workers()
-    workers = [worker for worker in all_workers]
+    worker_list = [worker for worker in all_workers]
 
     context_data = {
         **admin.site.each_context(request),
-        'workers': workers,
+        'workers': worker_list,
     }
     return render(request, 'admin/scheduler/workers.html', context_data)
 
@@ -348,7 +290,7 @@ def workers(request):
 def worker_details(request, key):
     queue_index = 0
     queue = get_queue_by_index(queue_index)
-    worker = Worker.find_by_key(key, connection=queue.connection)
+    worker = DjangoWorker.find_by_key(key, connection=queue.connection)
     # Convert microseconds to milliseconds
     worker.total_working_time = worker.total_working_time / 1000
 
@@ -373,33 +315,14 @@ def deferred_jobs(request, queue_index):
     queue = get_queue_by_index(queue_index)
 
     registry = DeferredJobRegistry(queue.name, queue.connection)
-
-    items_per_page = 100
-    num_jobs = len(registry)
     page = int(request.GET.get('page', 1))
-    jobs = []
-
-    if num_jobs > 0:
-        last_page = int(ceil(num_jobs / items_per_page))
-        page_range = range(1, last_page + 1)
-        offset = items_per_page * (page - 1)
-        job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
-
-        for job_id in job_ids:
-            try:
-                item = JobExecution.fetch(job_id, connection=queue.connection)
-                jobs.append(item)
-            except NoSuchJobError:
-                pass
-
-    else:
-        page_range = []
+    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'queue_index': queue_index,
-        'jobs': jobs,
+        'jobs': job_list,
         'num_jobs': num_jobs,
         'page': page,
         'page_range': page_range,
@@ -411,7 +334,7 @@ def deferred_jobs(request, queue_index):
 @never_cache
 @staff_member_required
 def job_detail(request, job_id):
-    queue_index = 0
+    queue_index = 0  # TODO fix
     queue = get_queue_by_index(queue_index)
 
     try:
@@ -474,7 +397,7 @@ def requeue_job_view(request, queue_index, job_id):
 
     if request.method == 'POST':
         requeue_job(job_id, connection=queue.connection)
-        messages.info(request, 'You have successfully requeued %s' % job.id)
+        messages.info(request, f'You have successfully re-queued {job.id}')
         return redirect('job_details', job_id)
 
     context_data = {
@@ -495,12 +418,9 @@ def clear_queue(request, queue_index):
     if request.method == 'POST':
         try:
             queue.empty()
-            messages.info(request, 'You have successfully cleared the queue %s' % queue.name)
+            messages.info(request, f'You have successfully cleared the queue {queue.name}')
         except ResponseError as e:
-            messages.error(
-                request,
-                f'error: {e.message}',
-            )
+            messages.error(request, f'error: {e}', )
             raise e
         return redirect('queue_jobs', queue_index)
 
@@ -535,7 +455,7 @@ def requeue_all(request, queue_index):
             except NoSuchJobError:
                 pass
 
-        messages.info(request, 'You have successfully requeued %d jobs!' % count)
+        messages.info(request, f'You have successfully re-queued {count} jobs!')
         return redirect('queue_jobs', queue_index)
 
     context_data = {
@@ -596,11 +516,11 @@ def actions(request, queue_index):
                     # Remove job id from queue and delete the actual job
                     queue.connection.lrem(queue.key, 0, job.id)
                     job.delete()
-                messages.info(request, 'You have successfully deleted %s jobs!' % len(job_ids))
+                messages.info(request, f'You have successfully deleted {len(job_ids)} jobs!')
             elif request.POST['action'] == 'requeue':
                 for job_id in job_ids:
                     requeue_job(job_id, connection=queue.connection)
-                messages.info(request, 'You have successfully requeued %d  jobs!' % len(job_ids))
+                messages.info(request, f'You have successfully re-queued {len(job_ids)}  jobs!')
 
     return redirect(next_url)
 
