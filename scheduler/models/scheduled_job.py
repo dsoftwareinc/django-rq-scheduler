@@ -70,13 +70,8 @@ class BaseJob(TimeStampedModel):
                     "after n seconds."), )
 
     def __str__(self):
-        func = self.callable + "({})"  # zero-width space allows textwrap
-        args = self.parse_args()
-        args_list = [repr(arg) for arg in args]
-        kwargs = self.parse_kwargs()
-        kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
-        callable = func.format(', '.join(args_list + kwargs_list))
-        return f'{self.JOB_TYPE}[{self.name}={callable}]'
+        func = self.function_string()
+        return f'{self.JOB_TYPE}[{self.name}={func}]'
 
     def callable_func(self):
         return tools.callable_func(self.callable)

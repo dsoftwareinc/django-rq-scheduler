@@ -176,7 +176,7 @@ def get_queues(*queue_names, **kwargs) -> List[DjangoQueue]:
     connection_params = _filter_connection_params(queue_params)
     queues = [get_queue(queue_names[0], **kwargs)]
 
-    # do consistency checks while building return list
+    # perform consistency checks while building return list
     for name in queue_names[1:]:
         queue = get_queue(name, **kwargs)
         if type(queue) is not type(QUEUES[0]):  # noqa: E721

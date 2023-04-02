@@ -30,8 +30,8 @@ class Command(BaseCommand):
         timeout = options.get('timeout')
         result_ttl = options.get('result_ttl')
         queue = get_queue(options.get('queue'))
-        callable = options.get('callable')
+        func = options.get('callable')
         args = options.get('args')
-        job = queue.enqueue_call(callable, args=args, timeout=timeout, result_ttl=result_ttl)
+        job = queue.enqueue_call(func, args=args, timeout=timeout, result_ttl=result_ttl)
         if verbosity:
             print('Job %s created' % job.id)

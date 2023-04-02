@@ -57,12 +57,12 @@ class ViewTest(TestCase):
         self.assertEqual(response.context['job'], job)
 
         # This page shouldn't fail when job.data is corrupt
-        queue.connection.hset(job.key, 'data', 'unpickleable data')
+        queue.connection.hset(job.key, 'data', 'non-pickleable data')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertIn('DeserializationError', response.content.decode())
 
-        # Bad job-id shouild return 404
+        # Bad job-id should return 404
         url = reverse('job_details', args=['bad_job_id', ])
         response = self.client.get(url)
         self.assertEqual(404, response.status_code)
@@ -81,7 +81,7 @@ class ViewTest(TestCase):
 
     def test_requeue_job(self):
         """
-        Ensure that a failed job gets requeued when rq_requeue_job is called
+        Ensure that a failed job gets re-queued when rq_requeue_job is called
         """
         queue = get_queue('default')
         queue_index = get_queue_index('default')
@@ -96,7 +96,7 @@ class ViewTest(TestCase):
 
     def test_requeue_all(self):
         """
-        Ensure that requeuing all failed job work properly
+        Ensure that re-queuing all failed job work properly
         """
         queue = get_queue('default')
         queue_index = get_queue_index('default')
@@ -113,7 +113,7 @@ class ViewTest(TestCase):
 
     def test_requeue_all_if_deleted_job(self):
         """
-        Ensure that requeuing all failed job work properly
+        Ensure that re-queuing all failed job work properly
         """
         queue = get_queue('default')
         queue_index = get_queue_index('default')
@@ -203,7 +203,7 @@ class ViewTest(TestCase):
         for job in jobs:
             self.assertTrue(job.is_failed)
 
-        # renqueue failed jobs from failed queue
+        # re-nqueue failed jobs from failed queue
         self.client.post(reverse('queue_actions', args=[queue_index]), {'action': 'requeue', 'job_ids': job_ids})
 
         # check if we requeue all failed jobs
@@ -259,7 +259,7 @@ class ViewTest(TestCase):
         self.assertEqual(response.context['jobs'], [job])
 
     def test_scheduled_jobs_registry_removal(self):
-        """Ensure that non existing job is being deleted from registry by view"""
+        """Ensure that non-existing job is being deleted from registry by view"""
         queue = get_queue('django_rq_test')
         queue_index = get_queue_index('django_rq_test')
 

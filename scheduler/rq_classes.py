@@ -29,7 +29,7 @@ class DjangoWorker(Worker):
         return hash((self.name, self.key))
 
     def work(self, **kwargs) -> bool:
-        super(DjangoWorker, self).work(with_scheduler=True, **kwargs)
+        return super(DjangoWorker, self).work(with_scheduler=True, **kwargs)
 
 
 class DjangoQueue(Queue):

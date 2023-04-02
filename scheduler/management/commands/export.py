@@ -50,6 +50,6 @@ class Command(BaseCommand):
                 click.echo("Aborting. LibYAML is not installed.")
                 return
             # Disable YAML alias
-            yaml.Dumper.ignore_aliases = lambda *args: True
+            yaml.Dumper.ignore_aliases = lambda *x: True
             click.echo(yaml.dump(res, default_flow_style=False))
             return
