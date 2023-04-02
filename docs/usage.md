@@ -1,5 +1,49 @@
 # Usage
 
+## Enqueue jobs from code
+
+```python
+from scheduler import job
+
+@job
+def long_running_func():
+    pass
+
+long_running_func.delay()  # Enqueue function in "default" queue
+```
+
+Specifying the queue where the job should be queued:
+
+```python
+@job('high')
+def long_running_func():
+    pass
+
+long_running_func.delay()  # Enqueue function in "high" queue
+```
+
+You can pass in any arguments that RQ's job decorator accepts:
+
+```python
+from scheduler import job
+
+@job('default', timeout=3600)
+def long_running_func():
+    pass
+
+long_running_func.delay()  # Enqueue function with a timeout of 3600 seconds.
+```
+
+You can set in `settings.py` a default value for `DEFAULT_RESULT_TTL` and `DEFAULT_TIMEOUT`.
+
+```python
+# settings.py
+RQ = {
+    'DEFAULT_RESULT_TTL': 360,
+    'DEFAULT_TIMEOUT': 60,
+}
+```
+
 ## Scheduling a job Through django-admin
 
 * Sign in to the Django Admin site (e.g., http://localhost:8000/admin/) and locate the  
@@ -85,49 +129,8 @@ using django management command:
 python manage.py run_job -q {queue} -t {timeout} -r {result_ttl} {callable} {args}
 ```
 
-## Enqueue jobs from code
-
-```python
-from scheduler import job
-
-
-@job
-def long_running_func():
-    pass
-
-
-long_running_func.delay()  # Enqueue function in "default" queue
-
-
-@job('high')
-def long_running_func():
-    pass
-
-
-long_running_func.delay()  # Enqueue function in "high" queue
+## Running a worker
+Create a worker to execute queued jobs on specific queues using:
+```shell
+python manage.py rqworker [queues ...]
 ```
-
-You can pass in any arguments that RQ's job decorator accepts:
-
-```python
-from scheduler import job
-
-
-@job('default', timeout=3600)
-def long_running_func():
-    pass
-
-
-long_running_func.delay()  # Enqueue function with a timeout of 3600 seconds.
-```
-
-You can set in `settings.py` a default value for `DEFAULT_RESULT_TTL` and `DEFAULT_TIMEOUT`.
-
-```python
-# settings.py
-RQ = {
-    'DEFAULT_RESULT_TTL': 360,
-    'DEFAULT_TIMEOUT': 60,
-}
-```
-

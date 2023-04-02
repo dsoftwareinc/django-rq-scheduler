@@ -35,8 +35,8 @@ class Command(BaseCommand):
     args = '<queue queue ...>'
 
     def add_arguments(self, parser):
-        parser.add_argument('--pid', action='store', dest='pid',
-                            default=None, help='PID file to write the worker`s pid into')
+        parser.add_argument('--pid', action='store', dest='pidfile',
+                            default=None, help='file to write the worker`s pid into')
         parser.add_argument('--burst', action='store_true', dest='burst',
                             default=False, help='Run worker in burst mode')
         parser.add_argument('--name', action='store', dest='name',
@@ -46,13 +46,13 @@ class Command(BaseCommand):
         parser.add_argument('--max-jobs', action='store', default=None, dest='max_jobs', type=int,
                             help='Maximum number of jobs to execute before terminating worker')
         parser.add_argument(
-            'args', nargs='*', type=str,
+            'queues', nargs='*', type=str,
             help='The queues to work on, separated by space, all queues should be using the same redis')
 
-    def handle(self, *args, **options):
-        pid = options.get('pid')
-        if pid:
-            with open(os.path.expanduser(pid), "w") as fp:
+    def handle(self, *queues, **options):
+        pidfile = options.get('pidfile')
+        if pidfile:
+            with open(os.path.expanduser(pidfile), "w") as fp:
                 fp.write(str(os.getpid()))
 
         # Verbosity is defined by default in BaseCommand for all commands
@@ -62,7 +62,7 @@ class Command(BaseCommand):
 
         try:
             # Instantiate a worker
-            w = create_worker(*args, name=options['name'], default_worker_ttl=options['worker_ttl'], )
+            w = create_worker(*queues, name=options['name'], default_worker_ttl=options['worker_ttl'], )
 
             # Call use_connection to push the redis connection into LocalStack
             # without this, jobs using RQ's get_current_job() will fail
@@ -71,8 +71,10 @@ class Command(BaseCommand):
             # Close any opened DB connection before any fork
             reset_db_connections()
 
-            w.work(burst=options.get('burst', False), with_scheduler=True,
-                   logging_level=verbosity, max_jobs=options['max_jobs'], )
+            w.work(burst=options.get('burst', False),
+                   with_scheduler=True,
+                   logging_level=verbosity,
+                   max_jobs=options['max_jobs'], )
         except ConnectionError as e:
             click.echo(str(e), err=True)
             sys.exit(1)

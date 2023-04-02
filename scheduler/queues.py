@@ -58,10 +58,17 @@ def _get_redis_connection(config, use_strict_redis=False):
     )
 
 
+class QueueNotFoundError(Exception):
+    pass
+
+
 def get_connection(name='default', use_strict_redis=False):
     """Returns a Redis connection to use based on parameters in RQ_QUEUES
     """
     from .settings import QUEUES
+
+    if name not in QUEUES:
+        raise QueueNotFoundError(f'Queue {name} not found, queues={QUEUES.keys()}')
 
     return _get_redis_connection(QUEUES[name], use_strict_redis)
 

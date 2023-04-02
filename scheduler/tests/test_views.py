@@ -3,10 +3,10 @@ from datetime import datetime
 from unittest.mock import patch, PropertyMock
 
 from django.contrib.auth.models import User
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.test.client import Client
 from django.urls import reverse
-from rq.job import Job, JobStatus, get_current_job
+from rq.job import Job, JobStatus
 from rq.registry import (
     DeferredJobRegistry,
     FailedJobRegistry,
@@ -18,17 +18,9 @@ from rq.registry import (
 from scheduler.queues import get_queue, get_queue_index
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
+from .jobs import access_self, failing_job
 
 
-def failing_job():
-    raise ValueError
-
-
-def access_self():
-    return get_current_job().id
-
-
-@override_settings(RQ={'AUTOCOMMIT': True}, )
 class ViewTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('foo', password='pass')
@@ -54,6 +46,7 @@ class ViewTest(TestCase):
 
         url = reverse('job_details', args=[job.id, ])
         response = self.client.get(url)
+        self.assertIn('job', response.context)
         self.assertEqual(response.context['job'], job)
 
         # This page shouldn't fail when job.data is corrupt
@@ -333,7 +326,7 @@ class ViewTest(TestCase):
                 'name': 'default',
             }
         ]
-        with patch('scheduler.views.QUEUES_LIST', new_callable=PropertyMock(return_value=queues)):
+        with patch('scheduler.settings.QUEUES_LIST', new_callable=PropertyMock(return_value=queues)):
             response = self.client.get(reverse('queues_home'))
             self.assertEqual(response.status_code, 200)
 

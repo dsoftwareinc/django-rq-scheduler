@@ -1,6 +1,13 @@
 from rq import Worker
 from rq.job import Job, JobStatus
 from rq.queue import Queue
+from rq.registry import (
+    DeferredJobRegistry,
+    FailedJobRegistry,
+    FinishedJobRegistry,
+    ScheduledJobRegistry,
+    StartedJobRegistry,
+)
 
 ExecutionStatus = JobStatus
 
@@ -29,7 +36,8 @@ class DjangoWorker(Worker):
         return hash((self.name, self.key))
 
     def work(self, **kwargs) -> bool:
-        return super(DjangoWorker, self).work(with_scheduler=True, **kwargs)
+        kwargs.setdefault('with_scheduler', True)
+        return super(DjangoWorker, self).work(**kwargs)
 
 
 class DjangoQueue(Queue):
@@ -41,3 +49,23 @@ class DjangoQueue(Queue):
     def __init__(self, *args, **kwargs):
         kwargs['job_class'] = JobExecution
         super(DjangoQueue, self).__init__(*args, **kwargs)
+
+    @property
+    def finished_job_registry(self):
+        return FinishedJobRegistry(self.name, self.connection)
+
+    @property
+    def started_job_registry(self):
+        return StartedJobRegistry(self.name, self.connection)
+
+    @property
+    def deferred_job_registry(self):
+        return DeferredJobRegistry(self.name, self.connection)
+
+    @property
+    def failed_job_registry(self):
+        return FailedJobRegistry(self.name, self.connection)
+
+    @property
+    def scheduled_job_registry(self):
+        return ScheduledJobRegistry(self.name, self.connection)

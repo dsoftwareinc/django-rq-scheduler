@@ -97,4 +97,5 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Usage: usage.md
+  - Management commands: commands.md
   - Change log: changelog.md

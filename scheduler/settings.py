@@ -17,7 +17,7 @@ def conf_settings():
         raise ImproperlyConfigured("You have to define RQ_QUEUES in settings.py")
 
     # All queues in list format, so we can get them by index, includes failed queues
-
+    QUEUES_LIST = []
     for key, value in sorted(QUEUES.items(), key=itemgetter(0)):
         QUEUES_LIST.append({'name': key, 'connection_config': value})
 

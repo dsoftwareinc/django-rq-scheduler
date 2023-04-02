@@ -1,5 +1,6 @@
 from math import ceil
 
+import redis
 from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse
@@ -21,10 +22,9 @@ from rq.registry import (
 )
 from rq.worker_registration import clean_worker_registry
 
-from .queues import get_connection, get_all_workers
+from .queues import get_all_workers, get_connection, logger, get_queue
 from .queues import get_queue_by_index
 from .rq_classes import JobExecution, ExecutionStatus, DjangoWorker
-from .settings import QUEUES_LIST
 
 
 # Create your views here.
@@ -44,55 +44,53 @@ def stats_json(request):
 
 
 def get_statistics(run_maintenance_tasks=False):
+    from scheduler.settings import QUEUES_LIST
     queues = []
     for index, config in enumerate(QUEUES_LIST):
-        queue = get_queue_by_index(index)
-        connection = queue.connection
-        connection_kwargs = connection.connection_pool.connection_kwargs
+        try:
+            queue = get_queue_by_index(index)
+            connection = get_connection(queue.name)
+            connection_kwargs = connection.connection_pool.connection_kwargs
 
-        if run_maintenance_tasks:
-            clean_registries(queue)
-            clean_worker_registry(queue)
+            if run_maintenance_tasks:
+                clean_registries(queue)
+                clean_worker_registry(queue)
 
-        # Raw access to the first item from left of the redis list.
-        # This might not be accurate since new job can be added from the left
-        # with `at_front` parameters.
-        # Ideally rq should supports Queue.oldest_job
-        last_job_id = connection.lindex(queue.key, 0)
-        last_job = queue.fetch_job(last_job_id.decode('utf-8')) if last_job_id else None
-        if last_job and last_job.enqueued_at:
-            oldest_job_timestamp = last_job.enqueued_at.strftime('%Y-%m-%d, %H:%M:%S')
-        else:
-            oldest_job_timestamp = "-"
+            # Raw access to the first item from left of the redis list.
+            # This might not be accurate since new job can be added from the left
+            # with `at_front` parameters.
+            # Ideally rq should supports Queue.oldest_job
 
-        # parse_class and connection_pool are not needed and not JSON serializable
-        connection_kwargs.pop('parser_class', None)
-        connection_kwargs.pop('connection_pool', None)
+            last_job_id = connection.lindex(queue.key, 0)
+            last_job = queue.fetch_job(last_job_id.decode('utf-8')) if last_job_id else None
+            if last_job and last_job.enqueued_at:
+                oldest_job_timestamp = last_job.enqueued_at.strftime('%Y-%m-%d, %H:%M:%S')
+            else:
+                oldest_job_timestamp = "-"
 
-        queue_data = {
-            'name': queue.name,
-            'jobs': queue.count,
-            'oldest_job_timestamp': oldest_job_timestamp,
-            'index': index,
-            'connection_kwargs': connection_kwargs,
-            'scheduler_pid': queue.scheduler_pid,
-        }
+            # parse_class and connection_pool are not needed and not JSON serializable
+            connection_kwargs.pop('parser_class', None)
+            connection_kwargs.pop('connection_pool', None)
 
-        connection = get_connection(queue.name)
-        queue_data['workers'] = DjangoWorker.count(queue=queue)
+            queue_data = dict(
+                name=queue.name,
+                jobs=queue.count,
+                oldest_job_timestamp=oldest_job_timestamp,
+                index=index,
+                connection_kwargs=connection_kwargs,
+                scheduler_pid=queue.scheduler_pid,
+                workers=DjangoWorker.count(queue=queue),
+                finished_jobs=len(queue.finished_job_registry),
+                started_jobs=len(queue.started_job_registry),
+                deferred_jobs=len(queue.deferred_job_registry),
+                failed_jobs=len(queue.failed_job_registry),
+                scheduled_jobs=len(queue.scheduled_job_registry),
+            )
+            queues.append(queue_data)
+        except redis.ConnectionError as e:
+            logger.error(f'Could not connect for queue {config["name"]}: {e}')
+            continue
 
-        finished_job_registry = FinishedJobRegistry(queue.name, connection)
-        started_job_registry = StartedJobRegistry(queue.name, connection)
-        deferred_job_registry = DeferredJobRegistry(queue.name, connection)
-        failed_job_registry = FailedJobRegistry(queue.name, connection)
-        scheduled_job_registry = ScheduledJobRegistry(queue.name, connection)
-        queue_data['finished_jobs'] = len(finished_job_registry)
-        queue_data['started_jobs'] = len(started_job_registry)
-        queue_data['deferred_jobs'] = len(deferred_job_registry)
-        queue_data['failed_jobs'] = len(failed_job_registry)
-        queue_data['scheduled_jobs'] = len(scheduled_job_registry)
-
-        queues.append(queue_data)
     return {'queues': queues}
 
 
@@ -288,9 +286,19 @@ def workers(request):
 @never_cache
 @staff_member_required
 def worker_details(request, key):
-    queue_index = 0
-    queue = get_queue_by_index(queue_index)
-    worker = DjangoWorker.find_by_key(key, connection=queue.connection)
+    from scheduler.settings import QUEUES_LIST
+    queue, worker = None, None
+    for queue_index, config in enumerate(QUEUES_LIST):
+        try:
+            queue = get_queue(config['name'])
+            worker = DjangoWorker.find_by_key(key, connection=queue.connection)
+            if worker is not None:
+                break
+        except redis.ConnectionError:
+            pass
+
+    if worker is None:
+        raise Http404(f"Couldn't find worker with this ID: {key}")
     # Convert microseconds to milliseconds
     worker.total_working_time = worker.total_working_time / 1000
 
@@ -334,14 +342,20 @@ def deferred_jobs(request, queue_index):
 @never_cache
 @staff_member_required
 def job_detail(request, job_id):
-    queue_index = 0  # TODO fix
-    queue = get_queue_by_index(queue_index)
+    from scheduler.settings import QUEUES_LIST
+    queue_index, queue, job = None, None, None
 
-    try:
-        job = JobExecution.fetch(job_id, connection=queue.connection)
-    except NoSuchJobError:
-        raise Http404("Couldn't find job with this ID: %s" % job_id)
-
+    for queue_index, config in enumerate(QUEUES_LIST):
+        try:
+            queue = get_queue(config['name'])
+            job = JobExecution.fetch(job_id, connection=queue.connection)
+            break
+        except NoSuchJobError:
+            pass
+        except redis.ConnectionError:
+            pass
+    if job is None:
+        raise Http404(f"Couldn't find job with this ID: {job_id}")
     try:
         job.func_name
         data_is_valid = True
