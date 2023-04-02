@@ -1,10 +1,12 @@
+import logging
 from typing import List
 
 import redis
 from redis.sentinel import Sentinel
 
-from . import logger
 from .rq_classes import JobExecution, DjangoQueue, DjangoWorker
+
+logger = logging.getLogger("scheduler")
 
 
 def _get_redis_connection(config, use_strict_redis=False):

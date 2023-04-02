@@ -2,6 +2,4 @@ import importlib.metadata
 
 __version__ = importlib.metadata.version('django-rq-scheduler')
 
-import logging
-
-logger = logging.getLogger("scheduler")
+from .decorators import job

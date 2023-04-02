@@ -5,9 +5,8 @@ import croniter
 from django.apps import apps
 from django.utils import timezone
 
-from scheduler import logger
 from scheduler.decorators import job
-from scheduler.queues import get_queues
+from scheduler.queues import get_queues, logger
 from scheduler.rq_classes import DjangoWorker
 
 MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']

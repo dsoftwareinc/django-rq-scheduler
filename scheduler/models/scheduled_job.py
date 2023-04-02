@@ -1,4 +1,5 @@
 import math
+import uuid
 from datetime import timedelta
 from typing import Dict
 
@@ -11,13 +12,15 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
-from scheduler import tools, logger
+from scheduler import tools
 from scheduler.models.args import JobArg, JobKwarg
-from scheduler.queues import get_queue
+from scheduler.queues import get_queue, logger
+from scheduler.rq_classes import DjangoQueue
 
 RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
 
@@ -28,10 +31,9 @@ def callback_save_job(job, connection, result, *args, **kwargs):
         return
     model = apps.get_model(app_label='scheduler', model_name=model_name)
     scheduled_job = model.objects.filter(job_id=job.id).first()
-    if scheduled_job:
+    if scheduled_job is not None:
         scheduled_job.unschedule()
         scheduled_job.schedule()
-        scheduled_job.save()
 
 
 class BaseJob(TimeStampedModel):
@@ -53,10 +55,10 @@ class BaseJob(TimeStampedModel):
         help_text=_('Current job_id on queue'))
     repeat = models.PositiveIntegerField(
         _('repeat'), blank=True, null=True,
-        help_text=_('Number of times to repeat the job'), )
+        help_text=_('Number of times to run the job. Leaving this blank means it will run forever.'), )
     at_front = models.BooleanField(
         _('At front'), default=False, blank=True, null=True,
-        help_text=_('When scheduling the job, add it in the front of the queue'), )
+        help_text=_('When queuing the job, add it in the front of the queue'), )
     timeout = models.IntegerField(
         _('timeout'), blank=True, null=True,
         help_text=_("Timeout specifies the maximum runtime, in seconds, for the job "
@@ -64,20 +66,19 @@ class BaseJob(TimeStampedModel):
                     "timeout."), )
     result_ttl = models.IntegerField(
         _('result ttl'), blank=True, null=True,
-        help_text=_("The TTL value (in seconds) of the job result. -1: "
-                    "Result never expires, you should delete jobs manually. "
-                    "0: Result gets deleted immediately. >0: Result expires "
-                    "after n seconds."), )
-
-    def __str__(self):
-        func = self.function_string()
-        return f'{self.JOB_TYPE}[{self.name}={func}]'
+        help_text=mark_safe(
+            """The TTL value (in seconds) of the job result.<br/>
+               -1: Result never expires, you should delete jobs manually. <br/>
+                0: Result gets deleted immediately. <br/> 
+                >0: Result expires after n seconds."""), )
 
     def callable_func(self):
+        """Translate callable string to callable"""
         return tools.callable_func(self.callable)
 
     @admin.display(boolean=True, description=_('is scheduled?'))
     def is_scheduled(self) -> bool:
+        """Check whether job is queued/scheduled to be executed"""
         if not self.job_id:
             return False
         scheduled_jobs = self._get_rqueue().scheduled_job_registry.get_job_ids()
@@ -88,35 +89,37 @@ class BaseJob(TimeStampedModel):
             super(BaseJob, self).save()
         return res
 
-    def save(self, **kwargs):
-        schedule_job = kwargs.pop('schedule_job', True)
-        super(BaseJob, self).save(**kwargs)
-        if schedule_job:
-            self.schedule()
-            super(BaseJob, self).save()
-
-    def delete(self, **kwargs):
-        self.unschedule()
-        super(BaseJob, self).delete(**kwargs)
-
     @admin.display(description='Callable')
     def function_string(self) -> str:
-        func = self.callable + "({})"  # zero-width space allows textwrap
         args = self.parse_args()
         args_list = [repr(arg) for arg in args]
         kwargs = self.parse_kwargs()
         kwargs_list = [k + '=' + repr(v) for (k, v) in kwargs.items()]
-        return func.format(', '.join(args_list + kwargs_list))
+        return self.callable + f"({', '.join(args_list + kwargs_list)})"
 
     def parse_args(self):
+        """Parse args for running job"""
         args = self.callable_args.all()
         return [arg.value() for arg in args]
 
     def parse_kwargs(self):
+        """Parse kwargs for running job"""
         kwargs = self.callable_kwargs.all()
         return dict([kwarg.value() for kwarg in kwargs])
 
-    def enqueue_args(self) -> dict:
+    def _next_job_id(self):
+        addition = uuid.uuid4().hex[-10:]
+        return f'{self.queue}:{self.name}:{addition}'
+
+    def _enqueue_args(self) -> Dict:
+        """args for DjangoQueue.enqueue.
+        Set all arguments for DjangoQueue.enqueue/enqueue_at.
+        Particularly:
+        - set job timeout and ttl
+        - ensure a callback to reschedule job next iteration.
+        - set job-id to proper format
+        - set job meta
+        """
         res = dict(
             meta=dict(
                 repeat=self.repeat,
@@ -125,7 +128,7 @@ class BaseJob(TimeStampedModel):
             ),
             on_success=callback_save_job,
             on_failure=callback_save_job,
-            job_id=f'{self.queue}:{self.name}:{timezone.now()}'
+            job_id=self._next_job_id(),
         )
         if self.at_front:
             res['at_front'] = self.at_front
@@ -135,10 +138,19 @@ class BaseJob(TimeStampedModel):
             res['result_ttl'] = self.result_ttl
         return res
 
-    def _get_rqueue(self):
+    def _get_rqueue(self) -> DjangoQueue:
+        """Returns django-queue for job
+        """
         return get_queue(self.queue)
 
     def ready_for_schedule(self) -> bool:
+        """Is job ready to be scheduled?
+
+        If job is already scheduled or disabled, then it is not
+        ready to be scheduled.
+
+        :returns: True if job is ready to be scheduled.
+        """
         if self.is_scheduled():
             logger.debug(f'Job {self.name} already scheduled')
             return False
@@ -148,10 +160,13 @@ class BaseJob(TimeStampedModel):
         return True
 
     def schedule(self) -> bool:
+        """Schedule job to run.
+        :returns: True if job was scheduled, False otherwise.
+        """
         if not self.ready_for_schedule():
             return False
         schedule_time = self._schedule_time()
-        kwargs = self.enqueue_args()
+        kwargs = self._enqueue_args()
         job = self._get_rqueue().enqueue_at(
             schedule_time,
             tools.run_job,
@@ -162,7 +177,9 @@ class BaseJob(TimeStampedModel):
         return True
 
     def enqueue_to_run(self) -> bool:
-        kwargs = self.enqueue_args()
+        """Enqueue job to run now.
+        """
+        kwargs = self._enqueue_args()
         job = self._get_rqueue().enqueue(
             tools.run_job,
             args=(self.JOB_TYPE, self.id),
@@ -173,6 +190,10 @@ class BaseJob(TimeStampedModel):
         return True
 
     def unschedule(self) -> bool:
+        """Remove job from django-queue.
+
+        If job is queued to be executed or scheduled to be executed, it will remove it.
+        """
         queue = self._get_rqueue()
         if self.is_scheduled():
             queue.remove(self.job_id)
@@ -184,6 +205,8 @@ class BaseJob(TimeStampedModel):
         raise NotImplementedError
 
     def to_dict(self) -> Dict:
+        """Export model to dictionary, so it can be saved as external file backup
+        """
         return dict(
             model=self.JOB_TYPE,
             name=self.name,
@@ -201,6 +224,21 @@ class BaseJob(TimeStampedModel):
             timeout=self.timeout,
             result_ttl=self.result_ttl,
         )
+
+    def __str__(self):
+        func = self.function_string()
+        return f'{self.JOB_TYPE}[{self.name}={func}]'
+
+    def save(self, **kwargs):
+        schedule_job = kwargs.pop('schedule_job', True)
+        super(BaseJob, self).save(**kwargs)
+        if schedule_job:
+            self.schedule()
+            super(BaseJob, self).save()
+
+    def delete(self, **kwargs):
+        self.unschedule()
+        super(BaseJob, self).delete(**kwargs)
 
     # Job form validation methods
     def clean(self):
@@ -329,8 +367,8 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         self.repeat is None ==> Run forever.
         """
 
-    def enqueue_args(self):
-        res = super(RepeatableJob, self).enqueue_args()
+    def _enqueue_args(self):
+        res = super(RepeatableJob, self)._enqueue_args()
         res['meta']['interval'] = self.interval_seconds()
         return res
 
@@ -358,7 +396,9 @@ class CronJob(BaseJob):
 
     cron_string = models.CharField(
         _('cron string'), max_length=64,
-        help_text=_('Define the schedule in a crontab like syntax. Times are in UTC.')
+        help_text=mark_safe(
+            '''Define the schedule in a crontab like syntax. 
+            Times are in UTC. Use <a href="https://crontab.guru/">crontab.guru</a> to create a cron string.''')
     )
 
     def to_dict(self) -> Dict:

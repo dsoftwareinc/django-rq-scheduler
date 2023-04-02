@@ -1,12 +1,7 @@
-from scheduler.decorators import job as jobdecorator
-
-
-@jobdecorator
 def test_job():
     return 1 + 1
 
 
-@jobdecorator
 def test_args_kwargs(*args, **kwargs):
     func = "test_args_kwargs({})"
     args_list = [repr(arg) for arg in args]

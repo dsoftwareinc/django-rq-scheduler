@@ -21,7 +21,7 @@ def conf_settings():
     for key, value in sorted(QUEUES.items(), key=itemgetter(0)):
         QUEUES_LIST.append({'name': key, 'connection_config': value})
 
-    DEFAULT_RESULT_TTL = getattr(settings, 'SCHEDULER_DEFAULT_RESULT_TTL', None)  # noqa: F841
+    DEFAULT_RESULT_TTL = getattr(settings, 'RQ_DEFAULT_RESULT_TTL', None)  # noqa: F841
 
 
 conf_settings()

@@ -5,32 +5,78 @@
    pip install django-rq-scheduler
    ```
 
-2. In `settings.py`, add `django_rq` and `scheduler` to  `INSTALLED_APPS`:
+2. In `settings.py`, add `scheduler` to  `INSTALLED_APPS`:
    ```python
    INSTALLED_APPS = [
-       ...
-       'django_rq',
+       ...    
        'scheduler',
        ...
    ]
    ```
 
-3. Configure Django RQ. See https://github.com/ui/django-rq#installation.
+3. Configure your queues.
    Add at least one Redis Queue to your `settings.py`:
    ```python
+   import os
    RQ_QUEUES = {
      'default': {
          'HOST': 'localhost',
          'PORT': 6379,
-         'DB': 0,
+        'DB': 0,
+         'USERNAME': 'some-user',
          'PASSWORD': 'some-password',
          'DEFAULT_TIMEOUT': 360,
+         'REDIS_CLIENT_KWARGS': {    # Eventual additional Redis connection arguments
+             'ssl_cert_reqs': None,
+         },
      },
+     'with-sentinel': {
+         'SENTINELS': [('localhost', 26736), ('localhost', 26737)],
+         'MASTER_NAME': 'redismaster',
+         'DB': 0,
+         # Redis username/password
+         'USERNAME': 'redis-user',
+         'PASSWORD': 'secret',
+         'SOCKET_TIMEOUT': 0.3,
+         'CONNECTION_KWARGS': {  # Eventual additional Redis connection arguments
+             'ssl': True
+         },
+         'SENTINEL_KWARGS': {    # Eventual Sentinel connection arguments
+             # If Sentinel also has auth, username/password can be passed here
+             'username': 'sentinel-user',
+             'password': 'secret',
+         },
+     },
+     'high': {
+         'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'), # If you're on Heroku
+         'DEFAULT_TIMEOUT': 500,
+     },
+     'low': {
+         'HOST': 'localhost',
+         'PORT': 6379,
+         'DB': 0,
+     }
    }
    ```
+4. Optional: Configure default values for queuing jobs from code:
+   ```python
+   RQ = {
+     'DEFAULT_RESULT_TTL': 360,
+     'DEFAULT_TIMEOUT': 60,
+   }
+   ```
+5. Add `scheduler.urls` to your django application `urls.py`:
+   ```python
+   from django.urls import path, include
+   
+   urlpatterns = [
+       # ...
+       path('scheduler/', include('scheduler.urls')),
+   ]
+   ```
 
-4. Run migrations.
+6. Run migrations to generate django models
    ```shell
-   ./manage.py migrate
+   python manage.py migrate
    ```
 

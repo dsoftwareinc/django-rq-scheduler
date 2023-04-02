@@ -1,95 +1,133 @@
 # Usage
 
-## Scheduler thread settings
+## Scheduling a job Through django-admin
 
-There is a scheduler thread running the background by deafult.
-You can control this by adding to your django project settings:
+* Sign in to the Django Admin site (e.g., http://localhost:8000/admin/) and locate the  
+  **Django RQ Scheduler** section.
+* Click on the **Add** link for the type of job you want to add (`Scheduled Job` - run once, `Repeatable Job` - run
+  multiple times, `Cron Job` - Run based on cron schedule).
+* Enter a unique name for the job in the **Name** field.
+* In the **Callable** field, enter a Python dot notation path to the method that defines the job. For the example  
+  above, that would be `myapp.jobs.count`
+* Choose your **Queue**.
+  The queues listed are defined in your app `settings.py` under `RQ_QUEUES`.
+* Enter the time in UTC the job is to be executed in the **Scheduled time** field.
 
-```python
-SCHEDULER_THREAD = False  # This means disable the scheduler thread
+![](media/add-scheduled-job.jpg)
+
+#### Optional fields:
+
+* Select whether the job should take priority over existing queued jobs when it is queued (jobs waiting to be executed)
+  by using **at front**.
+* **Timeout** specifies the maximum time in seconds the job is allowed to run. blank value means it can run forever.
+* **Result TTL** (Time to live): The time to live value (in seconds) of the job result.
+    - `-1`: Result never expires, you should delete jobs manually.
+    - `0`: Result gets deleted immediately.
+    - `n` (where `n > 0`) : Result expires after n seconds.
+
+Once you are done, click **Save** and your job will be persisted to django database.
+
+### Support for arguments for jobs
+
+django-rq-scheduler supports scheduling jobs calling methods with arguments, as well as arguments that should be
+calculated in runtime.
+
+![](media/add-args.jpg)
+
+### Scheduled Job - run once
+
+No additional steps required.
+
+### Repeatable Job - Run a job multiple time based on interval
+
+Additional fields required:
+
+* Enter an **Interval**, and choose the **Interval unit**. This will calculate the time before the function is called  
+  again.
+* In the **Repeat** field, enter the number of time the job is to be run. Leaving the field empty, means the job will  
+  be scheduled to run forever.
+
+### Cron Job - Run a job multiple time based on cron
+
+Additional fields required:
+
+* In the **Repeat** field, enter the number of time the job is to be run. Leaving the field empty, means the job will be
+  scheduled to run forever.
+* In the **cron string** field, enter a cron string describing how often the job should run.
+
+### Scheduled Job - run once
+
+No additional steps required.
+
+### Repeatable Job - Run a job multiple time based on interval
+
+Additional fields required:
+
+* Enter an **Interval**, and choose the **Interval unit**. This will calculate the time before the function is called  
+  again.
+* In the **Repeat** field, enter the number of time the job is to be run. Leaving the field empty, means the job will  
+  be scheduled to run forever.
+
+### Cron Job - Run a job multiple time based on cron
+
+Additional fields required:
+
+* In the **Repeat** field, enter the number of time the job is to be run. Leaving the field empty, means the job will be
+  scheduled to run forever.
+* In the **cron string** field, enter a cron string describing how often the job should run.
+
+## Enqueue jobs through command line
+
+It is possible to queue a job to be executed from the command line
+using django management command:
+
+```shell
+python manage.py run_job -q {queue} -t {timeout} -r {result_ttl} {callable} {args}
 ```
 
-You can also control how often the scheduler thread will check for
-jobs to be scheduled using `SCHEDULER_INTERVAL` setting (default is 60 seconds).
+## Enqueue jobs from code
 
 ```python
-# Scheduler thread will check for jobs to be scheduled every 10 seconds
-SCHEDULER_INTERVAL = 10
-```
-
-!!! warning
-
-    It is not recommended to have the `SCHEDULER_INTERVAL` less than 10 seconds.
-
-## Making a method in your code a schedulable job to be run by a worker.
-
-See http://python-rq.org/docs/jobs/ or https://github.com/ui/django-rq#job-decorator
-
-An example (**myapp/jobs.py** file):
-
-```python
-from django_rq import job
+from scheduler import job
 
 
 @job
-def count():
-    return 1 + 1
+def long_running_func():
+    pass
+
+
+long_running_func.delay()  # Enqueue function in "default" queue
+
+
+@job('high')
+def long_running_func():
+    pass
+
+
+long_running_func.delay()  # Enqueue function in "high" queue
 ```
 
-## Scheduling a Job
-
-### Scheduled Job
-
-1. Sign in to the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
-2. Click on the **Add** link for Scheduled Job.
-3. Enter a unique name for the job in the **Name** field.
-4. In the **Callable** field, enter a Python dot notation path to the method that defines the job. For the example
-   above, that would be `myapp.jobs.count`
-5. Choose your **Queue**. Side Note: The queues listed are defined in the Django Settings.
-6. Enter the time the job is to be executed in the **Scheduled time** field. Side Note: Enter the date via the browser's
-   local timezone, the time will automatically convert UTC.
-7. Click the **Save** button to schedule the job.
-
-### Repeatable Job
-
-1. Sign in to the Django Admin site, http://localhost:8000/admin/ and locate the **Django RQ Scheduler** section.
-2. Click on the **Add** link for Repeatable Job
-3. Enter a unique name for the job in the **Name** field.
-4. In the **Callable** field, enter a Python dot notation path to the method that defines the job. For the example
-   above, that would be `myapp.jobs.count`
-5. Choose your **Queue**. Side Note: The queues listed are defined in the Django Settings.
-6. Enter the time the first job is to be executed in the **Scheduled time** field. Side Note: Enter the date via the
-   browser's local timezone, the time will automatically convert UTC.
-7. Enter an **Interval**, and choose the **Interval unit**. This will calculate the time before the function is called
-   again.
-8. In the **Repeat** field, enter the number of time the job is to be run. Leaving the field empty, means the job will
-   be scheduled to run forever.
-9. Click the **Save** button to schedule the job.
-
-## Jobs with arguments
-
-django-rq-scheduler supports scheduling jobs with arguments, and even supports
-callable arguments that will be calculated in runtime.
+You can pass in any arguments that RQ's job decorator accepts:
 
 ```python
+from scheduler import job
 
-from django_rq import job
+
+@job('default', timeout=3600)
+def long_running_func():
+    pass
 
 
-@job
-def job_args_kwargs(*args, **kwargs):
-    func = "job_args_kwargs({})"
-    args_list = [repr(arg) for arg in args]
-    kwargs_list = [f'{k}={v}' for (k, v) in kwargs.items()]
-    return func.format(', '.join(args_list + kwargs_list))
+long_running_func.delay()  # Enqueue function with a timeout of 3600 seconds.
 ```
 
-### Schedule job with custom arguments to be calculated when scheduling
+You can set in `settings.py` a default value for `DEFAULT_RESULT_TTL` and `DEFAULT_TIMEOUT`.
 
-- Follow instructions to add a job above.
-- Below, you have the ability to add arguments to `args` and to `kwargs`
-    - Pick the argument type and enter value (and key if `kwarg`)
+```python
+# settings.py
+RQ = {
+    'DEFAULT_RESULT_TTL': 360,
+    'DEFAULT_TIMEOUT': 60,
+}
+```
 
-# Reporting issues or Features requests
-
-Please report issues via [GitHub Issues](https://github.com/dsoftwareinc/django-rq-scheduler/issues) .

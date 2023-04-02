@@ -1,4 +1,4 @@
-from . import settings
+from django.conf import settings
 from rq.decorators import job as _rq_job
 
 from .queues import get_queue
@@ -6,7 +6,7 @@ from .queues import get_queue
 
 def job(func_or_queue, connection=None, *args, **kwargs):
     """
-    The same as RQ's job decorator, but it automatically works out
+    The same as rq package's job decorator, but it automatically works out
     the ``connection`` argument from RQ_QUEUES.
 
     And also, it allows simplified ``@job`` syntax to put job into
@@ -30,8 +30,14 @@ def job(func_or_queue, connection=None, *args, **kwargs):
         except KeyError:
             pass
 
-    if settings.DEFAULT_RESULT_TTL is not None:
-        kwargs.setdefault('result_ttl', settings.DEFAULT_RESULT_TTL)
+    RQ = getattr(settings, 'RQ', {})
+    default_result_ttl = RQ.get('DEFAULT_RESULT_TTL')
+    if default_result_ttl is not None:
+        kwargs.setdefault('result_ttl', default_result_ttl)
+
+    default_timeout = RQ.get('DEFAULT_TIMEOUT')
+    if default_timeout is not None:
+        kwargs.setdefault('timeout', default_timeout)
 
     decorator = _rq_job(queue, connection=connection, *args, **kwargs)
     if func:
