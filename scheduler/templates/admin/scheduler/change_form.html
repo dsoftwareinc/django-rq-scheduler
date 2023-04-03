@@ -7,8 +7,7 @@
             {% for exec in executions %}
                 <div class="form-row">
                     <div class="fieldBox">
-                        Id:
-                        <div class="readonly">{{ exec.id }}</div>
+                        <a href="{% url 'job_details' exec.id %}">{{ exec.id }}</a>
                     </div>
                     <div class="fieldBox">
                         Status:
