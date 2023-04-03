@@ -6,11 +6,6 @@ from scheduler.tools import get_scheduled_job
 register = template.Library()
 
 
-@register.simple_tag
-def get_jquery_path():
-    return 'admin/js/vendor/jquery/jquery.js'
-
-
 @register.filter
 def show_func_name(rq_job: JobExecution) -> str:
     try:

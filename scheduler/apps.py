@@ -13,6 +13,4 @@ class SchedulerConfig(AppConfig):
         try:
             reschedule_all_jobs()
         except Exception:
-            # Django isn't ready yet, example a management command is being
-            # executed
-            pass
+            pass  # Django isn't ready yet, example a management command is being executed
