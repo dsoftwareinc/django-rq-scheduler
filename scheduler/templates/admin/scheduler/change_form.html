@@ -4,31 +4,40 @@
     {% if executions %}
         <fieldset class="module aligned {{ fieldset.classes }}">
             <h2>Job executions</h2>
-            {% for exec in executions %}
-                <div class="form-row">
-                    <div class="fieldBox">
-                        <a href="{% url 'job_details' exec.id %}">{{ exec.id }}</a>
-                    </div>
-                    <div class="fieldBox">
-                        Status:
-                        <div class="readonly">{{ exec.status }}</div>
-                    </div>
-                    <div class="fieldBox">
-                        Started at:
-                        <div class="readonly">{{ exec.started_at|default:"" }}</div>
-                    </div>
-                    <div class="fieldBox">
-                        Ended at:
-                        <div class="readonly">{{ exec.ended_at|default:"" }}</div>
-                    </div>
-                    <div class="fieldBox">
-                        Worker name:
-                        <div class="readonly">{{ exec.worker_name|default:"" }}</div>
-                    </div>
-                </div>
-
-            {% endfor %}
-
+            <div class="results">
+                <table id="result_list">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>STATUS</th>
+                        <th>Started at</th>
+                        <th>Ended at</th>
+                        <th>Worker name</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for exec in executions %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'job_details' exec.id %}">{{ exec.id }}</a>
+                            </td>
+                            <td>
+                                {{ exec.status }}
+                            </td>
+                            <td>
+                                {{ exec.started_at|default:"-" }}
+                            </td>
+                            <td>
+                                {{ exec.ended_at|default:"-" }}
+                            </td>
+                            <td>
+                                {{ exec.worker_name|default:"-" }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </fieldset>
     {% endif %}
 {% endblock %}
