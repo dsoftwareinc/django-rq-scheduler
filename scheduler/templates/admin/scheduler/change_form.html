@@ -1,0 +1,35 @@
+{% extends "admin/change_form.html" %}
+
+{% block after_related_objects %}
+    {% if executions %}
+        <fieldset class="module aligned {{ fieldset.classes }}">
+            <h2>Job executions</h2>
+            {% for exec in executions %}
+                <div class="form-row">
+                    <div class="fieldBox">
+                        Id:
+                        <div class="readonly">{{ exec.id }}</div>
+                    </div>
+                    <div class="fieldBox">
+                        Status:
+                        <div class="readonly">{{ exec.status }}</div>
+                    </div>
+                    <div class="fieldBox">
+                        Started at:
+                        <div class="readonly">{{ exec.started_at|default:"" }}</div>
+                    </div>
+                    <div class="fieldBox">
+                        Ended at:
+                        <div class="readonly">{{ exec.ended_at|default:"" }}</div>
+                    </div>
+                    <div class="fieldBox">
+                        Worker name:
+                        <div class="readonly">{{ exec.worker_name|default:"" }}</div>
+                    </div>
+                </div>
+
+            {% endfor %}
+
+        </fieldset>
+    {% endif %}
+{% endblock %}

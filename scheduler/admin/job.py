@@ -1,3 +1,4 @@
+import redis
 from django.contrib import admin, messages
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.utils.translation import gettext_lazy as _
@@ -35,19 +36,24 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
 def get_job_executions(queue_name, scheduled_job):
     queue = get_queue(queue_name)
     res = list()
-    job_list = queue.get_jobs()
+    try:
+        job_list = queue.get_jobs()
+    except redis.ConnectionError:
+        return res
     res.extend(list(filter(lambda job: job.is_execution_of(scheduled_job), job_list)))
     scheduled_job_id_list = queue.scheduled_job_registry.get_job_ids()
 
-    res.extend(list(filter(
-        lambda job: job.is_execution_of(scheduled_job),
-        map(queue.fetch_job, scheduled_job_id_list)
-    )))
+    res.extend(list(
+        map(lambda job: job.to_json(),
+            filter(lambda job: job.is_execution_of(scheduled_job),
+                   map(queue.fetch_job, scheduled_job_id_list)
+                   ))))
     return res
 
 
 class JobAdmin(admin.ModelAdmin):
     """BaseJob admin class"""
+    change_form_template = 'admin/scheduler/change_form.html'
     actions = ['disable_selected', 'enable_selected', 'enqueue_job_now', ]
     inlines = [JobArgInline, JobKwargInline, ]
     list_filter = ('enabled',)
@@ -66,7 +72,7 @@ class JobAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra = extra_context or {}
         obj = self.get_object(request, object_id)
-        extra['Job executions'] = get_job_executions(obj.queue, obj)
+        extra['executions'] = get_job_executions(obj.queue, obj)
 
         return super(JobAdmin, self).change_view(
             request, object_id, form_url, extra_context=extra)

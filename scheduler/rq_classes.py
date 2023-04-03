@@ -24,6 +24,15 @@ class JobExecution(Job):
         return (self.meta.get('job_type', None) == scheduled_job.JOB_TYPE
                 and self.meta.get('scheduled_job_id', None) == scheduled_job.id)
 
+    def to_json(self):
+        return dict(
+            id=self.id,
+            status=self.get_status(),
+            started_at=self.started_at,
+            ended_at=self.ended_at,
+            worker_name=self.worker_name,
+        )
+
 
 class DjangoWorker(Worker):
     def __init__(self, *args, **kwargs):
