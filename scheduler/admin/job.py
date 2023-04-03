@@ -1,18 +1,15 @@
-from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.contenttypes.admin import GenericStackedInline
-from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 
 from scheduler import tools
-from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob, BaseJob
-
-QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
+from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler.queues import get_queue
 
 
 class HiddenMixin(object):
     class Media:
-        js = ['admin/js/jquery.init.js', 'scheduler/js/base.js']
+        js = ['admin/js/jquery.init.js', ]
 
 
 class JobArgInline(HiddenMixin, GenericStackedInline):
@@ -35,11 +32,26 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
     )
 
 
+def get_job_executions(queue_name, scheduled_job):
+    queue = get_queue(queue_name)
+    res = list()
+    job_list = queue.get_jobs()
+    res.extend(list(filter(lambda job: job.is_execution_of(scheduled_job), job_list)))
+    scheduled_job_id_list = queue.scheduled_job_registry.get_job_ids()
+
+    res.extend(list(filter(
+        lambda job: job.is_execution_of(scheduled_job),
+        map(queue.fetch_job, scheduled_job_id_list)
+    )))
+    return res
+
+
 class JobAdmin(admin.ModelAdmin):
-    actions = ['delete_model', 'disable_selected', 'enable_selected', 'enqueue_job_now']
-    inlines = [JobArgInline, JobKwargInline]
+    """BaseJob admin class"""
+    actions = ['disable_selected', 'enable_selected', 'enqueue_job_now', ]
+    inlines = [JobArgInline, JobKwargInline, ]
     list_filter = ('enabled',)
-    list_display = ('enabled', 'name', 'job_id', 'function_string', 'is_scheduled',)
+    list_display = ('enabled', 'name', 'job_id', 'function_string', 'is_scheduled', 'queue',)
     list_display_links = ('name',)
     readonly_fields = ('job_id',)
     fieldsets = (
@@ -51,27 +63,18 @@ class JobAdmin(admin.ModelAdmin):
         }),
     )
 
-    def get_actions(self, request):
-        actions = super(JobAdmin, self).get_actions(request)
-        actions.pop('delete_selected', None)
-        return actions
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra = extra_context or {}
+        obj = self.get_object(request, object_id)
+        extra['Job executions'] = get_job_executions(obj.queue, obj)
 
-    def get_form(self, request, obj=None, **kwargs):
-        queue_field = self.model._meta.get_field('queue')
-        queue_field.choices = QUEUES
-        return super(JobAdmin, self).get_form(request, obj, **kwargs)
+        return super(JobAdmin, self).change_view(
+            request, object_id, form_url, extra_context=extra)
 
-    @admin.action(description=_("Delete selected %(verbose_name_plural)s"), permissions=('delete',))
-    def delete_model(self, request, queryset):
-        rows_deleted = 0
-        if isinstance(queryset, BaseJob):
-            queryset.delete()
-            rows_deleted += 1
-        elif isinstance(queryset, QuerySet):
-            rows_deleted, _ = queryset.delete()
-        message_bit = "1 job was" if rows_deleted == 1 else f"{rows_deleted} jobs were"
-        level = messages.WARNING if not rows_deleted else messages.INFO
-        self.message_user(request, f"{message_bit} successfully deleted.", level=level)
+    def delete_queryset(self, request, queryset):
+        for job in queryset:
+            job.unschedule()
+        queryset.delete()
 
     @admin.action(description=_("Disable selected %(verbose_name_plural)s"), permissions=('change',))
     def disable_selected(self, request, queryset):

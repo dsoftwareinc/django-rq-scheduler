@@ -2,6 +2,7 @@ import zoneinfo
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
@@ -11,6 +12,11 @@ from scheduler.tools import run_job
 from . import jobs
 from .testtools import job_factory, jobarg_factory, _get_job_from_queue, SchedulerBaseCase
 from ..queues import get_queue
+
+
+def assert_response_has_msg(response, message):
+    messages = [m.message for m in get_messages(response.wsgi_request)]
+    assert message in messages, f'expected "{message}" in {messages}'
 
 
 class BaseTestCases:
@@ -356,6 +362,31 @@ class BaseTestCases:
             self.assertEqual(200, res.status_code)
             job = self.JobModelClass.objects.filter(id=job.id).first()
             self.assertFalse(job.enabled)
+
+        def test_admin_delete_selected(self):
+            # arrange
+            self.client.login(username='admin', password='admin')
+            job = job_factory(self.JobModelClass, enabled=True)
+            job.save()
+            queue = get_queue(job.queue)
+            scheduled_jobs = queue.scheduled_job_registry.get_job_ids()
+            job_id = job.job_id
+            self.assertIn(job_id, scheduled_jobs)
+            data = {
+                'action': 'delete_selected',
+                '_selected_action': [job.id, ],
+                'post': 'yes',
+            }
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_changelist')
+            # act
+            res = self.client.post(url, data=data, follow=True)
+            # assert
+            self.assertEqual(200, res.status_code)
+            assert_response_has_msg(res, f'Successfully deleted 1 {self.JobModelClass._meta.verbose_name}.')
+            self.assertIsNone(self.JobModelClass.objects.filter(id=job.id).first())
+            scheduled_jobs = queue.scheduled_job_registry.get_job_ids()
+            self.assertNotIn(job_id, scheduled_jobs)
 
     class TestSchedulableJob(TestBaseJob):
         # Currently ScheduledJob and RepeatableJob

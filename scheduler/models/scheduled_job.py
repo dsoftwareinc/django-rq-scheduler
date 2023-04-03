@@ -37,6 +37,7 @@ def callback_save_job(job, connection, result, *args, **kwargs):
 
 
 class BaseJob(TimeStampedModel):
+    QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
     JOB_TYPE = 'BaseJob'
     name = models.CharField(_('name'), max_length=128, unique=True)
     callable = models.CharField(_('callable'), max_length=2048)
@@ -48,7 +49,7 @@ class BaseJob(TimeStampedModel):
                     'past jobs that should no longer be scheduled'),
     )
     queue = models.CharField(
-        _('queue'), max_length=16,
+        _('queue'), max_length=16, choices=QUEUES,
         help_text=_('Queue name'), )
     job_id = models.CharField(
         _('job id'), max_length=128, editable=False, blank=True, null=True,
@@ -199,6 +200,7 @@ class BaseJob(TimeStampedModel):
             queue.remove(self.job_id)
             queue.scheduled_job_registry.remove(self.job_id)
         self.job_id = None
+        super(BaseJob, self).save()
         return True
 
     def _schedule_time(self):

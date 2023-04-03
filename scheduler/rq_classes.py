@@ -20,6 +20,10 @@ class JobExecution(Job):
     def is_scheduled_job(self):
         return self.meta.get('scheduled_job_id', None) is not None
 
+    def is_execution_of(self, scheduled_job):
+        return (self.meta.get('job_type', None) == scheduled_job.JOB_TYPE
+                and self.meta.get('scheduled_job_id', None) == scheduled_job.id)
+
 
 class DjangoWorker(Worker):
     def __init__(self, *args, **kwargs):
@@ -56,16 +60,16 @@ class DjangoQueue(Queue):
 
     @property
     def started_job_registry(self):
-        return StartedJobRegistry(self.name, self.connection)
+        return StartedJobRegistry(self.name, self.connection, job_class=JobExecution, )
 
     @property
     def deferred_job_registry(self):
-        return DeferredJobRegistry(self.name, self.connection)
+        return DeferredJobRegistry(self.name, self.connection, job_class=JobExecution, )
 
     @property
     def failed_job_registry(self):
-        return FailedJobRegistry(self.name, self.connection)
+        return FailedJobRegistry(self.name, self.connection, job_class=JobExecution, )
 
     @property
     def scheduled_job_registry(self):
-        return ScheduledJobRegistry(self.name, self.connection)
+        return ScheduledJobRegistry(self.name, self.connection, job_class=JobExecution, )
