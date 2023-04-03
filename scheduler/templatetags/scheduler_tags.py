@@ -20,3 +20,7 @@ def show_func_name(rq_job: JobExecution) -> str:
         return rq_job.func_name
     except Exception as e:
         return repr(e)
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
