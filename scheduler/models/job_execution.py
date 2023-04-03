@@ -22,3 +22,8 @@ class JobExecution(models.Model):
         _('Execution status'), max_length=12, choices=STATUS, default=STATUS.scheduled)
     worker = models.CharField(_('Worker name'), max_length=50)
     queue = models.CharField(_('Queue name'), max_length=50)
+
+    class Meta:
+        managed = False  # not in Django's database
+        permissions = [['view', 'Access admin page']]
+        verbose_name_plural = "Job executions"
