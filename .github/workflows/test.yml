@@ -39,10 +39,10 @@ jobs:
       max-parallel: 6
       matrix:
         python-version: [ '3.9', '3.10', '3.11' ]
-        django-version: [ '3.2.18', '4.1.7' ]
+        django-version: [ '3.2.18', '4.2' ]
         include:
           - python-version: '3.11'
-            django-version: '4.1.7'
+            django-version: '4.2'
             coverage: yes
     services:
       redis:
