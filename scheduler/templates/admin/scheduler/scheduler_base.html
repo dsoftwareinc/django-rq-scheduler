@@ -1,6 +1,7 @@
 {% extends "admin/base_site.html" %}
+{% load scheduler_tags %}
 
-{% load static scheduler_tags %}
+{% load static %}
 
 {% block extrastyle %}
     {{ block.super }}
@@ -18,7 +19,5 @@
 
 {% block extrahead %}
     {{ block.super }}
-    <script type="text/javascript" src="{% get_jquery_path as jquery_path %}{% static jquery_path %}"></script>
-    <script type="text/javascript" src="{% static "admin/js/jquery.init.js" %}"></script>
     <script type="text/javascript" src="{% static "admin/js/actions.js" %}"></script>
 {% endblock %}

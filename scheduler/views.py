@@ -94,26 +94,53 @@ def get_statistics(run_maintenance_tasks=False):
     return {'queues': queues}
 
 
-def get_jobs(queue, job_ids, registry=None):
-    """Fetch jobs in bulk from Redis.
-    1. If job data is not present in Redis, discard the result
-    2. If `registry` argument is supplied, delete empty jobs from registry
-    """
-    job_list = JobExecution.fetch_many(job_ids, connection=queue.connection)
-    valid_jobs = []
-    for i, job in enumerate(job_list):
-        if job is None:
-            if registry:
-                registry.remove(job_ids[i])
-        else:
-            valid_jobs.append(job)
+def _get_registry_job_list(queue, registry, page):
+    items_per_page = 100
+    num_jobs = len(registry)
+    job_list = []
 
-    return valid_jobs
+    if num_jobs == 0:
+        return job_list, num_jobs, []
+
+    last_page = int(ceil(num_jobs / items_per_page))
+    page_range = range(1, last_page + 1)
+    offset = items_per_page * (page - 1)
+    job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
+    job_list = JobExecution.fetch_many(job_ids, connection=queue.connection)
+    remove_job_ids = [job_id for i, job_id in enumerate(job_ids) if job_list[i] is None]
+    valid_jobs = [job for job in job_list if job is not None]
+    if registry is not queue:
+        for job_id in remove_job_ids:
+            registry.remove(job_id)
+
+    return valid_jobs, num_jobs, page_range
+
+
+def jobs_view(request, queue_index, registry_class, status_title):
+    queue_index = int(queue_index)
+    queue = get_queue_by_index(queue_index)
+
+    registry = registry_class(queue.name, queue.connection) if registry_class is not None else queue
+    page = int(request.GET.get('page', 1))
+    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
+
+    context_data = {
+        **admin.site.each_context(request),
+        'queue': queue,
+        'queue_index': queue_index,
+        'jobs': job_list,
+        'num_jobs': num_jobs,
+        'page': page,
+        'page_range': page_range,
+        'job_status': status_title,
+    }
+    return render(request, 'admin/scheduler/jobs.html', context_data)
 
 
 @never_cache
 @staff_member_required
 def jobs(request, queue_index):
+    return jobs_view(request, queue_index, None, 'Queued')
     queue_index = int(queue_index)
     queue = get_queue_by_index(queue_index)
 
@@ -146,110 +173,31 @@ def jobs(request, queue_index):
 @never_cache
 @staff_member_required
 def finished_jobs(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-
-    registry = FinishedJobRegistry(queue.name, queue.connection)
-    page = int(request.GET.get('page', 1))
-    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
-
-    context_data = {
-        **admin.site.each_context(request),
-        'queue': queue,
-        'queue_index': queue_index,
-        'jobs': job_list,
-        'num_jobs': num_jobs,
-        'page': page,
-        'page_range': page_range,
-        'job_status': 'Finished',
-    }
-    return render(request, 'admin/scheduler/jobs.html', context_data)
-
-
-def _get_registry_job_list(queue, registry, page):
-    items_per_page = 100
-    num_jobs = len(registry)
-    job_list = []
-
-    if num_jobs > 0:
-        last_page = int(ceil(num_jobs / items_per_page))
-        page_range = range(1, last_page + 1)
-        offset = items_per_page * (page - 1)
-        job_ids = registry.get_job_ids(offset, offset + items_per_page - 1)
-        job_list = get_jobs(queue, job_ids, registry)
-
-    else:
-        page_range = []
-    return job_list, num_jobs, page_range
+    return jobs_view(request, queue_index, FinishedJobRegistry, 'Finished')
 
 
 @never_cache
 @staff_member_required
 def failed_jobs(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-
-    registry = FailedJobRegistry(queue.name, queue.connection)
-    page = int(request.GET.get('page', 1))
-    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
-
-    context_data = {
-        **admin.site.each_context(request),
-        'queue': queue,
-        'queue_index': queue_index,
-        'jobs': job_list,
-        'num_jobs': num_jobs,
-        'page': page,
-        'page_range': page_range,
-        'job_status': 'Failed',
-    }
-    return render(request, 'admin/scheduler/jobs.html', context_data)
+    return jobs_view(request, queue_index, FailedJobRegistry, 'Failed')
 
 
 @never_cache
 @staff_member_required
 def scheduled_jobs(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-
-    registry = ScheduledJobRegistry(queue.name, queue.connection)
-    page = int(request.GET.get('page', 1))
-    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
-
-    context_data = {
-        **admin.site.each_context(request),
-        'queue': queue,
-        'queue_index': queue_index,
-        'jobs': job_list,
-        'num_jobs': num_jobs,
-        'page': page,
-        'page_range': page_range,
-        'job_status': 'Scheduled',
-    }
-    return render(request, 'admin/scheduler/jobs.html', context_data)
+    return jobs_view(request, queue_index, ScheduledJobRegistry, 'Scheduled')
 
 
 @never_cache
 @staff_member_required
 def started_jobs(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
+    return jobs_view(request, queue_index, StartedJobRegistry, 'Started')
 
-    registry = StartedJobRegistry(queue.name, queue.connection)
-    page = int(request.GET.get('page', 1))
-    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
 
-    context_data = {
-        **admin.site.each_context(request),
-        'queue': queue,
-        'queue_index': queue_index,
-        'jobs': job_list,
-        'num_jobs': num_jobs,
-        'page': page,
-        'page_range': page_range,
-        'job_status': 'Started',
-    }
-    return render(request, 'admin/scheduler/jobs.html', context_data)
+@never_cache
+@staff_member_required
+def deferred_jobs(request, queue_index):
+    return jobs_view(request, queue_index, DeferredJobRegistry, 'Deferred')
 
 
 @never_cache
@@ -314,29 +262,6 @@ def worker_details(request, key):
         'total_working_time': worker.total_working_time * 1000,
     }
     return render(request, 'admin/scheduler/worker_details.html', context_data)
-
-
-@never_cache
-@staff_member_required
-def deferred_jobs(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-
-    registry = DeferredJobRegistry(queue.name, queue.connection)
-    page = int(request.GET.get('page', 1))
-    job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
-
-    context_data = {
-        **admin.site.each_context(request),
-        'queue': queue,
-        'queue_index': queue_index,
-        'jobs': job_list,
-        'num_jobs': num_jobs,
-        'page': page,
-        'page_range': page_range,
-        'job_status': 'Deferred',
-    }
-    return render(request, 'admin/scheduler/jobs.html', context_data)
 
 
 @never_cache
