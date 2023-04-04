@@ -1,11 +1,10 @@
-import redis
 from django.contrib import admin, messages
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.utils.translation import gettext_lazy as _
 
 from scheduler import tools
 from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
-from scheduler.queues import get_queue
+from scheduler.tools import get_job_executions
 
 
 class HiddenMixin(object):
@@ -31,24 +30,6 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
             'fields': (('key',), ('arg_type', 'val',),),
         }),
     )
-
-
-def get_job_executions(queue_name, scheduled_job):
-    queue = get_queue(queue_name)
-    res = list()
-    try:
-        job_list = queue.get_jobs()
-    except redis.ConnectionError:
-        return res
-    res.extend(list(filter(lambda job: job.is_execution_of(scheduled_job), job_list)))
-    scheduled_job_id_list = queue.scheduled_job_registry.get_job_ids()
-
-    res.extend(list(
-        map(lambda job: job.to_json(),
-            filter(lambda job: job.is_execution_of(scheduled_job),
-                   map(queue.fetch_job, scheduled_job_id_list)
-                   ))))
-    return res
 
 
 class JobAdmin(admin.ModelAdmin):
@@ -80,20 +61,24 @@ class JobAdmin(admin.ModelAdmin):
     def delete_queryset(self, request, queryset):
         for job in queryset:
             job.unschedule()
-        queryset.delete()
+        super(JobAdmin, self).delete_queryset(request, queryset)
+
+    def delete_model(self, request, obj):
+        obj.unschedule()
+        super(JobAdmin, self).delete_model(request, obj)
 
     @admin.action(description=_("Disable selected %(verbose_name_plural)s"), permissions=('change',))
     def disable_selected(self, request, queryset):
         rows_updated = 0
         for obj in queryset.filter(enabled=True).iterator():
             obj.enabled = False
-            obj.save()
+            obj.unschedule()
             rows_updated += 1
 
         message_bit = "1 job was" if rows_updated == 1 else f"{rows_updated} jobs were"
 
         level = messages.WARNING if not rows_updated else messages.INFO
-        self.message_user(request, f"{message_bit} successfully disabled.", level=level)
+        self.message_user(request, f"{message_bit} successfully disabled and unscheduled.", level=level)
 
     @admin.action(description=_("Enable selected %(verbose_name_plural)s"), permissions=('change',))
     def enable_selected(self, request, queryset):
@@ -105,7 +90,7 @@ class JobAdmin(admin.ModelAdmin):
 
         message_bit = "1 job was" if rows_updated == 1 else f"{rows_updated} jobs were"
         level = messages.WARNING if not rows_updated else messages.INFO
-        self.message_user(request, f"{message_bit} successfully enabled.", level=level)
+        self.message_user(request, f"{message_bit} successfully enabled and scheduled.", level=level)
 
     @admin.action(description="Enqueue now", permissions=('change',))
     def enqueue_job_now(self, request, queryset):
@@ -113,7 +98,7 @@ class JobAdmin(admin.ModelAdmin):
         for job in queryset:
             job.enqueue_to_run()
             job_names.append(job.name)
-        self.message_user(request, "The following jobs have been enqueued: %s" % (', '.join(job_names),))
+        self.message_user(request, f"The following jobs have been enqueued: {', '.join(job_names)}", )
 
 
 @admin.register(ScheduledJob)

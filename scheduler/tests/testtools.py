@@ -7,6 +7,7 @@ from django.test import Client, TestCase
 from django.utils import timezone
 
 from scheduler.models import CronJob, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler.queues import get_queue
 
 
 def sequence_gen():
@@ -73,11 +74,33 @@ def _get_job_from_queue(django_job):
     return queue.fetch_job(entry)
 
 
+def _get_executions(django_job):
+    queue = get_queue(django_job.queue)
+    job_ids = (queue.get_job_ids()
+               + queue.finished_job_registry.get_job_ids()
+               + queue.scheduled_job_registry.get_job_ids()
+               + queue.failed_job_registry.get_job_ids())
+    return list(filter(
+        lambda j: j.is_execution_of(django_job),
+        map(lambda jid: queue.fetch_job(jid), job_ids)))
+
+
 class SchedulerBaseCase(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
+        super().setUpTestData()
         try:
             User.objects.create_superuser('admin', 'admin@a.com', 'admin')
         except Exception:
             pass
         cls.client = Client()
+
+    def setUp(self) -> None:
+        super(SchedulerBaseCase, self).setUp()
+        queue = get_queue('default')
+        queue.empty()
+
+    def tearDown(self) -> None:
+        super(SchedulerBaseCase, self).setUp()
+        queue = get_queue('default')
+        queue.empty()
