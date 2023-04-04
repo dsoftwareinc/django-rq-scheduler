@@ -19,7 +19,7 @@ def sequence_gen():
 seq = sequence_gen()
 
 
-def job_factory(cls, **kwargs):
+def job_factory(cls, instance_only=False, **kwargs):
     values = dict(
         name='Scheduled Job %d' % next(seq),
         job_id=None,
@@ -41,7 +41,10 @@ def job_factory(cls, **kwargs):
     elif cls == CronJob:
         values.update(dict(cron_string="0 0 * * *", repeat=None, ))
     values.update(kwargs)
-    instance = cls.objects.create(**values)
+    if instance_only:
+        instance = cls(**values)
+    else:
+        instance = cls.objects.create(**values)
     return instance
 
 
