@@ -37,7 +37,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        file = open(options.get('filename'),'w') if options.get("filename") else sys.stdout
+        file = open(options.get('filename'), 'w') if options.get("filename") else sys.stdout
         res = list()
         for model_name in MODEL_NAMES:
             model = apps.get_model(app_label='scheduler', model_name=model_name)

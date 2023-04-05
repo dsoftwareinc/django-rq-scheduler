@@ -21,9 +21,7 @@ class TestAllJobArg(TestCase):
             arg.clean()
 
     def test_callable_arg_type__not_clean(self):
-        arg = jobarg_factory(
-            self.JobArgClass, arg_type='callable',
-            val=f'bad_callable', )
+        arg = jobarg_factory(self.JobArgClass, arg_type='callable', val='bad_callable', )
         with self.assertRaises(ValidationError):
             arg.clean()
 

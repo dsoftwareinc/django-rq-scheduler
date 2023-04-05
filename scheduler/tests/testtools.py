@@ -20,7 +20,6 @@ def sequence_gen():
 seq = sequence_gen()
 
 
-
 def job_factory(cls, instance_only=False, **kwargs):
     values = dict(
         name='Scheduled Job %d' % next(seq),
