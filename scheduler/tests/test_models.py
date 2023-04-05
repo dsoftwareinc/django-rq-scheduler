@@ -122,7 +122,6 @@ class BaseTestCases:
 
         def test_save_enabled(self):
             job = job_factory(self.JobModelClass, )
-            job.save()
             self.assertIsNotNone(job.job_id)
 
         def test_save_disabled(self):
@@ -264,7 +263,6 @@ class BaseTestCases:
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, )
-            job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
@@ -279,7 +277,6 @@ class BaseTestCases:
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, )
-            job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
@@ -296,8 +293,7 @@ class BaseTestCases:
         def test_admin_single_view(self):
             # arrange
             self.client.login(username='admin', password='admin')
-            job = job_factory(self.JobModelClass, )
-            job.save()
+            job = job_factory(self.JobModelClass, )            
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_change', args=[job.pk, ])
             # act

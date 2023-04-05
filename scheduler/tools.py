@@ -1,7 +1,8 @@
 import importlib
 import os
-import redis
+
 import croniter
+import redis
 from django.apps import apps
 from django.utils import timezone
 
@@ -76,7 +77,8 @@ def create_worker(*queue_names, **kwargs):
         c += 1
         worker_name = f'{hostname}-worker:{c}'
     kwargs['name'] = worker_name
-    return DjangoWorker(queues, connection=queues[0].connection, **kwargs)
+    worker = DjangoWorker(queues, connection=queues[0].connection, **kwargs)
+    return worker
 
 
 def get_job_executions(queue_name, scheduled_job):
@@ -95,5 +97,3 @@ def get_job_executions(queue_name, scheduled_job):
                    map(queue.fetch_job, scheduled_job_id_list)
                    ))))
     return res
-
-

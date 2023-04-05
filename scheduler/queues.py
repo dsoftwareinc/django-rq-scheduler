@@ -114,21 +114,7 @@ def get_queue_by_index(index):
         is_async=config.get('ASYNC', True))
 
 
-def get_queue_index(name='default'):
-    """
-    Returns a DjangoQueue using parameters defined in ``QUEUES_LIST``
-    """
-    from .settings import QUEUES_LIST
 
-    for i in range(len(QUEUES_LIST)):
-        if QUEUES_LIST[i]['name'] == name:
-            return i
-    return None
-
-
-def get_all_queue_names():
-    from .settings import QUEUES_LIST
-    return [config['name'] for config in QUEUES_LIST]
 
 
 def get_all_workers():

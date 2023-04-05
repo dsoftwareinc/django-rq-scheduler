@@ -15,10 +15,11 @@ from rq.registry import (
     StartedJobRegistry,
 )
 
-from scheduler.queues import get_queue, get_queue_index
+from scheduler.queues import get_queue
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
 from .jobs import access_self, failing_job
+from .test_settings import get_queue_index
 
 
 class ViewTest(TestCase):
@@ -288,13 +289,23 @@ class ViewTest(TestCase):
         response = self.client.get(reverse('queue_deferred_jobs', args=[queue_index]))
         self.assertEqual(response.context['jobs'], [job])
 
-    def test_workers(self):
+    def test_workers_home(self):
+        response = self.client.get(reverse('workers_home'))
+        prev_workers = response.context['workers']
+        worker1 = create_worker('django_rq_test')
+        worker1.register_birth()
+        worker2 = create_worker('test3')
+        worker2.register_birth()
+
+        response = self.client.get(reverse('workers_home'))
+        self.assertEqual(response.context['workers'], prev_workers + [worker1, worker2])
+
+    def test_queue_workers(self):
         """Worker index page should show workers for a specific queue"""
         queue_index = get_queue_index('django_rq_test')
 
-        worker1 = create_worker('django_rq_test', name=uuid.uuid4().hex)
+        worker1 = create_worker('django_rq_test')
         worker1.register_birth()
-
         worker2 = create_worker('test3')
         worker2.register_birth()
 

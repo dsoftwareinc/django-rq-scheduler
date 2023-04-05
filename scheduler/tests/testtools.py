@@ -20,6 +20,7 @@ def sequence_gen():
 seq = sequence_gen()
 
 
+
 def job_factory(cls, instance_only=False, **kwargs):
     values = dict(
         name='Scheduled Job %d' % next(seq),
@@ -104,3 +105,9 @@ class SchedulerBaseCase(TestCase):
         super(SchedulerBaseCase, self).setUp()
         queue = get_queue('default')
         queue.empty()
+
+    @classmethod
+    def setUpClass(cls):
+        super(SchedulerBaseCase, cls).setUpClass()
+        queue = get_queue('default')
+        queue.connection.flushall()
