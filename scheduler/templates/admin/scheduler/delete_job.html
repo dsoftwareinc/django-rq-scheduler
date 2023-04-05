@@ -5,7 +5,7 @@
     <div class="breadcrumbs">
         <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
         <a href="{% url 'queues_home' %}">Queues</a> &rsaquo;
-        <a href="{% url 'queue_jobs' queue_index %}">{{ queue.name }}</a> &rsaquo;
+        <a href="{% url 'queue_jobs' queue.name %}">{{ queue.name }}</a> &rsaquo;
         <a href="{% url 'job_details' job.id %}">{{ job.id }}</a> &rsaquo;
         Delete
     </div>
@@ -22,7 +22,7 @@
                 {{ job.id }} ({{ job|show_func_name }})
             </a>
             from
-            <a href="{% url 'queue_jobs' queue_index %}">{{ queue.name }}</a>?
+            <a href="{% url 'queue_jobs' queue.name %}">{{ queue.name }}</a>?
             This action can not be undone.
             <br/>
             {% if job.is_scheduled_job %}

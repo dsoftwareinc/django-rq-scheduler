@@ -14,7 +14,7 @@
     <div class="breadcrumbs">
         <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
         <a href="{% url 'queues_home' %}">Queues</a> &rsaquo;
-        <a href="{% url 'queue_jobs' queue_index %}">{{ queue.name }} Workers</a>
+        <a href="{% url 'queue_jobs' queue.name %}">{{ queue.name }} Workers</a>
     </div>
 {% endblock %}
 
@@ -24,7 +24,7 @@
 
     <div id="content-main">
         <div class="module" id="changelist">
-            <form id="changelist-form" action="{% url 'queue_confirm_action' queue_index %}" method="post">
+            <form id="changelist-form" action="{% url 'queue_confirm_action' queue.name %}" method="post">
                 {% csrf_token %}
                 {% include 'admin/scheduler/workers-list.partial.html' %}
             </form>

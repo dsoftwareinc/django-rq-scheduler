@@ -93,12 +93,3 @@ settings.RQ_QUEUES = {
     },
 }
 conf_settings()
-
-
-def get_queue_index(name='default'):
-    from scheduler.settings import QUEUES_LIST
-
-    for i in range(len(QUEUES_LIST)):
-        if QUEUES_LIST[i]['name'] == name:
-            return i
-    return None
