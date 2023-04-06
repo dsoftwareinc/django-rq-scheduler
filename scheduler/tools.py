@@ -2,11 +2,12 @@ import importlib
 import os
 
 import croniter
+import redis
 from django.apps import apps
 from django.utils import timezone
 
 from scheduler.decorators import job
-from scheduler.queues import get_queues, logger
+from scheduler.queues import get_queues, logger, get_queue
 from scheduler.rq_classes import DjangoWorker
 
 MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
@@ -76,4 +77,23 @@ def create_worker(*queue_names, **kwargs):
         c += 1
         worker_name = f'{hostname}-worker:{c}'
     kwargs['name'] = worker_name
-    return DjangoWorker(queues, connection=queues[0].connection, **kwargs)
+    worker = DjangoWorker(queues, connection=queues[0].connection, **kwargs)
+    return worker
+
+
+def get_job_executions(queue_name, scheduled_job):
+    queue = get_queue(queue_name)
+    res = list()
+    try:
+        job_list = queue.get_jobs()
+    except redis.ConnectionError:
+        return res
+    res.extend(list(filter(lambda j: j.is_execution_of(scheduled_job), job_list)))
+    scheduled_job_id_list = queue.scheduled_job_registry.get_job_ids()
+
+    res.extend(list(
+        map(lambda j: j.to_json(),
+            filter(lambda j: j.is_execution_of(scheduled_job),
+                   map(queue.fetch_job, scheduled_job_id_list)
+                   ))))
+    return res

@@ -46,7 +46,10 @@ class DjangoWorker(Worker):
                 and self.name == other.name)
 
     def __hash__(self):
-        return hash((self.name, self.key))
+        return hash((self.name, self.key, ','.join(self.queue_names())))
+
+    def __str__(self):
+        return f"{self.name}/{','.join(self.queue_names())}"
 
     def work(self, **kwargs) -> bool:
         kwargs.setdefault('with_scheduler', True)

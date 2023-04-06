@@ -1,8 +1,14 @@
+import json
+import os
+import tempfile
+
 from django.core.management import call_command
 from django.test import TestCase
 
+from scheduler.models import ScheduledJob
 from scheduler.queues import get_queue
 from scheduler.tests.jobs import failing_job, test_job
+from scheduler.tests.testtools import job_factory
 
 
 class RqworkerTestCase(TestCase):
@@ -44,3 +50,43 @@ class RunJobTest(TestCase):
         job_list = queue.get_jobs()
         self.assertEqual(1, len(job_list))
         self.assertEqual(func_name + '()', job_list[0].get_call_string())
+
+
+class ExportTest(TestCase):
+    def setUp(self) -> None:
+        self.tmpfile = tempfile.NamedTemporaryFile()
+
+    def tearDown(self) -> None:
+        os.remove(self.tmpfile.name)
+
+    def test_export__should_export_job(self):
+        job = job_factory(ScheduledJob, enabled=True)
+
+        # act
+        call_command('export', filename=self.tmpfile.name)
+        # assert
+        result = json.load(self.tmpfile)
+        self.assertEqual(2, len(result))
+        self.assertEqual(result[0], job.to_dict())
+
+
+class ImportTest(TestCase):
+    def setUp(self) -> None:
+        self.tmpfile = tempfile.NamedTemporaryFile(mode='w')
+
+    def tearDown(self) -> None:
+        os.remove(self.tmpfile.name)
+
+    def test_import__should_schedule_job(self):
+        job = job_factory(ScheduledJob, instance_only=True, enabled=True)
+        res = json.dumps([job.to_dict(), ])
+        self.tmpfile.write(res)
+        self.tmpfile.flush()
+        # act
+        call_command('import', filename=self.tmpfile.name)
+        # assert
+        self.assertEqual(1, ScheduledJob.objects.count())
+        db_job = ScheduledJob.objects.first()
+        attrs = ['name', 'queue', 'callable', 'enabled', 'timeout']
+        for attr in attrs:
+            self.assertEqual(getattr(job, attr), getattr(db_job, attr))

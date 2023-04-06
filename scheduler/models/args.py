@@ -42,7 +42,15 @@ class BaseJobArg(models.Model):
                     _(f'Could not parse {self.arg_type}, options are: {ARG_TYPE_TYPES_DICT.keys()}'), code='invalid')
             })
         try:
-            self.value()
+            if self.arg_type == 'callable':
+                tools.callable_func(self.val)
+            elif self.arg_type == 'datetime':
+                datetime.fromisoformat(self.val)
+            elif self.arg_type == 'bool':
+                if self.val.lower() not in {'true', 'false'}:
+                    raise ValidationError
+            elif self.arg_type == 'int':
+                int(self.val)
         except Exception:
             raise ValidationError({
                 'arg_type': ValidationError(

@@ -15,7 +15,7 @@ from rq.registry import (
     StartedJobRegistry,
 )
 
-from scheduler.queues import get_queue, get_queue_index
+from scheduler.queues import get_queue
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
 from .jobs import access_self, failing_job
@@ -35,8 +35,8 @@ class ViewTest(TestCase):
         """Jobs in queue are displayed properly"""
         queue = get_queue('default')
         job = queue.enqueue(access_self)
-        queue_index = get_queue_index('default')
-        response = self.client.get(reverse('queue_jobs', args=[queue_index]))
+        queue_name = 'default'
+        response = self.client.get(reverse('queue_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
 
     def test_job_details(self):
@@ -77,13 +77,13 @@ class ViewTest(TestCase):
         Ensure that a failed job gets re-queued when rq_requeue_job is called
         """
         queue = get_queue('default')
-        queue_index = get_queue_index('default')
+        queue_name = 'default'
         job = queue.enqueue(failing_job)
         worker = create_worker('default')
         worker.work(burst=True)
         job.refresh()
         self.assertTrue(job.is_failed)
-        self.client.post(reverse('queue_requeue_job', args=[queue_index, job.id]), {'requeue': 'Requeue'})
+        self.client.post(reverse('queue_requeue_job', args=[queue_name, job.id]), {'requeue': 'Requeue'})
         self.assertIn(job, queue.jobs)
         job.delete()
 
@@ -92,16 +92,16 @@ class ViewTest(TestCase):
         Ensure that re-queuing all failed job work properly
         """
         queue = get_queue('default')
-        queue_index = get_queue_index('default')
+        queue_name = 'default'
         queue.enqueue(failing_job)
         queue.enqueue(failing_job)
         worker = create_worker('default')
         worker.work(burst=True)
 
-        response = self.client.get(reverse('queue_requeue_all', args=[queue_index]))
+        response = self.client.get(reverse('queue_requeue_all', args=[queue_name]))
         self.assertEqual(response.context['total_jobs'], 2)
         # After requeue_all is called, jobs are enqueued
-        response = self.client.post(reverse('queue_requeue_all', args=[queue_index]))
+        response = self.client.post(reverse('queue_requeue_all', args=[queue_name]))
         self.assertEqual(len(queue), 2)
 
     def test_requeue_all_if_deleted_job(self):
@@ -109,18 +109,18 @@ class ViewTest(TestCase):
         Ensure that re-queuing all failed job work properly
         """
         queue = get_queue('default')
-        queue_index = get_queue_index('default')
+        queue_name = 'default'
         job = queue.enqueue(failing_job)
         queue.enqueue(failing_job)
         worker = create_worker('default')
         worker.work(burst=True)
 
-        response = self.client.get(reverse('queue_requeue_all', args=[queue_index]))
+        response = self.client.get(reverse('queue_requeue_all', args=[queue_name]))
         self.assertEqual(response.context['total_jobs'], 2)
         job.delete()
 
         # After requeue_all is called, jobs are enqueued
-        response = self.client.post(reverse('queue_requeue_all', args=[queue_index]))
+        response = self.client.post(reverse('queue_requeue_all', args=[queue_name]))
         self.assertEqual(len(queue), 1)
 
     def test_delete_job(self):
@@ -129,15 +129,15 @@ class ViewTest(TestCase):
         deleted from Queue.
         """
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
         job = queue.enqueue(access_self)
-        self.client.post(reverse('queue_delete_job', args=[queue_index, job.id]), {'post': 'yes'})
+        self.client.post(reverse('queue_delete_job', args=[queue_name, job.id]), {'post': 'yes'})
         self.assertFalse(Job.exists(job.id, connection=queue.connection))
         self.assertNotIn(job.id, queue.job_ids)
 
     def test_action_delete_jobs(self):
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         # enqueue some jobs
         job_ids = []
@@ -146,7 +146,7 @@ class ViewTest(TestCase):
             job_ids.append(job.id)
 
         # remove those jobs using view
-        self.client.post(reverse('queue_actions', args=[queue_index]), {'action': 'delete', 'job_ids': job_ids})
+        self.client.post(reverse('queue_actions', args=[queue_name]), {'action': 'delete', 'job_ids': job_ids})
 
         # check if jobs are removed
         for job_id in job_ids:
@@ -155,7 +155,7 @@ class ViewTest(TestCase):
 
     def test_enqueue_jobs(self):
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         # enqueue some jobs that depends on other
         previous_job = None
@@ -169,7 +169,7 @@ class ViewTest(TestCase):
         self.assertIsNone(last_job.enqueued_at)
 
         # We want to force-enqueue this job
-        self.client.post(reverse('queue_enqueue_job', args=[queue_index, last_job.id]))
+        self.client.post(reverse('queue_enqueue_job', args=[queue_name, last_job.id]))
 
         # Check that job is updated correctly
         last_job = queue.fetch_job(last_job.id)
@@ -178,7 +178,7 @@ class ViewTest(TestCase):
 
     def test_action_requeue_jobs(self):
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         # enqueue some jobs that will fail
         jobs = []
@@ -197,7 +197,7 @@ class ViewTest(TestCase):
             self.assertTrue(job.is_failed)
 
         # re-nqueue failed jobs from failed queue
-        self.client.post(reverse('queue_actions', args=[queue_index]), {'action': 'requeue', 'job_ids': job_ids})
+        self.client.post(reverse('queue_actions', args=[queue_name]), {'action': 'requeue', 'job_ids': job_ids})
 
         # check if we requeue all failed jobs
         for job in jobs:
@@ -206,62 +206,62 @@ class ViewTest(TestCase):
     def test_clear_queue(self):
         """Test that the queue clear actually clears the queue."""
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
         job = queue.enqueue(access_self)
-        self.client.post(reverse('queue_clear', args=[queue_index]), {'post': 'yes'})
+        self.client.post(reverse('queue_clear', args=[queue_name]), {'post': 'yes'})
         self.assertFalse(Job.exists(job.id, connection=queue.connection))
         self.assertNotIn(job.id, queue.job_ids)
 
     def test_finished_jobs(self):
         """Ensure that finished jobs page works properly."""
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         job = queue.enqueue(access_self)
         registry = FinishedJobRegistry(queue.name, queue.connection)
         registry.add(job, 2)
-        response = self.client.get(reverse('queue_finished_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_finished_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
 
     def test_failed_jobs(self):
         """Ensure that failed jobs page works properly."""
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         # Test that page doesn't fail when FailedJobRegistry is empty
-        response = self.client.get(reverse('queue_failed_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_failed_jobs', args=[queue_name]))
         self.assertEqual(response.status_code, 200)
 
         job = queue.enqueue(access_self)
         registry = FailedJobRegistry(queue.name, queue.connection)
         registry.add(job, 2)
-        response = self.client.get(reverse('queue_failed_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_failed_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
 
     def test_scheduled_jobs(self):
         """Ensure that scheduled jobs page works properly."""
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         # Test that page doesn't fail when ScheduledJobRegistry is empty
-        response = self.client.get(reverse('queue_scheduled_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_scheduled_jobs', args=[queue_name]))
         self.assertEqual(response.status_code, 200)
 
         job = queue.enqueue_at(datetime.now(), access_self)
-        response = self.client.get(reverse('queue_scheduled_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_scheduled_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
 
     def test_scheduled_jobs_registry_removal(self):
         """Ensure that non-existing job is being deleted from registry by view"""
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         registry = ScheduledJobRegistry(queue.name, queue.connection)
         job = queue.enqueue_at(datetime.now(), access_self)
         self.assertEqual(len(registry), 1)
 
         queue.connection.delete(job.key)
-        response = self.client.get(reverse('queue_scheduled_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_scheduled_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [])
 
         self.assertEqual(len(registry), 0)
@@ -269,36 +269,46 @@ class ViewTest(TestCase):
     def test_started_jobs(self):
         """Ensure that active jobs page works properly."""
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         job = queue.enqueue(access_self)
         registry = StartedJobRegistry(queue.name, queue.connection)
         registry.add(job, 2)
-        response = self.client.get(reverse('queue_started_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_started_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
 
     def test_deferred_jobs(self):
         """Ensure that active jobs page works properly."""
         queue = get_queue('django_rq_test')
-        queue_index = get_queue_index('django_rq_test')
+        queue_name = 'django_rq_test'
 
         job = queue.enqueue(access_self)
         registry = DeferredJobRegistry(queue.name, queue.connection)
         registry.add(job, 2)
-        response = self.client.get(reverse('queue_deferred_jobs', args=[queue_index]))
+        response = self.client.get(reverse('queue_deferred_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
 
-    def test_workers(self):
-        """Worker index page should show workers for a specific queue"""
-        queue_index = get_queue_index('django_rq_test')
-
-        worker1 = create_worker('django_rq_test', name=uuid.uuid4().hex)
+    def test_workers_home(self):
+        response = self.client.get(reverse('workers_home'))
+        prev_workers = response.context['workers']
+        worker1 = create_worker('django_rq_test')
         worker1.register_birth()
-
         worker2 = create_worker('test3')
         worker2.register_birth()
 
-        response = self.client.get(reverse('queue_workers', args=[queue_index]))
+        response = self.client.get(reverse('workers_home'))
+        self.assertEqual(response.context['workers'], prev_workers + [worker1, worker2])
+
+    def test_queue_workers(self):
+        """Worker index page should show workers for a specific queue"""
+        queue_name = 'django_rq_test'
+
+        worker1 = create_worker('django_rq_test')
+        worker1.register_birth()
+        worker2 = create_worker('test3')
+        worker2.register_birth()
+
+        response = self.client.get(reverse('queue_workers', args=[queue_name]))
         self.assertEqual(response.context['workers'], [worker1])
 
     def test_worker_details(self):
@@ -316,17 +326,14 @@ class ViewTest(TestCase):
         """
 
         # Override testing RQ_QUEUES
-        queues = [
-            {
-                'connection_config': {
-                    'DB': 0,
-                    'HOST': 'localhost',
-                    'PORT': 6379,
-                },
-                'name': 'default',
+        queues = {
+            'default': {
+                'DB': 0,
+                'HOST': 'localhost',
+                'PORT': 6379,
             }
-        ]
-        with patch('scheduler.settings.QUEUES_LIST', new_callable=PropertyMock(return_value=queues)):
+        }
+        with patch('scheduler.settings.QUEUES', new_callable=PropertyMock(return_value=queues)):
             response = self.client.get(reverse('queues_home'))
             self.assertEqual(response.status_code, 200)
 

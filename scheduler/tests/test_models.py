@@ -8,15 +8,25 @@ from django.urls import reverse
 from django.utils import timezone
 
 from scheduler.models import BaseJob, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
-from scheduler.tools import run_job
+from scheduler.tools import run_job, create_worker
 from . import jobs
-from .testtools import job_factory, jobarg_factory, _get_job_from_queue, SchedulerBaseCase
+from .testtools import job_factory, jobarg_factory, _get_job_from_queue, SchedulerBaseCase, _get_executions
 from ..queues import get_queue
 
 
 def assert_response_has_msg(response, message):
     messages = [m.message for m in get_messages(response.wsgi_request)]
     assert message in messages, f'expected "{message}" in {messages}'
+
+
+def has_execution_with_status(django_job, status):
+    job_list = _get_executions(django_job)
+    job_list = [(j.id, j.get_status()) for j in job_list]
+    for job in job_list:
+        if job[1] == status:
+            return True
+    print(f'{job_list} does not contain a job with status {status}')
+    return False
 
 
 class BaseTestCases:
@@ -112,7 +122,6 @@ class BaseTestCases:
 
         def test_save_enabled(self):
             job = job_factory(self.JobModelClass, )
-            job.save()
             self.assertIsNotNone(job.job_id)
 
         def test_save_disabled(self):
@@ -254,7 +263,6 @@ class BaseTestCases:
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, )
-            job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
@@ -269,7 +277,6 @@ class BaseTestCases:
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, )
-            job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
@@ -287,7 +294,6 @@ class BaseTestCases:
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, )
-            job.save()
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_change', args=[job.pk, ])
             # act
@@ -295,43 +301,45 @@ class BaseTestCases:
             # assert
             self.assertEqual(200, res.status_code)
 
-        def test_admin_single_delete(self):
+        def test_admin_enqueue_job_now(self):
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, )
-            job.save()
-            model = job._meta.model.__name__.lower()
-            url = reverse(f'admin:scheduler_{model}_delete', args=[job.pk, ])
-            # act
-            res = self.client.post(url)
-            # assert
-            self.assertEqual(200, res.status_code)
-
-        def test_admin_run_job_now(self):
-            # arrange
-            self.client.login(username='admin', password='admin')
-            job = job_factory(self.JobModelClass, )
-            job.save()
+            self.assertIsNotNone(job.job_id)
+            self.assertTrue(job.is_scheduled())
             data = {
-                'action': 'run_job_now',
+                'action': 'enqueue_job_now',
                 '_selected_action': [job.id, ],
             }
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
             # act
             res = self.client.post(url, data=data, follow=True)
-            # assert
-            entry = _get_job_from_queue(job)
-            job_model, job_id = entry.args
-            self.assertEqual(job_model, self.JobModelClass.__name__)
-            self.assertEqual(job_id, job.id)
+            # assert part 1
             self.assertEqual(200, res.status_code)
+            entry = _get_job_from_queue(job)
+            job_model, scheduled_job_id = entry.args
+            self.assertEqual(job_model, job.JOB_TYPE)
+            self.assertEqual(scheduled_job_id, job.id)
+            self.assertEqual('scheduled', entry.get_status())
+            self.assertTrue(has_execution_with_status(job, 'queued'))
+
+            # act 2
+            worker = create_worker('default')
+            worker.work(burst=True)
+
+            # assert 2
+            entry = _get_job_from_queue(job)
+            self.assertEqual(job_model, job.JOB_TYPE)
+            self.assertEqual(scheduled_job_id, job.id)
+            self.assertTrue(has_execution_with_status(job, 'finished'))
 
         def test_admin_enable_job(self):
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, enabled=False)
-            job.save()
+            self.assertIsNone(job.job_id)
+            self.assertFalse(job.is_scheduled())
             data = {
                 'action': 'enable_selected',
                 '_selected_action': [job.id, ],
@@ -342,8 +350,10 @@ class BaseTestCases:
             res = self.client.post(url, data=data, follow=True)
             # assert
             self.assertEqual(200, res.status_code)
-            job = self.JobModelClass.objects.filter(id=job.id).first()
+            job.refresh_from_db()
             self.assertTrue(job.enabled)
+            self.assertTrue(job.is_scheduled())
+            assert_response_has_msg(res, '1 job was successfully enabled and scheduled.')
 
         def test_admin_disable_job(self):
             # arrange
@@ -356,12 +366,35 @@ class BaseTestCases:
             }
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_changelist')
+            self.assertTrue(job.is_scheduled())
             # act
             res = self.client.post(url, data=data, follow=True)
             # assert
             self.assertEqual(200, res.status_code)
-            job = self.JobModelClass.objects.filter(id=job.id).first()
+            job.refresh_from_db()
+            self.assertFalse(job.is_scheduled())
             self.assertFalse(job.enabled)
+            assert_response_has_msg(res, '1 job was successfully disabled and unscheduled.')
+
+        def test_admin_single_delete(self):
+            # arrange
+            self.client.login(username='admin', password='admin')
+            prev_count = self.JobModelClass.objects.count()
+            job = job_factory(self.JobModelClass, )
+            self.assertIsNotNone(job.job_id)
+            self.assertTrue(job.is_scheduled())
+            prev = len(_get_executions(job))
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_delete', args=[job.pk, ])
+            data = {
+                'post': 'yes',
+            }
+            # act
+            res = self.client.post(url, data=data, follow=True)
+            # assert
+            self.assertEqual(200, res.status_code)
+            self.assertEqual(prev_count, self.JobModelClass.objects.count())
+            self.assertEquals(prev - 1, len(_get_executions(job)))
 
         def test_admin_delete_selected(self):
             # arrange

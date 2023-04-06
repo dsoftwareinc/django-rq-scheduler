@@ -23,7 +23,6 @@ from rq.registry import (
 from rq.worker_registration import clean_worker_registry
 
 from .queues import get_all_workers, get_connection, logger, get_queue
-from .queues import get_queue_by_index
 from .rq_classes import JobExecution, ExecutionStatus, DjangoWorker
 
 
@@ -44,11 +43,11 @@ def stats_json(request):
 
 
 def get_statistics(run_maintenance_tasks=False):
-    from scheduler.settings import QUEUES_LIST
+    from scheduler.settings import QUEUES
     queues = []
-    for index, config in enumerate(QUEUES_LIST):
+    for queue_name in QUEUES:
         try:
-            queue = get_queue_by_index(index)
+            queue = get_queue(queue_name)
             connection = get_connection(queue.name)
             connection_kwargs = connection.connection_pool.connection_kwargs
 
@@ -76,7 +75,6 @@ def get_statistics(run_maintenance_tasks=False):
                 name=queue.name,
                 jobs=queue.count,
                 oldest_job_timestamp=oldest_job_timestamp,
-                index=index,
                 connection_kwargs=connection_kwargs,
                 scheduler_pid=queue.scheduler_pid,
                 workers=DjangoWorker.count(queue=queue),
@@ -88,7 +86,7 @@ def get_statistics(run_maintenance_tasks=False):
             )
             queues.append(queue_data)
         except redis.ConnectionError as e:
-            logger.error(f'Could not connect for queue {config["name"]}: {e}')
+            logger.error(f'Could not connect for queue {queue_name}: {e}')
             continue
 
     return {'queues': queues}
@@ -116,9 +114,8 @@ def _get_registry_job_list(queue, registry, page):
     return valid_jobs, num_jobs, page_range
 
 
-def jobs_view(request, queue_index, registry_class, status_title):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
+def jobs_view(request, queue_name, registry_class, status_title):
+    queue = get_queue(queue_name)
 
     registry = registry_class(queue.name, queue.connection) if registry_class is not None else queue
     page = int(request.GET.get('page', 1))
@@ -127,7 +124,6 @@ def jobs_view(request, queue_index, registry_class, status_title):
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
-        'queue_index': queue_index,
         'jobs': job_list,
         'num_jobs': num_jobs,
         'page': page,
@@ -139,72 +135,44 @@ def jobs_view(request, queue_index, registry_class, status_title):
 
 @never_cache
 @staff_member_required
-def jobs(request, queue_index):
-    return jobs_view(request, queue_index, None, 'Queued')
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-
-    items_per_page = 100
-    num_jobs = queue.count
-    page = int(request.GET.get('page', 1))
-
-    if num_jobs > 0:
-        last_page = int(ceil(num_jobs / items_per_page))
-        page_range = range(1, last_page + 1)
-        offset = items_per_page * (page - 1)
-        job_list = queue.get_jobs(offset, items_per_page)
-    else:
-        job_list = []
-        page_range = []
-
-    context_data = {
-        **admin.site.each_context(request),
-        'queue': queue,
-        'queue_index': queue_index,
-        'jobs': job_list,
-        'num_jobs': num_jobs,
-        'page': page,
-        'page_range': page_range,
-        'job_status': 'Queued',
-    }
-    return render(request, 'admin/scheduler/jobs.html', context_data)
+def jobs(request, queue_name):
+    return jobs_view(request, queue_name, None, 'Queued')
 
 
 @never_cache
 @staff_member_required
-def finished_jobs(request, queue_index):
-    return jobs_view(request, queue_index, FinishedJobRegistry, 'Finished')
+def finished_jobs(request, queue_name):
+    return jobs_view(request, queue_name, FinishedJobRegistry, 'Finished')
 
 
 @never_cache
 @staff_member_required
-def failed_jobs(request, queue_index):
-    return jobs_view(request, queue_index, FailedJobRegistry, 'Failed')
+def failed_jobs(request, queue_name):
+    return jobs_view(request, queue_name, FailedJobRegistry, 'Failed')
 
 
 @never_cache
 @staff_member_required
-def scheduled_jobs(request, queue_index):
-    return jobs_view(request, queue_index, ScheduledJobRegistry, 'Scheduled')
+def scheduled_jobs(request, queue_name):
+    return jobs_view(request, queue_name, ScheduledJobRegistry, 'Scheduled')
 
 
 @never_cache
 @staff_member_required
-def started_jobs(request, queue_index):
-    return jobs_view(request, queue_index, StartedJobRegistry, 'Started')
+def started_jobs(request, queue_name):
+    return jobs_view(request, queue_name, StartedJobRegistry, 'Started')
 
 
 @never_cache
 @staff_member_required
-def deferred_jobs(request, queue_index):
-    return jobs_view(request, queue_index, DeferredJobRegistry, 'Deferred')
+def deferred_jobs(request, queue_name):
+    return jobs_view(request, queue_name, DeferredJobRegistry, 'Deferred')
 
 
 @never_cache
 @staff_member_required
-def queue_workers(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
+def queue_workers(request, queue_name):
+    queue = get_queue(queue_name)
     clean_worker_registry(queue)
     all_workers = DjangoWorker.all(queue.connection)
     worker_list = [worker for worker in all_workers if queue.name in worker.queue_names()]
@@ -212,7 +180,6 @@ def queue_workers(request, queue_index):
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
-        'queue_index': queue_index,
         'workers': worker_list,
     }
     return render(request, 'admin/scheduler/queue_workers.html', context_data)
@@ -234,11 +201,11 @@ def workers(request):
 @never_cache
 @staff_member_required
 def worker_details(request, key):
-    from scheduler.settings import QUEUES_LIST
+    from scheduler.settings import QUEUES
     queue, worker = None, None
-    for queue_index, config in enumerate(QUEUES_LIST):
+    for queue_name in QUEUES:
         try:
-            queue = get_queue(config['name'])
+            queue = get_queue(queue_name)
             worker = DjangoWorker.find_by_key(key, connection=queue.connection)
             if worker is not None:
                 break
@@ -255,7 +222,6 @@ def worker_details(request, key):
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
-        'queue_index': queue_index,
         'worker': worker,
         'queue_names': queue_names,
         'job': worker.get_current_job(),
@@ -267,12 +233,12 @@ def worker_details(request, key):
 @never_cache
 @staff_member_required
 def job_detail(request, job_id):
-    from scheduler.settings import QUEUES_LIST
+    from scheduler.settings import QUEUES
     queue_index, queue, job = None, None, None
 
-    for queue_index, config in enumerate(QUEUES_LIST):
+    for queue_name in QUEUES:
         try:
-            queue = get_queue(config['name'])
+            queue = get_queue(queue_name)
             job = JobExecution.fetch(job_id, connection=queue.connection)
             break
         except NoSuchJobError:
@@ -306,9 +272,8 @@ def job_detail(request, job_id):
 
 @never_cache
 @staff_member_required
-def delete_job(request, queue_index, job_id):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
+def delete_job(request, queue_name, job_id):
+    queue = get_queue(queue_name)
     job = JobExecution.fetch(job_id, connection=queue.connection)
 
     if request.method == 'POST':
@@ -316,11 +281,10 @@ def delete_job(request, queue_index, job_id):
         queue.connection.lrem(queue.key, 0, job.id)
         job.delete()
         messages.info(request, 'You have successfully deleted %s' % job.id)
-        return redirect('queue_jobs', queue_index)
+        return redirect('queue_jobs', queue_name)
 
     context_data = {
         **admin.site.each_context(request),
-        'queue_index': queue_index,
         'job': job,
         'queue': queue,
     }
@@ -329,9 +293,8 @@ def delete_job(request, queue_index, job_id):
 
 @never_cache
 @staff_member_required
-def requeue_job_view(request, queue_index, job_id):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
+def requeue_job_view(request, queue_name, job_id):
+    queue = get_queue(queue_name)
     job = JobExecution.fetch(job_id, connection=queue.connection)
 
     if request.method == 'POST':
@@ -341,7 +304,6 @@ def requeue_job_view(request, queue_index, job_id):
 
     context_data = {
         **admin.site.each_context(request),
-        'queue_index': queue_index,
         'job': job,
         'queue': queue,
     }
@@ -350,10 +312,9 @@ def requeue_job_view(request, queue_index, job_id):
 
 @never_cache
 @staff_member_required
-def clear_queue(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-    next_url = request.META.get('HTTP_REFERER') or reverse('queue_jobs', args=[queue_index])
+def clear_queue(request, queue_name):
+    queue = get_queue(queue_name)
+    next_url = request.META.get('HTTP_REFERER') or reverse('queue_jobs', args=[queue_name])
     if request.method == 'POST':
         try:
             queue.empty()
@@ -361,28 +322,26 @@ def clear_queue(request, queue_index):
         except ResponseError as e:
             messages.error(request, f'error: {e}', )
             raise e
-        return redirect('queue_jobs', queue_index)
+        return redirect('queue_jobs', queue_name)
 
     context_data = {
         **admin.site.each_context(request),
-        'queue_index': queue_index,
         'queue': queue,
         'total_jobs': len(queue),
         'action': 'empty',
         'jobs': queue.get_jobs(),
         'next_url': next_url,
-        'action_url': reverse('queue_clear', args=[queue_index, ])
+        'action_url': reverse('queue_clear', args=[queue_name, ])
     }
     return render(request, 'admin/scheduler/confirm_action.html', context_data)
 
 
 @never_cache
 @staff_member_required
-def requeue_all(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
+def requeue_all(request, queue_name):
+    queue = get_queue(queue_name)
     registry = FailedJobRegistry(queue=queue)
-    next_url = request.META.get('HTTP_REFERER') or reverse('queue_jobs', args=[queue_index])
+    next_url = request.META.get('HTTP_REFERER') or reverse('queue_jobs', args=[queue_name])
     job_ids = registry.get_job_ids()
     if request.method == 'POST':
         count = 0
@@ -395,17 +354,16 @@ def requeue_all(request, queue_index):
                 pass
 
         messages.info(request, f'You have successfully re-queued {count} jobs!')
-        return redirect('queue_jobs', queue_index)
+        return redirect('queue_jobs', queue_name)
 
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'total_jobs': len(registry),
-        'queue_index': queue_index,
         'action': 'requeue',
         'jobs': [queue.fetch_job(job_id) for job_id in job_ids],
         'next_url': next_url,
-        'action_url': reverse('queue_requeue_all', args=[queue_index, ])
+        'action_url': reverse('queue_requeue_all', args=[queue_name, ])
     }
 
     return render(request, 'admin/scheduler/confirm_action.html', context_data)
@@ -413,10 +371,9 @@ def requeue_all(request, queue_index):
 
 @never_cache
 @staff_member_required
-def confirm_action(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-    next_url = request.META.get('HTTP_REFERER') or reverse('queue_jobs', args=[queue_index])
+def confirm_action(request, queue_name):
+    queue = get_queue(queue_name)
+    next_url = request.META.get('HTTP_REFERER') or reverse('queue_jobs', args=[queue_name])
 
     if request.method == 'POST' and request.POST.get('action', False):
         # confirm action
@@ -424,13 +381,12 @@ def confirm_action(request, queue_index):
             job_id_list = request.POST.getlist('_selected_action')
             context_data = {
                 **admin.site.each_context(request),
-                'queue_index': queue_index,
                 'action': request.POST['action'],
                 'jobs': [queue.fetch_job(job_id) for job_id in job_id_list],
                 'total_jobs': len(job_id_list),
                 'queue': queue,
                 'next_url': next_url,
-                'action_url': reverse('queue_actions', args=[queue_index, ]),
+                'action_url': reverse('queue_actions', args=[queue_name, ]),
             }
             return render(request, 'admin/scheduler/confirm_action.html', context_data)
 
@@ -439,10 +395,9 @@ def confirm_action(request, queue_index):
 
 @never_cache
 @staff_member_required
-def actions(request, queue_index):
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
-    next_url = request.POST.get('next_url') or reverse('queue_jobs', args=[queue_index])
+def actions(request, queue_name):
+    queue = get_queue(queue_name)
+    next_url = request.POST.get('next_url') or reverse('queue_jobs', args=[queue_name])
 
     if request.method == 'POST' and request.POST.get('action', False):
         # do confirmed action
@@ -466,10 +421,9 @@ def actions(request, queue_index):
 
 @never_cache
 @staff_member_required
-def enqueue_job(request, queue_index, job_id):
+def enqueue_job(request, queue_name, job_id):
     """Enqueue deferred jobs"""
-    queue_index = int(queue_index)
-    queue = get_queue_by_index(queue_index)
+    queue = get_queue(queue_name)
     job = JobExecution.fetch(job_id, connection=queue.connection)
 
     if request.method == 'POST':
@@ -491,7 +445,6 @@ def enqueue_job(request, queue_index, job_id):
 
     context_data = {
         **admin.site.each_context(request),
-        'queue_index': queue_index,
         'job': job,
         'queue': queue,
     }

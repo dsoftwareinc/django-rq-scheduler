@@ -58,7 +58,7 @@ class Command(BaseCommand):
             '--filename',
             action='store',
             dest='filename',
-            help='File name to load (otherwise loads from standard input',
+            help='File name to load (otherwise loads from standard input)',
         )
 
         parser.add_argument(

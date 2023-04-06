@@ -1,5 +1,13 @@
 from rq.job import get_current_job
 
+_counter = 0
+
+
+def arg_callable():
+    global _counter
+    _counter += 1
+    return _counter
+
 
 def test_job():
     return 1 + 1

@@ -7,6 +7,7 @@ from django.test import Client, TestCase
 from django.utils import timezone
 
 from scheduler.models import CronJob, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler.queues import get_queue
 
 
 def sequence_gen():
@@ -19,7 +20,7 @@ def sequence_gen():
 seq = sequence_gen()
 
 
-def job_factory(cls, **kwargs):
+def job_factory(cls, instance_only=False, **kwargs):
     values = dict(
         name='Scheduled Job %d' % next(seq),
         job_id=None,
@@ -41,7 +42,10 @@ def job_factory(cls, **kwargs):
     elif cls == CronJob:
         values.update(dict(cron_string="0 0 * * *", repeat=None, ))
     values.update(kwargs)
-    instance = cls.objects.create(**values)
+    if instance_only:
+        instance = cls(**values)
+    else:
+        instance = cls.objects.create(**values)
     return instance
 
 
@@ -70,11 +74,39 @@ def _get_job_from_queue(django_job):
     return queue.fetch_job(entry)
 
 
+def _get_executions(django_job):
+    queue = get_queue(django_job.queue)
+    job_ids = (queue.get_job_ids()
+               + queue.finished_job_registry.get_job_ids()
+               + queue.scheduled_job_registry.get_job_ids()
+               + queue.failed_job_registry.get_job_ids())
+    return list(filter(
+        lambda j: j.is_execution_of(django_job),
+        map(lambda jid: queue.fetch_job(jid), job_ids)))
+
+
 class SchedulerBaseCase(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
+        super().setUpTestData()
         try:
             User.objects.create_superuser('admin', 'admin@a.com', 'admin')
         except Exception:
             pass
         cls.client = Client()
+
+    def setUp(self) -> None:
+        super(SchedulerBaseCase, self).setUp()
+        queue = get_queue('default')
+        queue.empty()
+
+    def tearDown(self) -> None:
+        super(SchedulerBaseCase, self).setUp()
+        queue = get_queue('default')
+        queue.empty()
+
+    @classmethod
+    def setUpClass(cls):
+        super(SchedulerBaseCase, cls).setUpClass()
+        queue = get_queue('default')
+        queue.connection.flushall()

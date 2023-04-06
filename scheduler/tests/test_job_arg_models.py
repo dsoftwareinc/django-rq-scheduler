@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from scheduler.models import JobArg, JobKwarg
+from .jobs import arg_callable
 from .testtools import jobarg_factory
 
 
@@ -16,6 +17,11 @@ class TestAllJobArg(TestCase):
 
     def test_clean_one_value_invalid_str_int(self):
         arg = jobarg_factory(self.JobArgClass, arg_type='int', val='not blank', )
+        with self.assertRaises(ValidationError):
+            arg.clean()
+
+    def test_callable_arg_type__not_clean(self):
+        arg = jobarg_factory(self.JobArgClass, arg_type='callable', val='bad_callable', )
         with self.assertRaises(ValidationError):
             arg.clean()
 
@@ -74,6 +80,15 @@ class TestJobArg(TestCase):
     def test__repr__bool_val(self):
         arg = jobarg_factory(self.JobArgClass, arg_type='bool', val='False')
         self.assertEqual('False', repr(arg.value()))
+
+    def test_callable_arg_type__clean(self):
+        method = arg_callable
+        arg = jobarg_factory(
+            self.JobArgClass, arg_type='callable',
+            val=f'{method.__module__}.{method.__name__}', )
+        self.assertIsNone(arg.clean())
+        self.assertEqual(1, arg.value())
+        self.assertEqual(2, arg.value())
 
 
 class TestJobKwarg(TestAllJobArg):
