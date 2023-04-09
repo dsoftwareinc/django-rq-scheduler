@@ -8,9 +8,9 @@
 2. In `settings.py`, add `scheduler` to  `INSTALLED_APPS`:
    ```python
    INSTALLED_APPS = [
-       ...    
+       # ...    
        'scheduler',
-       ...
+       # ...
    ]
    ```
 
@@ -58,6 +58,7 @@
      }
    }
    ```
+   
 4. Optional: Configure default values for queuing jobs from code:
    ```python
    RQ = {
@@ -65,6 +66,7 @@
      'DEFAULT_TIMEOUT': 60,
    }
    ```
+   
 5. Add `scheduler.urls` to your django application `urls.py`:
    ```python
    from django.urls import path, include
