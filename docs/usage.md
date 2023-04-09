@@ -148,28 +148,32 @@ You can have multiple workers running as system services.
 In order to have multiple rqworkers, edit the `/etc/systemd/system/rqworker@.service`
 file, make sure it ends with `@.service`, the following is example:
 
-```
+```ini
 # /etc/systemd/system/rqworker@.service
 [Unit]
-Description=rqworker daemon
-After=network.target
+Description = rqworker daemon
+After = network.target
 
 [Service]
-WorkingDirectory=<<path_to_your_project_folder>>
-ExecStart=/home/ubuntu/.virtualenv/<<your_virtualenv>>/bin/python \
-    <<path_to_your_project_folder>>/manage.py \
-    rqworker high default low
-User=ubuntu 
-Group=www-data
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=rqworker
-Environment=OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-Environment=LC_ALL=en_US.UTF-8
-Environment=LANG=en_US.UTF-8
+WorkingDirectory = {{ path_to_your_project_folder } }
+ExecStart = /home/ubuntu/.virtualenv/{ { your_virtualenv } }/bin/python \
+            {{ path_to_your_project_folder } }/manage.py \
+            rqworker high default low
+# Optional 
+# {{user to run rqworker as}}
+User = ubuntu
+# {{group to run rqworker as}}
+Group = www-data
+# Redirect logs to syslog
+StandardOutput = syslog
+StandardError = syslog
+SyslogIdentifier = rqworker
+Environment = OBJC_DISABLE_INITIALIZE_FORK_SAFETY = YES
+Environment = LC_ALL = en_US.UTF-8
+Environment = LANG = en_US.UTF-8
 
 [Install]
-WantedBy=multi-user.target
+WantedBy = multi-user.target
 ```
 
 After you are done editing the file, reload the settings and start the new workers:
@@ -181,5 +185,4 @@ sudo systemctl start rqworker@{1..3}
 You can target a specific worker using its number:
 ```shell
 sudo systemctl stop rqworker@2
-
 ```
