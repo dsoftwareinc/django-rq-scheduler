@@ -41,7 +41,7 @@ class BaseJob(TimeStampedModel):
     JOB_TYPE = 'BaseJob'
     name = models.CharField(
         _('name'), max_length=128, unique=True,
-        help_text='Name of the job, should not contain /.')
+        help_text='Name of the job.',)
     callable = models.CharField(_('callable'), max_length=2048)
     callable_args = GenericRelation(JobArg, related_query_name='args')
     callable_kwargs = GenericRelation(JobKwarg, related_query_name='kwargs')
