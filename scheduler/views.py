@@ -24,6 +24,7 @@ from rq.worker_registration import clean_worker_registry
 
 from .queues import get_all_workers, get_connection, logger, get_queue
 from .rq_classes import JobExecution, ExecutionStatus, DjangoWorker
+from .settings import SCHEDULER
 
 
 # Create your views here.
@@ -94,7 +95,7 @@ def get_statistics(run_maintenance_tasks=False):
 
 
 def _get_registry_job_list(queue, registry, page):
-    items_per_page = 100
+    items_per_page = SCHEDULER['EXECUTIONS_IN_PAGE']
     num_jobs = len(registry)
     job_list = []
 
@@ -424,9 +425,10 @@ def actions(request, queue_name):
                         job.stop_execution(queue.connection)
                         job.cancel()
                         cancelled_jobs += 1
-                    except Exception:
+                    except Exception as e:
+                        logger.warning(f'Could not stop job: {e}')
                         pass
-                messages.info(request, 'You have successfully stopped %d  jobs!' % cancelled_jobs)
+                messages.info(request, f'You have successfully stopped {cancelled_jobs}  jobs!')
 
     return redirect(next_url)
 

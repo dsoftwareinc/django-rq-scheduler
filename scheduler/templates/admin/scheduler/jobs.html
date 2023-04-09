@@ -37,6 +37,7 @@
                         <select name="action">
                             <option value="" selected="selected">---------</option>
                             <option value="delete">Delete</option>
+                            <option value="stop">Stop</option>
                             {% if job_status == 'Failed' %}
                                 <option value="requeue">Requeue</option>
                             {% endif %}
