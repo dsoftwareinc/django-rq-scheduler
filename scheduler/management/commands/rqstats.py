@@ -9,7 +9,7 @@ ANSI_LIGHT_GREEN = "\033[1;32m"
 ANSI_LIGHT_WHITE = "\033[1;37m"
 ANSI_RESET = "\033[0m"
 
-
+KEYS = ('jobs', 'started_jobs', 'deferred_jobs', 'finished_jobs', 'canceled_jobs', 'workers')
 class Command(BaseCommand):
     """
     Print statistics
@@ -46,17 +46,20 @@ class Command(BaseCommand):
         click.echo("Django-Scheduler CLI Dashboard")
         click.echo()
         self._print_separator()
-        click.echo(f'| {"Name":<16} |    Queued |    Active |  Deferred |  Finished |   Workers |')
+        click.echo(f'| {"Name":<16} |    Queued |    Active |  Deferred |'
+                   f'  Finished |'
+                   f'  Canceled |'
+                   f'   Workers |')
         self._print_separator()
 
         for ind, queue in enumerate(statistics["queues"]):
+            vals = (queue[k] for k in KEYS)
             vals = (queue["jobs"], queue["started_jobs"], queue["deferred_jobs"],
-                    queue["finished_jobs"], queue["workers"])
+                    queue["finished_jobs"], queue['canceled_jobs'], queue["workers"])
             # Deal with colors
             if prev_stats and len(prev_stats['queues']) > ind:
                 prev = prev_stats["queues"][ind]
-                prev_vals = (prev["jobs"], prev["started_jobs"], prev["deferred_jobs"],
-                             prev["finished_jobs"], prev["workers"])
+                prev_vals = (prev[k] for k in KEYS)
                 colors = [ANSI_LIGHT_GREEN
                           if vals[i] != prev_vals[i] else ANSI_LIGHT_WHITE
                           for i in range(len(prev_vals))

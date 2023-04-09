@@ -12,8 +12,6 @@ def job(func_or_queue, connection=None, *args, **kwargs):
     And also, it allows simplified ``@job`` syntax to put job into
     default queue.
 
-    If RQ.DEFAULT_RESULT_TTL setting is set, it is used as default
-    for ``result_ttl`` kwarg.
     """
     if callable(func_or_queue):
         func = func_or_queue
@@ -30,14 +28,12 @@ def job(func_or_queue, connection=None, *args, **kwargs):
         except KeyError:
             pass
 
-    RQ = getattr(settings, 'RQ', {})
-    default_result_ttl = RQ.get('DEFAULT_RESULT_TTL')
-    if default_result_ttl is not None:
-        kwargs.setdefault('result_ttl', default_result_ttl)
+    config = getattr(settings, 'SCHEDULER', {})
+    default_result_ttl = config.get('DEFAULT_RESULT_TTL')
+    kwargs.setdefault('result_ttl', default_result_ttl)
 
-    default_timeout = RQ.get('DEFAULT_TIMEOUT')
-    if default_timeout is not None:
-        kwargs.setdefault('timeout', default_timeout)
+    default_timeout = config.get('DEFAULT_TIMEOUT')
+    kwargs.setdefault('timeout', default_timeout)
 
     decorator = _rq_job(queue, connection=connection, *args, **kwargs)
     if func:

@@ -1,12 +1,11 @@
+from redis import Redis
 from rq import Worker
+from rq.command import send_stop_job_command
 from rq.job import Job, JobStatus
 from rq.queue import Queue
 from rq.registry import (
-    DeferredJobRegistry,
-    FailedJobRegistry,
-    FinishedJobRegistry,
-    ScheduledJobRegistry,
-    StartedJobRegistry,
+    DeferredJobRegistry, FailedJobRegistry, FinishedJobRegistry,
+    ScheduledJobRegistry, StartedJobRegistry, CanceledJobRegistry,
 )
 
 ExecutionStatus = JobStatus
@@ -23,6 +22,9 @@ class JobExecution(Job):
     def is_execution_of(self, scheduled_job):
         return (self.meta.get('job_type', None) == scheduled_job.JOB_TYPE
                 and self.meta.get('scheduled_job_id', None) == scheduled_job.id)
+
+    def stop_execution(self, connection: Redis):
+        send_stop_job_command(connection, self.id)
 
     def to_json(self):
         return dict(
@@ -85,3 +87,7 @@ class DjangoQueue(Queue):
     @property
     def scheduled_job_registry(self):
         return ScheduledJobRegistry(self.name, self.connection, job_class=JobExecution, )
+
+    @property
+    def canceled_job_registry(self):
+        return CanceledJobRegistry(self.name, self.connection, job_class=JobExecution, )

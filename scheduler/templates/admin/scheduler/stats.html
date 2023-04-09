@@ -34,6 +34,7 @@
                     <th>Finished Jobs</th>
                     <th>Failed Jobs</th>
                     <th>Scheduled Jobs</th>
+                    <th>Canceled Jobs</th>
                     <th>Workers</th>
                     <th>Host</th>
                     <th>Port</th>
@@ -75,6 +76,11 @@
                         <th>
                             <a href="{% url 'queue_failed_jobs' queue.name %}">
                                 {{ queue.failed_jobs }}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{% url 'queue_failed_jobs' queue.name %}">
+                                {{ queue.canceled_jobs }}
                             </a>
                         </th>
                         <th>

@@ -83,6 +83,7 @@ def get_statistics(run_maintenance_tasks=False):
                 deferred_jobs=len(queue.deferred_job_registry),
                 failed_jobs=len(queue.failed_job_registry),
                 scheduled_jobs=len(queue.scheduled_job_registry),
+                canceled_jobs=len(queue.canceled_job_registry),
             )
             queues.append(queue_data)
         except redis.ConnectionError as e:
@@ -415,6 +416,17 @@ def actions(request, queue_name):
                 for job_id in job_ids:
                     requeue_job(job_id, connection=queue.connection)
                 messages.info(request, f'You have successfully re-queued {len(job_ids)}  jobs!')
+            elif request.POST['action'] == 'stop':
+                cancelled_jobs = 0
+                for job_id in job_ids:
+                    try:
+                        job = JobExecution.fetch(job_id, connection=queue.connection)
+                        job.stop_execution(queue.connection)
+                        job.cancel()
+                        cancelled_jobs += 1
+                    except Exception:
+                        pass
+                messages.info(request, 'You have successfully stopped %d  jobs!' % cancelled_jobs)
 
     return redirect(next_url)
 

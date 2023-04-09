@@ -6,19 +6,12 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.test.client import Client
 from django.urls import reverse
-from rq.job import Job, JobStatus
-from rq.registry import (
-    DeferredJobRegistry,
-    FailedJobRegistry,
-    FinishedJobRegistry,
-    ScheduledJobRegistry,
-    StartedJobRegistry,
-)
 
 from scheduler.queues import get_queue
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
 from .jobs import access_self, failing_job
+from ..rq_classes import JobExecution, ExecutionStatus
 
 
 class ViewTest(TestCase):
@@ -132,7 +125,7 @@ class ViewTest(TestCase):
         queue_name = 'django_rq_test'
         job = queue.enqueue(access_self)
         self.client.post(reverse('queue_delete_job', args=[queue_name, job.id]), {'post': 'yes'})
-        self.assertFalse(Job.exists(job.id, connection=queue.connection))
+        self.assertFalse(JobExecution.exists(job.id, connection=queue.connection))
         self.assertNotIn(job.id, queue.job_ids)
 
     def test_action_delete_jobs(self):
@@ -150,7 +143,7 @@ class ViewTest(TestCase):
 
         # check if jobs are removed
         for job_id in job_ids:
-            self.assertFalse(Job.exists(job_id, connection=queue.connection))
+            self.assertFalse(JobExecution.exists(job_id, connection=queue.connection))
             self.assertNotIn(job_id, queue.job_ids)
 
     def test_enqueue_jobs(self):
@@ -165,7 +158,7 @@ class ViewTest(TestCase):
 
         # This job is deferred
         last_job = job
-        self.assertEqual(last_job.get_status(), JobStatus.DEFERRED)
+        self.assertEqual(last_job.get_status(), ExecutionStatus.DEFERRED)
         self.assertIsNone(last_job.enqueued_at)
 
         # We want to force-enqueue this job
@@ -173,7 +166,7 @@ class ViewTest(TestCase):
 
         # Check that job is updated correctly
         last_job = queue.fetch_job(last_job.id)
-        self.assertEqual(last_job.get_status(), JobStatus.QUEUED)
+        self.assertEqual(last_job.get_status(), ExecutionStatus.QUEUED)
         self.assertIsNotNone(last_job.enqueued_at)
 
     def test_action_requeue_jobs(self):
@@ -203,13 +196,42 @@ class ViewTest(TestCase):
         for job in jobs:
             self.assertFalse(job.is_failed)
 
+    def test_action_stop_jobs(self):
+        queue_name = 'django_rq_test'
+        queue = get_queue(queue_name)
+
+        # Enqueue some jobs
+        job_ids = []
+        worker = create_worker('django_rq_test')
+        for _ in range(3):
+            job = queue.enqueue(access_self)
+            job_ids.append(job.id)
+            worker.prepare_job_execution(job)
+
+        # Check if the jobs are started
+        for job_id in job_ids:
+            job = JobExecution.fetch(job_id, connection=queue.connection)
+            self.assertEqual(job.get_status(), ExecutionStatus.STARTED)
+
+        # Stop those jobs using the view
+        started_job_registry = queue.started_job_registry
+        self.assertEqual(len(started_job_registry), len(job_ids))
+        self.client.post(reverse('queue_actions', args=[queue_name]), {'action': 'stop', 'job_ids': job_ids})
+        self.assertEqual(len(started_job_registry), 0)
+
+        canceled_job_registry = queue.canceled_job_registry
+        self.assertEqual(len(canceled_job_registry), len(job_ids))
+
+        for job_id in job_ids:
+            self.assertIn(job_id, canceled_job_registry)
+
     def test_clear_queue(self):
         """Test that the queue clear actually clears the queue."""
         queue = get_queue('django_rq_test')
         queue_name = 'django_rq_test'
         job = queue.enqueue(access_self)
         self.client.post(reverse('queue_clear', args=[queue_name]), {'post': 'yes'})
-        self.assertFalse(Job.exists(job.id, connection=queue.connection))
+        self.assertFalse(JobExecution.exists(job.id, connection=queue.connection))
         self.assertNotIn(job.id, queue.job_ids)
 
     def test_finished_jobs(self):
@@ -218,7 +240,7 @@ class ViewTest(TestCase):
         queue_name = 'django_rq_test'
 
         job = queue.enqueue(access_self)
-        registry = FinishedJobRegistry(queue.name, queue.connection)
+        registry = queue.finished_job_registry
         registry.add(job, 2)
         response = self.client.get(reverse('queue_finished_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
@@ -233,7 +255,7 @@ class ViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         job = queue.enqueue(access_self)
-        registry = FailedJobRegistry(queue.name, queue.connection)
+        registry = queue.failed_job_registry
         registry.add(job, 2)
         response = self.client.get(reverse('queue_failed_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
@@ -256,7 +278,7 @@ class ViewTest(TestCase):
         queue = get_queue('django_rq_test')
         queue_name = 'django_rq_test'
 
-        registry = ScheduledJobRegistry(queue.name, queue.connection)
+        registry = queue.scheduled_job_registry
         job = queue.enqueue_at(datetime.now(), access_self)
         self.assertEqual(len(registry), 1)
 
@@ -272,7 +294,7 @@ class ViewTest(TestCase):
         queue_name = 'django_rq_test'
 
         job = queue.enqueue(access_self)
-        registry = StartedJobRegistry(queue.name, queue.connection)
+        registry = queue.started_job_registry
         registry.add(job, 2)
         response = self.client.get(reverse('queue_started_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])
@@ -283,7 +305,7 @@ class ViewTest(TestCase):
         queue_name = 'django_rq_test'
 
         job = queue.enqueue(access_self)
-        registry = DeferredJobRegistry(queue.name, queue.connection)
+        registry = queue.deferred_job_registry
         registry.add(job, 2)
         response = self.client.get(reverse('queue_deferred_jobs', args=[queue_name]))
         self.assertEqual(response.context['jobs'], [job])

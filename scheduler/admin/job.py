@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from scheduler import tools
 from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler.settings import SCHEDULER
 from scheduler.tools import get_job_executions
 
 
@@ -34,6 +35,7 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
 
 class JobAdmin(admin.ModelAdmin):
     """BaseJob admin class"""
+    save_on_top = True
     change_form_template = 'admin/scheduler/change_form.html'
     actions = ['disable_selected', 'enable_selected', 'enqueue_job_now', ]
     inlines = [JobArgInline, JobKwargInline, ]
@@ -53,7 +55,18 @@ class JobAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra = extra_context or {}
         obj = self.get_object(request, object_id)
-        extra['executions'] = get_job_executions(obj.queue, obj)
+        execution_list = get_job_executions(obj.queue, obj)
+        paginator = self.get_paginator(request, execution_list, SCHEDULER['EXECUTIONS_IN_PAGE'])
+        page_number = request.GET.get('p', 1)
+        page_obj = paginator.get_page(page_number)
+        page_range = paginator.get_elided_page_range(page_obj.number)
+
+        extra.update({
+            "pagination_required": paginator.count > SCHEDULER['EXECUTIONS_IN_PAGE'],
+            'executions': page_obj,
+            'page_range': page_range,
+            'page_var': 'p',
+        })
 
         return super(JobAdmin, self).change_view(
             request, object_id, form_url, extra_context=extra)

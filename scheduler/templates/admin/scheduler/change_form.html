@@ -1,4 +1,5 @@
 {% extends "admin/change_form.html" %}
+{% load i18n %}
 
 {% block after_related_objects %}
     {% if executions %}
@@ -13,6 +14,7 @@
                         <th>Started at</th>
                         <th>Ended at</th>
                         <th>Worker name</th>
+                        <th>Result</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -33,11 +35,31 @@
                             <td>
                                 {{ exec.worker_name|default:"-" }}
                             </td>
+                            <td>
+                                {{ exec.latest_result|default:"-" }}
+                            </td>
                         </tr>
                     {% endfor %}
                     </tbody>
                 </table>
             </div>
+            <p class="paginator">
+                {% if pagination_required %}
+                    {% for i in page_range %}
+                        {% if i == executions.paginator.ELLIPSIS %}
+                            {{ executions.paginator.ELLIPSIS }}
+                        {% elif i == executions.number %}
+                            <span class="this-page">{{ i }}</span>
+                        {% else %}
+                            <a href="?{{ page_var }}={{ i }}" {% if i == executions.paginator.num_pages %}
+                               class="end" {% endif %}>{{ i }}</a>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {{ executions.paginator.count }} {% blocktranslate count counter=executions.paginator.count %}entry
+                {% plural %}entries{% endblocktranslate %}
+
+            </p>
         </fieldset>
     {% endif %}
 {% endblock %}

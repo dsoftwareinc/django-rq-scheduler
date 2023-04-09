@@ -79,7 +79,7 @@ def get_queue(
         autocommit=None,
         connection=None,
         **kwargs
-):
+) -> DjangoQueue:
     """Returns an DjangoQueue using parameters defined in ``RQ_QUEUES``
     """
     from .settings import QUEUES
