@@ -39,7 +39,9 @@ def callback_save_job(job, connection, result, *args, **kwargs):
 class BaseJob(TimeStampedModel):
     QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
     JOB_TYPE = 'BaseJob'
-    name = models.CharField(_('name'), max_length=128, unique=True)
+    name = models.CharField(
+        _('name'), max_length=128, unique=True,
+        help_text='Name of the job, should not contain /.')
     callable = models.CharField(_('callable'), max_length=2048)
     callable_args = GenericRelation(JobArg, related_query_name='args')
     callable_kwargs = GenericRelation(JobKwarg, related_query_name='kwargs')
@@ -110,7 +112,8 @@ class BaseJob(TimeStampedModel):
 
     def _next_job_id(self):
         addition = uuid.uuid4().hex[-10:]
-        return f'{self.queue}:{self.name}:{addition}'
+        name = self.name.replace('/', '.')
+        return f'{self.queue}:{name}:{addition}'
 
     def _enqueue_args(self) -> Dict:
         """args for DjangoQueue.enqueue.
@@ -242,10 +245,12 @@ class BaseJob(TimeStampedModel):
         self.unschedule()
         super(BaseJob, self).delete(**kwargs)
 
-    # Job form validation methods
-    def clean(self):
-        self.clean_callable()
-        self.clean_queue()
+    def clean_name(self):
+        if '/' in self.name:
+            raise ValidationError({
+                'name': ValidationError(
+                    _('Invalid job name, must not contain /'), code='invalid')
+            })
 
     def clean_callable(self):
         try:

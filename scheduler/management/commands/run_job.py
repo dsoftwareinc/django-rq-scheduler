@@ -1,3 +1,4 @@
+import click
 from django.core.management.base import BaseCommand
 
 from scheduler.queues import get_queue
@@ -21,7 +22,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--result-ttl', '-r', type=int, dest='result_ttl',
             help='Time to store job results in seconds')
-        parser.add_argument('callable', help='Method to call',)
+        parser.add_argument('callable', help='Method to call', )
         parser.add_argument('args', nargs='*', help='Args for callable')
 
     def handle(self, **options):
@@ -33,4 +34,4 @@ class Command(BaseCommand):
         args = options.get('args')
         job = queue.enqueue_call(func, args=args, timeout=timeout, result_ttl=result_ttl)
         if verbosity:
-            print('Job %s created' % job.id)
+            click.echo(f'Job {job.id} created')
