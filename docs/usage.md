@@ -5,9 +5,11 @@
 ```python
 from scheduler import job
 
+
 @job
 def long_running_func():
     pass
+
 
 long_running_func.delay()  # Enqueue function in "default" queue
 ```
@@ -19,6 +21,7 @@ Specifying the queue where the job should be queued:
 def long_running_func():
     pass
 
+
 long_running_func.delay()  # Enqueue function in "high" queue
 ```
 
@@ -27,9 +30,11 @@ You can pass in any arguments that RQ's job decorator accepts:
 ```python
 from scheduler import job
 
+
 @job('default', timeout=3600)
 def long_running_func():
     pass
+
 
 long_running_func.delay()  # Enqueue function with a timeout of 3600 seconds.
 ```
@@ -130,7 +135,51 @@ python manage.py run_job -q {queue} -t {timeout} -r {result_ttl} {callable} {arg
 ```
 
 ## Running a worker
+
 Create a worker to execute queued jobs on specific queues using:
+
 ```shell
 python manage.py rqworker [queues ...]
+```
+
+### Running multiple workers as unix/linux services using systemd
+
+You can have multiple workers running as system services.
+In order to have multiple rqworkers, edit the `/etc/systemd/system/rqworker@.service`
+file, make sure it ends with `@.service`, the following is example:
+
+```
+# /etc/systemd/system/rqworker@.service
+[Unit]
+Description=rqworker daemon
+After=network.target
+
+[Service]
+WorkingDirectory=<<path_to_your_project_folder>>
+ExecStart=/home/ubuntu/.virtualenv/<<your_virtualenv>>/bin/python \
+    <<path_to_your_project_folder>>/manage.py \
+    rqworker high default low
+User=ubuntu 
+Group=www-data
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=rqworker
+Environment=OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+Environment=LC_ALL=en_US.UTF-8
+Environment=LANG=en_US.UTF-8
+
+[Install]
+WantedBy=multi-user.target
+```
+
+After you are done editing the file, reload the settings and start the new workers:
+```shell
+sudo systemctl daemon-reload
+sudo systemctl start rqworker@{1..3} 
+```
+
+You can target a specific worker using its number:
+```shell
+sudo systemctl stop rqworker@2
+
 ```
