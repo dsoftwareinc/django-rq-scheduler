@@ -3,6 +3,7 @@
 ## rqworker
 
 Create a new worker with a scheduler for specific queues.
+
 ```shell
 python manage.py rqworker
 ```
@@ -60,4 +61,12 @@ Run a method in a queue immediately.
 
 ```shell
 python manage.py run_job {callable} {callable args ...}
+```
+
+## delete failed jobs
+
+Run this to empty failed jobs registry from a queue.
+
+```shell
+python manage.py delete_failed_jobs 
 ```
