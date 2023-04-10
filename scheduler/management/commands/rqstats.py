@@ -10,6 +10,8 @@ ANSI_LIGHT_WHITE = "\033[1;37m"
 ANSI_RESET = "\033[0m"
 
 KEYS = ('jobs', 'started_jobs', 'deferred_jobs', 'finished_jobs', 'canceled_jobs', 'workers')
+
+
 class Command(BaseCommand):
     """
     Print statistics

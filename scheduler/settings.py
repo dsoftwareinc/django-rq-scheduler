@@ -13,7 +13,7 @@ def conf_settings():
 
     QUEUES = getattr(settings, 'SCHEDULER_QUEUES', None)
     if QUEUES is None:
-        logger.warning(f'Configuration using RQ_QUEUES is deprecated. Use SCHEDULER_QUEUES instead')
+        logger.warning('Configuration using RQ_QUEUES is deprecated. Use SCHEDULER_QUEUES instead')
         QUEUES = getattr(settings, 'RQ_QUEUES', None)
     if QUEUES is None:
         raise ImproperlyConfigured("You have to define RQ_QUEUES in settings.py")
