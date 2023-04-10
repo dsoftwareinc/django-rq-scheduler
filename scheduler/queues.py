@@ -158,12 +158,9 @@ def get_queues(*queue_names, **kwargs) -> List[DjangoQueue]:
     # perform consistency checks while building return list
     for name in queue_names[1:]:
         queue = get_queue(name, **kwargs)
-        if type(queue) is not type(QUEUES[0]):  # noqa: E721
-            raise ValueError(
-                'Queues must have the same class.'
-                '"{0}" and "{1}" have '
-                'different classes'.format(name, queue_names[0])
-            )
+        if type(queue) is not type(queues[0]):  # noqa: E721
+            raise ValueError(f'Queues must have the same class. '
+                             f'"{name}" and "{queue_names[0]}" have different classes')
         if connection_params != _filter_connection_params(QUEUES[name]):
             raise ValueError(
                 f'Queues must have the same redis connection. "{name}" and'

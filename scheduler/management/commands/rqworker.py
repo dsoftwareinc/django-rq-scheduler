@@ -49,7 +49,9 @@ class Command(BaseCommand):
             'queues', nargs='*', type=str,
             help='The queues to work on, separated by space, all queues should be using the same redis')
 
-    def handle(self, *queues, **options):
+    def handle(self, **options):
+        queues = options.get('queues', 'default')
+        click.echo(f'Starting worker for queues {queues}')
         pidfile = options.get('pidfile')
         if pidfile:
             with open(os.path.expanduser(pidfile), "w") as fp:

@@ -9,6 +9,7 @@ from scheduler.models import ScheduledJob
 from scheduler.queues import get_queue
 from scheduler.tests.jobs import failing_job, test_job
 from scheduler.tests.testtools import job_factory
+from . import test_settings  # noqa
 
 
 class RqworkerTestCase(TestCase):
@@ -30,6 +31,41 @@ class RqworkerTestCase(TestCase):
         # check if all jobs are really failed
         for job in jobs:
             self.assertTrue(job.is_failed)
+
+    def test_rqworker__worker_with_two_queues(self):
+        queue = get_queue('default')
+        queue2 = get_queue('django_rq_test')
+
+        # enqueue some jobs that will fail
+        jobs = []
+        job_ids = []
+        for _ in range(0, 3):
+            job = queue.enqueue(failing_job)
+            jobs.append(job)
+            job_ids.append(job.id)
+        job = queue2.enqueue(failing_job)
+        jobs.append(job)
+        job_ids.append(job.id)
+
+        # Create a worker to execute these jobs
+        call_command('rqworker', 'default', 'django_rq_test', burst=True)
+
+        # check if all jobs are really failed
+        for job in jobs:
+            self.assertTrue(job.is_failed)
+
+    def test_rqworker__worker_with_one_queue__does_not_perform_other_queue_job(self):
+        queue = get_queue('default')
+        queue2 = get_queue('django_rq_test')
+
+        job = queue.enqueue(failing_job)
+        other_job = queue2.enqueue(failing_job)
+
+        # Create a worker to execute these jobs
+        call_command('rqworker', 'default', burst=True)
+        # assert
+        self.assertTrue(job.is_failed)
+        self.assertTrue(other_job.is_queued)
 
 
 class RqstatsTest(TestCase):
