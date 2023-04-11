@@ -7,20 +7,15 @@ Django RQ Scheduler
 
 Documentation can be found in https://django-rq-scheduler.readthedocs.io/en/latest/
 
-> Notice:
-> 
-> In v2023.3.0, django-rq-scheduler was refactored significantly to support
+>  **Warning**: In v2023.3.0, django-rq-scheduler was refactored significantly to support
 > calculation of parameters in runtime.
-> 
 > You can now add a callable param to your scheduled job, and it will be
 > calculated when the job is performed.
 > 
 > 1. It is highly recommended you save your existing database before upgrading!
 > 2. Once you upgraded, recreate your jobs.
 
-> Notice:
-> 
-> Starting v2023.1, requirement for rq_scheduler was removed and instead
+> **Note** Starting v2023.1, requirement for rq_scheduler was removed and instead
 > one of the django-rq workers should run with `--with-scheduler` parameter
 > as mentioned [here](https://github.com/rq/django-rq#support-for-scheduled-jobs).
 
