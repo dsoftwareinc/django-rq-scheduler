@@ -58,16 +58,14 @@
                                 <div class="clear"></div>
                             </th>
                             <th>
-                                <div class='text'><span>ID</span></div>
+                                <div class='text'>ID</div>
                             </th>
                             <th>
-                                <div class='text'><span>Created</span></div>
+                                <div class='text'>Created</div>
                             </th>
-                            {% if job_status == 'Scheduled' %}
-                                <th>
-                                    <div class='text'><span>Scheduled</span></div>
-                                </th>
-                            {% endif %}
+                            <th>
+                                <div class='text'><span>Scheduled</span></div>
+                            </th>
                             <th>
                                 <div class='text'><span>Enqueued</span></div>
                             </th>
@@ -79,6 +77,9 @@
                             </th>
                             <th>
                                 <div class='text'><span>Callable</span></div>
+                            </th>
+                            <th>
+                                <div class='text'><span>Worker</span></div>
                             </th>
                             {% block extra_columns %}
                             {% endblock extra_columns %}
@@ -100,11 +101,9 @@
                                 <td>
                                     {{ job.created_at|date:"Y-m-d, H:i:s" }}
                                 </td>
-                                {% if job_status == 'Scheduled' %}
-                                    <td>
-                                        {{ job.scheduled_at|date:"Y-m-d, H:i:s" }}
-                                    </td>
-                                {% endif %}
+                                <td>
+                                    {{ job.scheduled_at|date:"Y-m-d, H:i:s" }}
+                                </td>
                                 <td>
                                     {{ job.enqueued_at|date:"Y-m-d, H:i:s" }}
                                 </td>
@@ -113,6 +112,7 @@
                                 </td>
                                 <td>{{ job.get_status }}</td>
                                 <td>{{ job|show_func_name }}</td>
+                                <td>{{ job.worker_name|default:'-' }}</td>
                                 {% block extra_columns_values %}
                                 {% endblock extra_columns_values %}
                             </tr>

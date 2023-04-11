@@ -36,7 +36,7 @@
         {% for worker in workers %}
             <tr class="{% cycle 'row1' 'row2' %}">
                 <td>
-                    <a href='{% url 'worker_details' worker.key %}'>
+                    <a href='{% url 'worker_details' worker.name %}'>
                         {{ worker.name }}
                     </a>
                 </td>
