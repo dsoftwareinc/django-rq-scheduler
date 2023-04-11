@@ -304,7 +304,8 @@ class BaseTestCases:
         def test_admin_change_view__bad_redis_connection(self):
             # arrange
             self.client.login(username='admin', password='admin')
-            job = job_factory(self.JobModelClass, queue='test2' )
+            job = job_factory(self.JobModelClass, queue='test2', instance_only=True)
+            job.save(schedule_job=False)
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_change', args=[job.pk, ])
             # act

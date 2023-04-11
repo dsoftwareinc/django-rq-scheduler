@@ -3,8 +3,7 @@
 {% block breadcrumbs %}
     <div class="breadcrumbs">
         <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-        <a href="{% url 'queues_home' %}">Queues</a> &rsaquo;
-        <a href="{% url 'queue_workers' queue.name %}">{{ queue.name }} Workers</a> &rsaquo;
+        <a href="{% url 'workers_home' %}">Workers</a> &rsaquo;
         <a href="{% url 'worker_details' worker.name %}">{{ worker.name }}</a>
     </div>
 {% endblock %}

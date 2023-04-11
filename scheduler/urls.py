@@ -23,6 +23,6 @@ urlpatterns = [
 
 urlpatterns += [
     path('workers/', views.workers, name='workers_home'),
-    path('workers/<str:key>/', views.worker_details, name='worker_details'),
+    path('workers/<str:name>/', views.worker_details, name='worker_details'),
     path('jobs/<str:job_id>/', views.job_detail, name='job_details'),
 ]

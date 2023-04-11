@@ -2,7 +2,6 @@ import importlib
 import os
 
 import croniter
-import redis
 from django.apps import apps
 from django.utils import timezone
 
@@ -63,20 +62,28 @@ def run_job(task_model: str, task_id: int):
     return res
 
 
+def _calc_worker_name(existing_worker_names):
+    hostname = os.uname()[1]
+    c = 1
+    worker_name = f'{hostname}-worker.{c}'
+    while worker_name in existing_worker_names:
+        c += 1
+        worker_name = f'{hostname}-worker.{c}'
+    return worker_name
+
+
 def create_worker(*queue_names, **kwargs):
     """
     Returns a Django worker for all queues or specified ones.
     """
+
     queues = get_queues(*queue_names)
     existing_workers = DjangoWorker.all(connection=queues[0].connection)
     existing_worker_names = set(map(lambda w: w.name, existing_workers))
-    hostname = os.uname()[1]
-    c = 1
-    worker_name = f'{hostname}-worker:{c}'
-    while worker_name in existing_worker_names:
-        c += 1
-        worker_name = f'{hostname}-worker:{c}'
-    kwargs['name'] = worker_name
+    if kwargs.get('name', None) is None:
+        kwargs['name'] = _calc_worker_name(existing_worker_names)
+
+    kwargs['name'] = kwargs['name'].replace('/', '.')
     worker = DjangoWorker(queues, connection=queues[0].connection, **kwargs)
     return worker
 

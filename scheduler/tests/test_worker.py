@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from scheduler.tests.testtools import SchedulerBaseCase
 from scheduler.tools import create_worker
@@ -12,9 +13,19 @@ class TestWorker(SchedulerBaseCase):
         worker2 = create_worker('default')
         worker2.register_birth()
         hostname = os.uname()[1]
-        self.assertEqual(f'{hostname}-worker:1', worker1.name)
-        self.assertEqual(f'{hostname}-worker:2', worker2.name)
+        self.assertEqual(f'{hostname}-worker.1', worker1.name)
+        self.assertEqual(f'{hostname}-worker.2', worker2.name)
 
     def test_create_worker__worker_with_queues_different_connection(self):
         with self.assertRaises(ValueError):
             create_worker('default', 'test1')
+
+    def test_create_worker__with_name(self):
+        name = uuid.uuid4().hex
+        worker1 = create_worker('default', name=name)
+        self.assertEqual(name, worker1.name)
+
+    def test_create_worker__with_name_containing_slash(self):
+        name = uuid.uuid4().hex[-4:] + '/' + uuid.uuid4().hex[-4:]
+        worker1 = create_worker('default', name=name)
+        self.assertEqual(name.replace('/', '.'), worker1.name)

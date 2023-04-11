@@ -339,8 +339,18 @@ class ViewTest(TestCase):
         worker = create_worker('django_rq_scheduler_test', name=uuid.uuid4().hex)
         worker.register_birth()
 
-        response = self.client.get(reverse('worker_details', args=[worker.key]))
+        url = reverse('worker_details', args=[worker.name, ])
+        response = self.client.get(url)
         self.assertEqual(response.context['worker'], worker)
+
+    def test_worker_details__non_existing_worker(self):
+        """Worker index page should show workers for a specific queue"""
+
+        worker = create_worker('django_rq_scheduler_test', name='WORKER')
+        worker.register_birth()
+
+        response = self.client.get(reverse('worker_details', args=['bad-worker-name']))
+        self.assertEqual(404, response.status_code)
 
     def test_statistics_json_view(self):
         """

@@ -202,20 +202,13 @@ def workers(request):
 
 @never_cache
 @staff_member_required
-def worker_details(request, key):
-    from scheduler.settings import QUEUES
+def worker_details(request, name):
     queue, worker = None, None
-    for queue_name in QUEUES:
-        try:
-            queue = get_queue(queue_name)
-            worker = DjangoWorker.find_by_key(key, connection=queue.connection)
-            if worker is not None:
-                break
-        except redis.ConnectionError:
-            pass
+    workers = get_all_workers()
+    worker = next((w for w in workers if w.name == name), None)
 
     if worker is None:
-        raise Http404(f"Couldn't find worker with this ID: {key}")
+        raise Http404(f"Couldn't find worker with this ID: {name}")
     # Convert microseconds to milliseconds
     worker.total_working_time = worker.total_working_time / 1000
 
