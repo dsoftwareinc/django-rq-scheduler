@@ -19,7 +19,7 @@ def assert_response_has_msg(response, message):
     assert message in messages, f'expected "{message}" in {messages}'
 
 
-def has_execution_with_status(django_job, status):
+def has_execution_with_status(django_job, status) -> bool:
     job_list = _get_executions(django_job)
     job_list = [(j.id, j.get_status()) for j in job_list]
     for job in job_list:
@@ -290,10 +290,21 @@ class BaseTestCases:
             queue = get_queue(job.queue)
             self.assertIn(job.job_id, queue.get_job_ids())
 
-        def test_admin_single_view(self):
+        def test_admin_change_view(self):
             # arrange
             self.client.login(username='admin', password='admin')
             job = job_factory(self.JobModelClass, )
+            model = job._meta.model.__name__.lower()
+            url = reverse(f'admin:scheduler_{model}_change', args=[job.pk, ])
+            # act
+            res = self.client.get(url)
+            # assert
+            self.assertEqual(200, res.status_code)
+
+        def test_admin_change_view__bad_redis_connection(self):
+            # arrange
+            self.client.login(username='admin', password='admin')
+            job = job_factory(self.JobModelClass, queue='test2' )
             model = job._meta.model.__name__.lower()
             url = reverse(f'admin:scheduler_{model}_change', args=[job.pk, ])
             # act

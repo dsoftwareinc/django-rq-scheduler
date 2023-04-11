@@ -5,7 +5,7 @@ import tempfile
 from django.core.management import call_command
 from django.test import TestCase
 
-from scheduler.models import ScheduledJob
+from scheduler.models import ScheduledJob, RepeatableJob
 from scheduler.queues import get_queue
 from scheduler.tests.jobs import failing_job, test_job
 from scheduler.tests.testtools import job_factory
@@ -34,7 +34,7 @@ class RqworkerTestCase(TestCase):
 
     def test_rqworker__worker_with_two_queues(self):
         queue = get_queue('default')
-        queue2 = get_queue('django_rq_test')
+        queue2 = get_queue('django_rq_scheduler_test')
 
         # enqueue some jobs that will fail
         jobs = []
@@ -48,7 +48,7 @@ class RqworkerTestCase(TestCase):
         job_ids.append(job.id)
 
         # Create a worker to execute these jobs
-        call_command('rqworker', 'default', 'django_rq_test', burst=True)
+        call_command('rqworker', 'default', 'django_rq_scheduler_test', burst=True)
 
         # check if all jobs are really failed
         for job in jobs:
@@ -56,7 +56,7 @@ class RqworkerTestCase(TestCase):
 
     def test_rqworker__worker_with_one_queue__does_not_perform_other_queue_job(self):
         queue = get_queue('default')
-        queue2 = get_queue('django_rq_test')
+        queue2 = get_queue('django_rq_scheduler_test')
 
         job = queue.enqueue(failing_job)
         other_job = queue2.enqueue(failing_job)
@@ -96,14 +96,17 @@ class ExportTest(TestCase):
         os.remove(self.tmpfile.name)
 
     def test_export__should_export_job(self):
-        job = job_factory(ScheduledJob, enabled=True)
+        jobs = list()
+        jobs.append(job_factory(ScheduledJob, enabled=True))
+        jobs.append(job_factory(RepeatableJob, enabled=True))
 
         # act
         call_command('export', filename=self.tmpfile.name)
         # assert
         result = json.load(self.tmpfile)
-        self.assertEqual(2, len(result))
-        self.assertEqual(result[0], job.to_dict())
+        self.assertEqual(len(jobs) + 1, len(result))
+        self.assertEqual(result[0], jobs[0].to_dict())
+        self.assertEqual(result[1], jobs[1].to_dict())
 
 
 class ImportTest(TestCase):
@@ -114,8 +117,10 @@ class ImportTest(TestCase):
         os.remove(self.tmpfile.name)
 
     def test_import__should_schedule_job(self):
-        job = job_factory(ScheduledJob, instance_only=True, enabled=True)
-        res = json.dumps([job.to_dict(), ])
+        jobs = list()
+        jobs.append(job_factory(ScheduledJob, enabled=True, instance_only=True))
+        jobs.append(job_factory(RepeatableJob, enabled=True, instance_only=True))
+        res = json.dumps([j.to_dict() for j in jobs])
         self.tmpfile.write(res)
         self.tmpfile.flush()
         # act
@@ -125,4 +130,4 @@ class ImportTest(TestCase):
         db_job = ScheduledJob.objects.first()
         attrs = ['name', 'queue', 'callable', 'enabled', 'timeout']
         for attr in attrs:
-            self.assertEqual(getattr(job, attr), getattr(db_job, attr))
+            self.assertEqual(getattr(jobs[0], attr), getattr(db_job, attr))

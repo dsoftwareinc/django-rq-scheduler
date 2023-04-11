@@ -84,10 +84,7 @@ def create_worker(*queue_names, **kwargs):
 def get_job_executions(queue_name, scheduled_job):
     queue = get_queue(queue_name)
     res = list()
-    try:
-        job_list = queue.get_jobs()
-    except redis.ConnectionError:
-        return res
+    job_list = queue.get_jobs()
     res.extend(list(filter(lambda j: j.is_execution_of(scheduled_job), job_list)))
     scheduled_job_id_list = queue.scheduled_job_registry.get_job_ids()
 

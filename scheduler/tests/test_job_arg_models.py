@@ -20,17 +20,27 @@ class TestAllJobArg(TestCase):
         with self.assertRaises(ValidationError):
             arg.clean()
 
-    def test_callable_arg_type__not_clean(self):
+    def test_clean_callable_invalid(self):
         arg = jobarg_factory(self.JobArgClass, arg_type='callable', val='bad_callable', )
         with self.assertRaises(ValidationError):
             arg.clean()
 
-    def test_clean_invalid(self):
+    def test_clean_datetime_invalid(self):
+        arg = jobarg_factory(self.JobArgClass, arg_type='datetime', val='bad datetime', )
+        with self.assertRaises(ValidationError):
+            arg.clean()
+
+    def test_clean_bool_invalid(self):
+        arg = jobarg_factory(self.JobArgClass, arg_type='bool', val='bad bool', )
+        with self.assertRaises(ValidationError):
+            arg.clean()
+
+    def test_clean_int_invalid(self):
         arg = jobarg_factory(self.JobArgClass, arg_type='int', val='str')
         with self.assertRaises(ValidationError):
             arg.clean()
 
-    def test_clean(self):
+    def test_str_clean(self):
         arg = jobarg_factory(self.JobArgClass, val='something')
         self.assertIsNone(arg.clean())
 

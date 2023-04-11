@@ -51,7 +51,7 @@ settings.RQ_QUEUES = {
     'url_default_db': {
         'URL': 'redis://username:password@host:1234',
     },
-    'django_rq_test': {
+    'django_rq_scheduler_test': {
         'HOST': 'localhost',
         'PORT': 6379,
         'DB': 0,
@@ -80,7 +80,7 @@ settings.RQ_QUEUES = {
         'DB': 0,
         'ASYNC': False,
     },
-    'django_rq_test2': {
+    'django_rq_scheduler_test2': {
         'HOST': 'localhost',
         'PORT': 6379,
         'DB': 0,

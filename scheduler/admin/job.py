@@ -1,9 +1,11 @@
+import redis
 from django.contrib import admin, messages
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.utils.translation import gettext_lazy as _
 
 from scheduler import tools
 from scheduler.models import CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler.queues import logger
 from scheduler.settings import SCHEDULER
 from scheduler.tools import get_job_executions
 
@@ -55,7 +57,11 @@ class JobAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra = extra_context or {}
         obj = self.get_object(request, object_id)
-        execution_list = get_job_executions(obj.queue, obj)
+        try:
+            execution_list = get_job_executions(obj.queue, obj)
+        except redis.ConnectionError as e:
+            logger.warn(f'Could not get job executions: {e}')
+            execution_list = list()
         paginator = self.get_paginator(request, execution_list, SCHEDULER['EXECUTIONS_IN_PAGE'])
         page_number = request.GET.get('p', 1)
         page_obj = paginator.get_page(page_number)

@@ -245,13 +245,6 @@ class BaseJob(TimeStampedModel):
         self.unschedule()
         super(BaseJob, self).delete(**kwargs)
 
-    def clean_name(self):
-        if '/' in self.name:
-            raise ValidationError({
-                'name': ValidationError(
-                    _('Invalid job name, must not contain /'), code='invalid')
-            })
-
     def clean_callable(self):
         try:
             tools.callable_func(self.callable)
