@@ -1,6 +1,6 @@
 # Changelog
 
-## v2023.5.0b1 🌈
+## v2023.5.0 🌈
 
 ### 🚀 Breaking changes
 
@@ -12,14 +12,15 @@
 * Migrate all required features from django-rq:
     * management commands to create worker (rqworker), stats, etc.
     * admin view of queues
-* admin view for workers
-* admin views are significantly more informative
-* job-ids and worker-ids are more informative
+* admin view for workers.
+* admin views are significantly more informative.
+* job-ids and worker-ids are more informative.
+* Added ability to cancel ongoing job.
+* job executions inline in each job
 
 ### 🚀 Roadmap
 
 * Merge all scheduled jobs to one model
-* job executions inline in each job
 
 ## v2023.4.0 🌈
 
