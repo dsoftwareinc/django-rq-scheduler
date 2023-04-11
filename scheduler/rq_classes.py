@@ -1,6 +1,7 @@
 from typing import List, Any, Optional, Union
 
 from redis import Redis
+from redis.client import Pipeline
 from rq import Worker
 from rq.command import send_stop_job_command
 from rq.job import Job, JobStatus
@@ -88,16 +89,16 @@ class DjangoWorker(Worker):
         kwargs.setdefault('with_scheduler', True)
         return super(DjangoWorker, self).work(**kwargs)
 
-    def _set_property(self, property, val, pipeline: Optional['Pipeline'] = None):
+    def _set_property(self, prop_name: str, val, pipeline: Optional[Pipeline] = None):
         connection = pipeline if pipeline is not None else self.connection
         if val is None:
-            connection.hdel(self.key, property)
+            connection.hdel(self.key, prop_name)
         else:
-            connection.hset(self.key, property, val)
+            connection.hset(self.key, prop_name, val)
 
-    def _get_property(self, property, pipeline: Optional['Pipeline'] = None):
+    def _get_property(self, prop_name: str, pipeline: Optional[Pipeline] = None):
         connection = pipeline if pipeline is not None else self.connection
-        return as_text(connection.hget(self.key, property))
+        return as_text(connection.hget(self.key, prop_name))
 
     def scheduler_pid(self) -> int:
         pid = self.connection.get(RQScheduler.get_locking_key(self.queues[0].name))

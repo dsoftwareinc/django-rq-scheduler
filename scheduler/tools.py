@@ -1,6 +1,5 @@
 import importlib
 import os
-from typing import List, Any
 
 import croniter
 from django.apps import apps
