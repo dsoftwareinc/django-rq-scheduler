@@ -173,7 +173,7 @@ class BaseTestCases:
 
         def test_at_front_passthrough(self):
             job = job_factory(self.JobModelClass, at_front=True)
-            queue = job._get_rqueue()
+            queue = job.rqueue
             jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
             self.assertIn(job.job_id, jobs_to_schedule)
 
@@ -606,7 +606,7 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
 
     def test_check_rescheduled_after_execution(self):
         job = job_factory(self.JobModelClass, scheduled_time=timezone.now() + timedelta(seconds=1))
-        queue = job._get_rqueue()
+        queue = job.rqueue
         first_run_id = job.job_id
         entry = queue.fetch_job(first_run_id)
         queue.run_sync(entry)
@@ -640,7 +640,7 @@ class TestCronJob(BaseTestCases.TestBaseJob):
 
     def test_check_rescheduled_after_execution(self):
         job = job_factory(self.JobModelClass, )
-        queue = job._get_rqueue()
+        queue = job.rqueue
         first_run_id = job.job_id
         entry = queue.fetch_job(first_run_id)
         queue.run_sync(entry)

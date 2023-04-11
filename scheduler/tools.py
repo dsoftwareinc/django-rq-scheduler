@@ -5,11 +5,8 @@ import croniter
 from django.apps import apps
 from django.utils import timezone
 
-from scheduler.decorators import job
 from scheduler.queues import get_queues, logger, get_queue
-from scheduler.rq_classes import DjangoWorker
-
-MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
+from scheduler.rq_classes import DjangoWorker, MODEL_NAMES
 
 
 def callable_func(callable_str: str):
@@ -27,18 +24,6 @@ def get_next_cron_time(cron_string):
     now = timezone.now()
     itr = croniter.croniter(cron_string, now)
     return itr.get_next(timezone.datetime)
-
-
-@job
-def reschedule_all_jobs():
-    logger.debug("Rescheduling all jobs")
-    for model_name in MODEL_NAMES:
-        model = apps.get_model(app_label='scheduler', model_name=model_name)
-        enabled_jobs = model.objects.filter(enabled=True)
-        unscheduled_jobs = filter(lambda j: not j.is_scheduled(), enabled_jobs)
-        for item in unscheduled_jobs:
-            logger.debug(f"Rescheduling {str(item)}")
-            item.save()
 
 
 def get_scheduled_job(task_model: str, task_id: int):

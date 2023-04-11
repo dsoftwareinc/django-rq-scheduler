@@ -1,11 +1,12 @@
 from typing import List, Any, Optional, Union
 
+from django.apps import apps
 from redis import Redis
 from redis.client import Pipeline
 from rq import Worker
 from rq.command import send_stop_job_command
 from rq.job import Job, JobStatus
-from rq.queue import Queue
+from rq.queue import Queue, logger
 from rq.registry import (
     DeferredJobRegistry, FailedJobRegistry, FinishedJobRegistry,
     ScheduledJobRegistry, StartedJobRegistry, CanceledJobRegistry,
@@ -85,6 +86,43 @@ class DjangoWorker(Worker):
     def __str__(self):
         return f"{self.name}/{','.join(self.queue_names())}"
 
+    def _start_scheduler(
+            self,
+            burst: bool = False,
+            logging_level: str = "INFO",
+            date_format: str = '%H:%M:%S',
+            log_format: str = '%(asctime)s %(message)s',
+    ):
+        """Starts the scheduler process.
+        This is specifically designed to be run by the worker when running the `work()` method.
+        Instanciates the RQScheduler and tries to acquire a lock.
+        If the lock is acquired, start scheduler.
+        If worker is on burst mode just enqueues scheduled jobs and quits,
+        otherwise, starts the scheduler in a separate process.
+
+        Args:
+            burst (bool, optional): Whether to work on burst mode. Defaults to False.
+            logging_level (str, optional): Logging level to use. Defaults to "INFO".
+            date_format (str, optional): Date Format. Defaults to DEFAULT_LOGGING_DATE_FORMAT.
+            log_format (str, optional): Log Format. Defaults to DEFAULT_LOGGING_FORMAT.
+        """
+        self.scheduler = DjangoScheduler(
+            self.queues,
+            connection=self.connection,
+            logging_level=logging_level,
+            date_format=date_format,
+            log_format=log_format,
+            serializer=self.serializer,
+        )
+        self.scheduler.acquire_locks()
+        if self.scheduler.acquired_locks:
+            if burst:
+                self.scheduler.enqueue_scheduled_jobs()
+                self.scheduler.release_locks()
+            else:
+                proc = self.scheduler.start()
+                self._set_property('scheduler_pid', proc.pid)
+
     def work(self, **kwargs) -> bool:
         kwargs.setdefault('with_scheduler', True)
         return super(DjangoWorker, self).work(**kwargs)
@@ -153,3 +191,23 @@ class DjangoQueue(Queue):
     def get_all_jobs(self):
         job_ids = self.get_all_job_ids()
         return compact([self.fetch_job(job_id) for job_id in job_ids])
+
+
+MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
+
+
+class DjangoScheduler(RQScheduler):
+    @staticmethod
+    def reschedule_all_jobs():
+        logger.debug("Rescheduling all jobs")
+        for model_name in MODEL_NAMES:
+            model = apps.get_model(app_label='scheduler', model_name=model_name)
+            enabled_jobs = model.objects.filter(enabled=True)
+            unscheduled_jobs = filter(lambda j: not j.is_scheduled(), enabled_jobs)
+            for item in unscheduled_jobs:
+                logger.debug(f"Rescheduling {str(item)}")
+                item.save()
+
+    def enqueue_scheduled_jobs(self):
+        super(DjangoScheduler, self).enqueue_scheduled_jobs()
+        self.reschedule_all_jobs()

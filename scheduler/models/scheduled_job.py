@@ -84,8 +84,8 @@ class BaseJob(TimeStampedModel):
         """Check whether job is queued/scheduled to be executed"""
         if not self.job_id:
             return False
-        scheduled_jobs = self._get_rqueue().scheduled_job_registry.get_job_ids()
-        enqueued_jobs = self._get_rqueue().get_job_ids()
+        scheduled_jobs = self.rqueue.scheduled_job_registry.get_job_ids()
+        enqueued_jobs = self.rqueue.get_job_ids()
         res = (self.job_id in scheduled_jobs) or (self.job_id in enqueued_jobs)
         if not res:
             self.job_id = None
@@ -142,7 +142,8 @@ class BaseJob(TimeStampedModel):
             res['result_ttl'] = self.result_ttl
         return res
 
-    def _get_rqueue(self) -> DjangoQueue:
+    @property
+    def rqueue(self) -> DjangoQueue:
         """Returns django-queue for job
         """
         return get_queue(self.queue)
@@ -171,7 +172,7 @@ class BaseJob(TimeStampedModel):
             return False
         schedule_time = self._schedule_time()
         kwargs = self._enqueue_args()
-        job = self._get_rqueue().enqueue_at(
+        job = self.rqueue.enqueue_at(
             schedule_time,
             tools.run_job,
             args=(self.JOB_TYPE, self.id),
@@ -184,7 +185,7 @@ class BaseJob(TimeStampedModel):
         """Enqueue job to run now.
         """
         kwargs = self._enqueue_args()
-        job = self._get_rqueue().enqueue(
+        job = self.rqueue.enqueue(
             tools.run_job,
             args=(self.JOB_TYPE, self.id),
             **kwargs,
@@ -198,7 +199,7 @@ class BaseJob(TimeStampedModel):
 
         If job is queued to be executed or scheduled to be executed, it will remove it.
         """
-        queue = self._get_rqueue()
+        queue = self.rqueue
         if self.is_scheduled():
             queue.remove(self.job_id)
             queue.scheduled_job_registry.remove(self.job_id)
