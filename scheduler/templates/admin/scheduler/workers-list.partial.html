@@ -1,3 +1,4 @@
+{% load scheduler_tags %}
 {% load l10n %}
 <div class="results">
     <table id="result_list">
@@ -47,7 +48,7 @@
                 <td>{{ worker.total_working_time|default:0|floatformat }}</td>
                 <td>{{ worker.successful_job_count|default:0 }}</td>
                 <td>{{ worker.failed_job_count|default:0 }}</td>
-                <td>{{ worker.scheduler }}</td>
+                <td>{{ worker | worker_scheduler_pid }}</td>
             </tr>
         {% endfor %}
         </tbody>

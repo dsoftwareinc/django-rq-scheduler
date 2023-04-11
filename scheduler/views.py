@@ -3,6 +3,7 @@ from math import ceil
 import redis
 from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.http.response import HttpResponseNotFound, Http404
 from django.shortcuts import redirect
@@ -25,6 +26,15 @@ from rq.worker_registration import clean_worker_registry
 from .queues import get_all_workers, get_connection, logger, get_queue
 from .rq_classes import JobExecution, ExecutionStatus, DjangoWorker
 from .settings import SCHEDULER
+
+
+def get_worker_executions(worker):
+    res = list()
+    for queue in worker.queues:
+        curr_jobs = queue.get_all_jobs()
+        curr_jobs = [j for j in curr_jobs if j.worker_name == worker.name]
+        res.extend(curr_jobs)
+    return res
 
 
 # Create your views here.
@@ -212,15 +222,21 @@ def worker_details(request, name):
     # Convert microseconds to milliseconds
     worker.total_working_time = worker.total_working_time / 1000
 
-    queue_names = ', '.join(worker.queue_names())
-
+    execution_list = get_worker_executions(worker)
+    paginator = Paginator(execution_list, SCHEDULER['EXECUTIONS_IN_PAGE'])
+    page_number = request.GET.get('p', 1)
+    page_obj = paginator.get_page(page_number)
+    page_range = paginator.get_elided_page_range(page_obj.number)
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
         'worker': worker,
-        'queue_names': queue_names,
+        'queue_names': ', '.join(worker.queue_names()),
         'job': worker.get_current_job(),
         'total_working_time': worker.total_working_time * 1000,
+        'executions': page_obj,
+        'page_range': page_range,
+        'page_var': 'p',
     }
     return render(request, 'admin/scheduler/worker_details.html', context_data)
 

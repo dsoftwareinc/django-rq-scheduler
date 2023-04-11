@@ -1,3 +1,5 @@
+from typing import List, Any, Optional, Union
+
 from redis import Redis
 from rq import Worker
 from rq.command import send_stop_job_command
@@ -7,6 +9,35 @@ from rq.registry import (
     DeferredJobRegistry, FailedJobRegistry, FinishedJobRegistry,
     ScheduledJobRegistry, StartedJobRegistry, CanceledJobRegistry,
 )
+from rq.scheduler import RQScheduler
+
+
+def as_text(v: Union[bytes, str]) -> Optional[str]:
+    """Converts a bytes value to a string using `utf-8`.
+
+    :param v: The value (bytes or string)
+    :raises: ValueError: If the value is not bytes or string
+    :returns: Either the decoded string or None
+    """
+    if v is None:
+        return None
+    elif isinstance(v, bytes):
+        return v.decode('utf-8')
+    elif isinstance(v, str):
+        return v
+    else:
+        raise ValueError('Unknown type %r' % type(v))
+
+
+def compact(lst: List[Any]) -> List[Any]:
+    """Excludes `None` values from a list-like object.
+
+    :param lst: A list (or list-like) object
+
+    :returns: The list without None values
+    """
+    return [item for item in lst if item is not None]
+
 
 ExecutionStatus = JobStatus
 
@@ -57,6 +88,21 @@ class DjangoWorker(Worker):
         kwargs.setdefault('with_scheduler', True)
         return super(DjangoWorker, self).work(**kwargs)
 
+    def _set_property(self, property, val, pipeline: Optional['Pipeline'] = None):
+        connection = pipeline if pipeline is not None else self.connection
+        if val is None:
+            connection.hdel(self.key, property)
+        else:
+            connection.hset(self.key, property, val)
+
+    def _get_property(self, property, pipeline: Optional['Pipeline'] = None):
+        connection = pipeline if pipeline is not None else self.connection
+        return as_text(connection.hget(self.key, property))
+
+    def scheduler_pid(self) -> int:
+        pid = self.connection.get(RQScheduler.get_locking_key(self.queues[0].name))
+        return int(pid.decode()) if pid is not None else None
+
 
 class DjangoQueue(Queue):
     """
@@ -91,3 +137,18 @@ class DjangoQueue(Queue):
     @property
     def canceled_job_registry(self):
         return CanceledJobRegistry(self.name, self.connection, job_class=JobExecution, )
+
+    def get_all_job_ids(self) -> List[str]:
+        res = list()
+        res.extend(self.get_job_ids())
+        res.extend(self.finished_job_registry.get_job_ids())
+        res.extend(self.started_job_registry.get_job_ids())
+        res.extend(self.deferred_job_registry.get_job_ids())
+        res.extend(self.failed_job_registry.get_job_ids())
+        res.extend(self.scheduled_job_registry.get_job_ids())
+        res.extend(self.canceled_job_registry.get_job_ids())
+        return res
+
+    def get_all_jobs(self):
+        job_ids = self.get_all_job_ids()
+        return compact([self.fetch_job(job_id) for job_id in job_ids])

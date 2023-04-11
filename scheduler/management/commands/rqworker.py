@@ -74,7 +74,6 @@ class Command(BaseCommand):
             reset_db_connections()
 
             w.work(burst=options.get('burst', False),
-                   with_scheduler=True,
                    logging_level=verbosity,
                    max_jobs=options['max_jobs'], )
         except ConnectionError as e:

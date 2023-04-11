@@ -1,5 +1,6 @@
 import importlib
 import os
+from typing import List, Any
 
 import croniter
 from django.apps import apps
@@ -91,7 +92,7 @@ def create_worker(*queue_names, **kwargs):
 def get_job_executions(queue_name, scheduled_job):
     queue = get_queue(queue_name)
     res = list()
-    job_list = queue.get_jobs()
+    job_list = queue.get_all_jobs()
     res.extend(list(filter(lambda j: j.is_execution_of(scheduled_job), job_list)))
     scheduled_job_id_list = queue.scheduled_job_registry.get_job_ids()
 

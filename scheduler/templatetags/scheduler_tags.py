@@ -20,3 +20,8 @@ def show_func_name(rq_job: JobExecution) -> str:
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter
+def worker_scheduler_pid(worker):
+    return worker.scheduler_pid()
