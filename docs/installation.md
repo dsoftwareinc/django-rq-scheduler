@@ -18,7 +18,7 @@
    Add at least one Redis Queue to your `settings.py`:
    ```python
    import os
-   RQ_QUEUES = {
+   SCHEDULER_QUEUES = {
      'default': {
          'HOST': 'localhost',
          'PORT': 6379,

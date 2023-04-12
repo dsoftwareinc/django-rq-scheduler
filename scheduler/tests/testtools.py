@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.conf import settings
+from scheduler import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.test import Client, TestCase
@@ -24,7 +24,7 @@ def job_factory(cls, instance_only=False, **kwargs):
     values = dict(
         name='Scheduled Job %d' % next(seq),
         job_id=None,
-        queue=list(settings.RQ_QUEUES.keys())[0],
+        queue=list(settings.QUEUES.keys())[0],
         callable='scheduler.tests.jobs.test_job',
         enabled=True,
         timeout=None)

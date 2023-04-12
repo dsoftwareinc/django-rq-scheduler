@@ -63,7 +63,7 @@ class QueueNotFoundError(Exception):
 
 
 def get_connection(name='default', use_strict_redis=False):
-    """Returns a Redis connection to use based on parameters in RQ_QUEUES
+    """Returns a Redis connection to use based on parameters in SCHEDULER_QUEUES
     """
     from .settings import QUEUES
 
@@ -80,7 +80,7 @@ def get_queue(
         connection=None,
         **kwargs
 ) -> DjangoQueue:
-    """Returns an DjangoQueue using parameters defined in ``RQ_QUEUES``
+    """Returns an DjangoQueue using parameters defined in `SCHEDULER_QUEUES`
     """
     from .settings import QUEUES
 

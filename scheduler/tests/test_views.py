@@ -357,7 +357,7 @@ class ViewTest(TestCase):
         Django-RQ's statistic as JSON only viewable by staff or with API_TOKEN
         """
 
-        # Override testing RQ_QUEUES
+        # Override testing SCHEDULER_QUEUES
         queues = {
             'default': {
                 'DB': 0,

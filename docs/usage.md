@@ -59,7 +59,7 @@ RQ = {
 * In the **Callable** field, enter a Python dot notation path to the method that defines the job. For the example  
   above, that would be `myapp.jobs.count`
 * Choose your **Queue**.
-  The queues listed are defined in your app `settings.py` under `RQ_QUEUES`.
+  The queues listed are defined in your app `settings.py` under `SCHEDULER_QUEUES`.
 * Enter the time in UTC the job is to be executed in the **Scheduled time** field.
 
 ![](media/add-scheduled-job.jpg)

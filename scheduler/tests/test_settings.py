@@ -2,7 +2,7 @@ from django.conf import settings
 
 from scheduler.settings import conf_settings
 
-settings.RQ_QUEUES = {
+settings.SCHEDULER_QUEUES = {
     'default': {'HOST': 'localhost', 'PORT': 6379, 'DB': 0, 'DEFAULT_TIMEOUT': 500},
     'test': {
         'HOST': 'localhost',

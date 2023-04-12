@@ -7,7 +7,7 @@ from .queues import get_queue
 def job(func_or_queue, connection=None, *args, **kwargs):
     """
     The same as rq package's job decorator, but it automatically works out
-    the ``connection`` argument from RQ_QUEUES.
+    the ``connection`` argument from SCHEDULER_QUEUES.
 
     And also, it allows simplified ``@job`` syntax to put job into
     default queue.

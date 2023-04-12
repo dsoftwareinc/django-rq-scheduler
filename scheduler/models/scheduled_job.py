@@ -5,7 +5,7 @@ from typing import Dict
 
 import croniter
 from django.apps import apps
-from django.conf import settings
+from scheduler import settings
 from django.contrib import admin
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
@@ -37,7 +37,7 @@ def callback_save_job(job, connection, result, *args, **kwargs):
 
 
 class BaseJob(TimeStampedModel):
-    QUEUES = [(key, key) for key in settings.RQ_QUEUES.keys()]
+    QUEUES = [(key, key) for key in settings.QUEUES.keys()]
     JOB_TYPE = 'BaseJob'
     name = models.CharField(
         _('name'), max_length=128, unique=True,
@@ -256,7 +256,7 @@ class BaseJob(TimeStampedModel):
             })
 
     def clean_queue(self):
-        queue_keys = settings.RQ_QUEUES.keys()
+        queue_keys = settings.QUEUES.keys()
         if self.queue not in queue_keys:
             raise ValidationError({
                 'queue': ValidationError(
