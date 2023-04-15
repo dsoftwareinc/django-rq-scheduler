@@ -1,10 +1,11 @@
-from django.conf import settings
+
 from rq.decorators import job as _rq_job
 
+from scheduler import settings
 from .queues import get_queue
 
 
-def job(func_or_queue, connection=None, *args, **kwargs):
+def job(*args, **kwargs):
     """
     The same as rq package's job decorator, but it automatically works out
     the ``connection`` argument from SCHEDULER_QUEUES.
@@ -13,29 +14,32 @@ def job(func_or_queue, connection=None, *args, **kwargs):
     default queue.
 
     """
-    if callable(func_or_queue):
-        func = func_or_queue
+    if len(args) == 0:
+        func = None
         queue = 'default'
     else:
-        func = None
-        queue = func_or_queue
+        if callable(args[0]):
+            func = args[0]
+            queue = 'default'
+        else:
+            func = None
+            queue = args[0]
+        args = args[1:]
 
     if isinstance(queue, str):
         try:
             queue = get_queue(queue)
-            if connection is None:
-                connection = queue.connection
+            if 'connection' not in kwargs:
+                kwargs['connection'] = queue.connection
         except KeyError:
             pass
 
     config = getattr(settings, 'SCHEDULER', {})
-    default_result_ttl = config.get('DEFAULT_RESULT_TTL')
-    kwargs.setdefault('result_ttl', default_result_ttl)
 
-    default_timeout = config.get('DEFAULT_TIMEOUT')
-    kwargs.setdefault('timeout', default_timeout)
+    kwargs.setdefault('result_ttl', config.get('DEFAULT_RESULT_TTL'))
+    kwargs.setdefault('timeout', config.get('DEFAULT_TIMEOUT'))
 
-    decorator = _rq_job(queue, connection=connection, *args, **kwargs)
+    decorator = _rq_job(queue, *args, **kwargs)
     if func:
         return decorator(func)
     return decorator

@@ -16,10 +16,7 @@ from ..rq_classes import JobExecution, ExecutionStatus
 
 class ViewTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user('foo', password='pass')
-        self.user.is_staff = True
-        self.user.is_active = True
-        self.user.save()
+        self.user = User.objects.create_superuser('user', password='pass')
         self.client = Client()
         self.client.login(username=self.user.username, password='pass')
         get_queue('django_rq_scheduler_test').connection.flushall()
