@@ -5,7 +5,6 @@ from typing import Dict
 
 import croniter
 from django.apps import apps
-from scheduler import settings
 from django.contrib import admin
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
@@ -17,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 
+from scheduler import settings
 from scheduler import tools
 from scheduler.models.args import JobArg, JobKwarg
 from scheduler.queues import get_queue, logger
@@ -87,7 +87,7 @@ class BaseJob(TimeStampedModel):
         scheduled_jobs = self.rqueue.scheduled_job_registry.get_job_ids()
         enqueued_jobs = self.rqueue.get_job_ids()
         res = (self.job_id in scheduled_jobs) or (self.job_id in enqueued_jobs)
-        if not res:
+        if not res:  # self.job_id is not None
             self.job_id = None
             super(BaseJob, self).save()
         return res

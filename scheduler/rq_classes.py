@@ -1,5 +1,6 @@
 from typing import List, Any, Optional, Union
 
+import django
 from django.apps import apps
 from redis import Redis
 from redis.client import Pipeline
@@ -59,15 +60,6 @@ class JobExecution(Job):
     def stop_execution(self, connection: Redis):
         send_stop_job_command(connection, self.id)
 
-    def to_json(self):
-        return dict(
-            id=self.id,
-            status=self.get_status(),
-            started_at=self.started_at,
-            ended_at=self.ended_at,
-            worker_name=self.worker_name,
-        )
-
 
 class DjangoWorker(Worker):
     def __init__(self, *args, **kwargs):
@@ -107,6 +99,7 @@ class DjangoWorker(Worker):
             log_format (str, optional): Log Format. Defaults to DEFAULT_LOGGING_FORMAT.
         """
         self.scheduler = DjangoScheduler(
+            self.key,
             self.queues,
             connection=self.connection,
             logging_level=logging_level,
@@ -197,17 +190,25 @@ MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
 
 
 class DjangoScheduler(RQScheduler):
-    @staticmethod
-    def reschedule_all_jobs():
+    def __init__(self, worker_key, *args, **kwargs):
+        self.worker_key = worker_key
+        self.django_setup = False
+        kwargs.setdefault('interval', 10)
+        super(DjangoScheduler, self).__init__(*args, **kwargs)
+
+    def reschedule_all_jobs(self):
+        if not self.django_setup:
+            django.setup()
+            self.django_setup = True
         logger.debug("Rescheduling all jobs")
         for model_name in MODEL_NAMES:
             model = apps.get_model(app_label='scheduler', model_name=model_name)
             enabled_jobs = model.objects.filter(enabled=True)
-            unscheduled_jobs = filter(lambda j: not j.is_scheduled(), enabled_jobs)
+            unscheduled_jobs = filter(lambda j: j.ready_for_schedule(), enabled_jobs)
             for item in unscheduled_jobs:
                 logger.debug(f"Rescheduling {str(item)}")
                 item.save()
 
     def enqueue_scheduled_jobs(self):
-        super(DjangoScheduler, self).enqueue_scheduled_jobs()
         self.reschedule_all_jobs()
+        super(DjangoScheduler, self).enqueue_scheduled_jobs()
