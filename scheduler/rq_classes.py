@@ -185,6 +185,11 @@ class DjangoQueue(Queue):
         job_ids = self.get_all_job_ids()
         return compact([self.fetch_job(job_id) for job_id in job_ids])
 
+    def clean_registries(self):
+        self.started_job_registry.cleanup()
+        self.failed_job_registry.cleanup()
+        self.finished_job_registry.cleanup()
+
 
 MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
 
