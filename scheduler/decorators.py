@@ -2,7 +2,7 @@
 from rq.decorators import job as _rq_job
 
 from scheduler import settings
-from .queues import get_queue
+from .queues import get_queue, QueueNotFoundError
 
 
 def job(*args, **kwargs):
@@ -32,7 +32,7 @@ def job(*args, **kwargs):
             if 'connection' not in kwargs:
                 kwargs['connection'] = queue.connection
         except KeyError:
-            pass
+            raise QueueNotFoundError(f'Queue {queue} does not exist')
 
     config = getattr(settings, 'SCHEDULER', {})
 

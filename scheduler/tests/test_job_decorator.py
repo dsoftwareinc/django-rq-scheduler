@@ -4,13 +4,20 @@ from django.test import TestCase
 
 from scheduler import job, settings
 from . import test_settings  # noqa
-from ..queues import get_queue
+from ..queues import get_queue, QueueNotFoundError
 
 
 @job
 def test_job():
     time.sleep(1)
     return 1 + 1
+
+
+@job('django_rq_scheduler_test')
+def test_job_diff_queue():
+    time.sleep(1)
+    return 1 + 1
+
 
 
 @job(timeout=1)
@@ -63,3 +70,22 @@ class JobDecoratorTest(TestCase):
         self.assertEqual(j.func, test_job_result_ttl)
         self.assertEqual(j.result_ttl, 1)
         self.assertEqual(j.timeout, config.get('DEFAULT_TIMEOUT'))
+
+    def test_job_decorator_different_queue(self):
+        test_job_diff_queue.delay()
+
+        queue = get_queue('django_rq_scheduler_test')
+        jobs = queue.get_jobs()
+        self.assertEqual(1, len(jobs))
+        config = getattr(settings, 'SCHEDULER', {})
+        j = jobs[0]
+        self.assertEqual(j.func, test_job_diff_queue)
+        self.assertEqual(j.result_ttl, config.get('DEFAULT_RESULT_TTL'))
+        self.assertEqual(j.timeout, config.get('DEFAULT_TIMEOUT'))
+
+    def test_job_decorator_bad_queue(self):
+        with self.assertRaises(QueueNotFoundError):
+            @job('bad-queue')
+            def test_job_bad_queue():
+                time.sleep(1)
+                return 1 + 1

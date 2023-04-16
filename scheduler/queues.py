@@ -9,7 +9,7 @@ from .rq_classes import JobExecution, DjangoQueue, DjangoWorker
 logger = logging.getLogger("scheduler")
 
 
-def _get_redis_connection(config, use_strict_redis=False):
+def _get_redis_connection(config, use_strict_redis=False, fake=False):
     """
     Returns a redis connection from a connection config
     """
@@ -158,9 +158,9 @@ def get_queues(*queue_names, **kwargs) -> List[DjangoQueue]:
     # perform consistency checks while building return list
     for name in queue_names[1:]:
         queue = get_queue(name, **kwargs)
-        if type(queue) is not type(queues[0]):  # noqa: E721
-            raise ValueError(f'Queues must have the same class. '
-                             f'"{name}" and "{queue_names[0]}" have different classes')
+        # if type(queue) is not type(queues[0]):  # noqa: E721
+        #     raise ValueError(f'Queues must have the same class. '
+        #                      f'"{name}" and "{queue_names[0]}" have different classes')
         if connection_params != _filter_connection_params(QUEUES[name]):
             raise ValueError(
                 f'Queues must have the same redis connection. "{name}" and'
