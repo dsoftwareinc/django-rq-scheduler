@@ -14,6 +14,10 @@ from rq.registry import (
 )
 from rq.scheduler import RQScheduler
 
+from scheduler import settings
+
+MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
+
 
 def as_text(v: Union[bytes, str]) -> Optional[str]:
     """Converts a bytes value to a string using `utf-8`.
@@ -84,22 +88,21 @@ class DjangoWorker(Worker):
             logging_level: str = "INFO",
             date_format: str = '%H:%M:%S',
             log_format: str = '%(asctime)s %(message)s',
-    ):
+    ) -> None:
         """Starts the scheduler process.
         This is specifically designed to be run by the worker when running the `work()` method.
-        Instanciates the RQScheduler and tries to acquire a lock.
+        Instantiates the DjangoScheduler and tries to acquire a lock.
         If the lock is acquired, start scheduler.
         If worker is on burst mode just enqueues scheduled jobs and quits,
         otherwise, starts the scheduler in a separate process.
 
-        Args:
-            burst (bool, optional): Whether to work on burst mode. Defaults to False.
-            logging_level (str, optional): Logging level to use. Defaults to "INFO".
-            date_format (str, optional): Date Format. Defaults to DEFAULT_LOGGING_DATE_FORMAT.
-            log_format (str, optional): Log Format. Defaults to DEFAULT_LOGGING_FORMAT.
+
+        :param burst (bool, optional): Whether to work on burst mode. Defaults to False.
+        :param logging_level (str, optional): Logging level to use. Defaults to "INFO".
+        :param date_format (str, optional): Date Format. Defaults to DEFAULT_LOGGING_DATE_FORMAT.
+        :param log_format (str, optional): Log Format. Defaults to DEFAULT_LOGGING_FORMAT.
         """
         self.scheduler = DjangoScheduler(
-            self.key,
             self.queues,
             connection=self.connection,
             logging_level=logging_level,
@@ -191,20 +194,13 @@ class DjangoQueue(Queue):
         self.finished_job_registry.cleanup()
 
 
-MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
-
-
 class DjangoScheduler(RQScheduler):
-    def __init__(self, worker_key, *args, **kwargs):
-        self.worker_key = worker_key
-        self.django_setup = False
-        kwargs.setdefault('interval', 10)
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('interval', settings.SCHEDULER_CONFIG['SCHEDULER_INTERVAL'])
         super(DjangoScheduler, self).__init__(*args, **kwargs)
 
-    def reschedule_all_jobs(self):
-        if not self.django_setup:
-            django.setup()
-            self.django_setup = True
+    @staticmethod
+    def reschedule_all_jobs():
         logger.debug("Rescheduling all jobs")
         for model_name in MODEL_NAMES:
             model = apps.get_model(app_label='scheduler', model_name=model_name)
@@ -213,6 +209,10 @@ class DjangoScheduler(RQScheduler):
             for item in unscheduled_jobs:
                 logger.debug(f"Rescheduling {str(item)}")
                 item.save()
+
+    def work(self):
+        django.setup()
+        super(DjangoScheduler, self).work()
 
     def enqueue_scheduled_jobs(self):
         self.reschedule_all_jobs()

@@ -34,7 +34,7 @@ def job(*args, **kwargs):
         except KeyError:
             raise QueueNotFoundError(f'Queue {queue} does not exist')
 
-    config = getattr(settings, 'SCHEDULER', {})
+    config = settings.SCHEDULER_CONFIG
 
     kwargs.setdefault('result_ttl', config.get('DEFAULT_RESULT_TTL'))
     kwargs.setdefault('timeout', config.get('DEFAULT_TIMEOUT'))

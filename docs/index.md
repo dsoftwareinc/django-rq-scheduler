@@ -79,11 +79,11 @@ sequenceDiagram
     end    
     loop Scheduler process - loop forever
         scheduler ->> schedule: check whether there are jobs that should be scheduled for execution
-        critical there are jobs that should be executed
-            scheduler ->> schedule: remove jobs to be executed
-            scheduler ->> queue: add jobs to be executed
+        critical there are jobs that are scheduled to be executed
+            scheduler ->> schedule: remove jobs to be scheduled
+            scheduler ->> queue: enqueue jobs to be executed
         end
-        scheduler ->> scheduler: sleep
+        scheduler ->> scheduler: sleep interval (See SCHEDULER_INTERVAL)
     end
 ```
 
@@ -117,13 +117,15 @@ sequenceDiagram
     end
 ```
 
+---
+
 ## Reporting issues or Features requests
 
 Please report issues via [GitHub Issues](https://github.com/dsoftwareinc/django-rq-scheduler/issues) .
 
 ---
 
-### Acknowledgements
+## Acknowledgements
 
 Based on original [django-rq-scheduler](https://github.com/isl-x/django-rq-scheduler) - Now supports Django 4.0.
 

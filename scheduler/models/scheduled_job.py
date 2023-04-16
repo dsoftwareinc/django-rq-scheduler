@@ -22,7 +22,7 @@ from scheduler.models.args import JobArg, JobKwarg
 from scheduler.queues import get_queue, logger
 from scheduler.rq_classes import DjangoQueue
 
-RQ_SCHEDULER_INTERVAL = getattr(settings, "DJANGO_RQ_SCHEDULER_INTERVAL", 60)
+SCHEDULER_INTERVAL = settings.SCHEDULER_CONFIG['SCHEDULER_INTERVAL']
 
 
 def callback_save_job(job, connection, result, *args, **kwargs):
@@ -333,17 +333,17 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         self.clean_result_ttl()
 
     def clean_interval_unit(self):
-        if RQ_SCHEDULER_INTERVAL > self.interval_seconds():
+        if SCHEDULER_INTERVAL > self.interval_seconds():
             raise ValidationError(
                 _("Job interval is set lower than %(queue)r queue's interval. "
                   "minimum interval is %(interval)"),
                 code='invalid',
-                params={'queue': self.queue, 'interval': RQ_SCHEDULER_INTERVAL})
-        if self.interval_seconds() % RQ_SCHEDULER_INTERVAL:
+                params={'queue': self.queue, 'interval': SCHEDULER_INTERVAL})
+        if self.interval_seconds() % SCHEDULER_INTERVAL:
             raise ValidationError(
                 _("Job interval is not a multiple of rq_scheduler's interval frequency: %(interval)ss"),
                 code='invalid',
-                params={'interval': RQ_SCHEDULER_INTERVAL})
+                params={'interval': SCHEDULER_INTERVAL})
 
     def clean_result_ttl(self) -> None:
         """
