@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Dict
 
 import redis
 from redis.sentinel import Sentinel
@@ -114,28 +114,29 @@ def get_all_workers():
     return workers
 
 
-def _filter_connection_params(queue_params):
-    """
-    Filters the queue params to keep only the connection related params.
-    """
-    CONNECTION_PARAMS = (
-        'URL',
-        'DB',
-        'USE_REDIS_CACHE',
-        'UNIX_SOCKET_PATH',
-        'HOST',
-        'PORT',
-        'PASSWORD',
-        'SENTINELS',
-        'MASTER_NAME',
-        'SOCKET_TIMEOUT',
-        'SSL',
-        'CONNECTION_KWARGS',
-    )
+_CONNECTION_PARAMS = {
+    'URL',
+    'DB',
+    'USE_REDIS_CACHE',
+    'UNIX_SOCKET_PATH',
+    'HOST',
+    'PORT',
+    'PASSWORD',
+    'SENTINELS',
+    'MASTER_NAME',
+    'SOCKET_TIMEOUT',
+    'SSL',
+    'CONNECTION_KWARGS',
+}
 
-    # return {p:v for p,v in queue_params.items() if p in CONNECTION_PARAMS}
-    # Dict comprehension compatible with python 2.6
-    return dict((p, v) for (p, v) in queue_params.items() if p in CONNECTION_PARAMS)
+
+def _queues_share_connection_params(q1_params: Dict, q2_params: Dict):
+    """Check that both queues share the same connection parameters
+    """
+    return all(
+        ((p not in q1_params and p not in q2_params)
+         or (q1_params.get(p, None) == q2_params.get(p, None)))
+        for p in _CONNECTION_PARAMS)
 
 
 def get_queues(*queue_names, **kwargs) -> List[DjangoQueue]:
@@ -145,26 +146,16 @@ def get_queues(*queue_names, **kwargs) -> List[DjangoQueue]:
     """
     from .settings import QUEUES
 
-    if len(queue_names) <= 1:
-        # Return "default" queue if no queue name is specified
-        # or one queue with specified name
-        return [get_queue(*queue_names, **kwargs)]
-
     kwargs['job_class'] = JobExecution
     queue_params = QUEUES[queue_names[0]]
-    connection_params = _filter_connection_params(queue_params)
     queues = [get_queue(queue_names[0], **kwargs)]
-
     # perform consistency checks while building return list
     for name in queue_names[1:]:
-        queue = get_queue(name, **kwargs)
-        # if type(queue) is not type(queues[0]):  # noqa: E721
-        #     raise ValueError(f'Queues must have the same class. '
-        #                      f'"{name}" and "{queue_names[0]}" have different classes')
-        if connection_params != _filter_connection_params(QUEUES[name]):
+        if not _queues_share_connection_params(queue_params, QUEUES[name]):
             raise ValueError(
                 f'Queues must have the same redis connection. "{name}" and'
                 f' "{queue_names[0]}" have different connections')
+        queue = get_queue(name, **kwargs)
         queues.append(queue)
 
     return queues
