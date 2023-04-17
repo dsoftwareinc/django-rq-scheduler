@@ -104,7 +104,7 @@ class ExportTest(TestCase):
         call_command('export', filename=self.tmpfile.name)
         # assert
         result = json.load(self.tmpfile)
-        self.assertEqual(len(jobs) + 1, len(result))
+        self.assertEqual(len(jobs), len(result))
         self.assertEqual(result[0], jobs[0].to_dict())
         self.assertEqual(result[1], jobs[1].to_dict())
 
