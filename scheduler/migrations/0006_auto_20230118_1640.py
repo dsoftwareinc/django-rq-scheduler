@@ -4,15 +4,7 @@ from django.db import migrations
 
 
 def forwards_func(apps, schema_editor):
-    cronjob_model = apps.get_model(app_label='scheduler', model_name='CronJob')
-    scheduler_job = cronjob_model.objects.create(
-        cron_string='* * * * *',
-        name='Job scheduling jobs',
-        callable='scheduler.apps.reschedule_all_jobs',
-        enabled=True,
-        queue='default',
-    )
-    scheduler_job.save()
+    pass
 
 
 def reverse_func(apps, schema_editor):

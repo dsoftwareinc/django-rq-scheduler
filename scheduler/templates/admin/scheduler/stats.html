@@ -79,13 +79,13 @@
                             </a>
                         </th>
                         <th>
-                            <a href="{% url 'queue_failed_jobs' queue.name %}">
-                                {{ queue.canceled_jobs }}
+                            <a href="{% url 'queue_scheduled_jobs' queue.name %}">
+                                {{ queue.scheduled_jobs }}
                             </a>
                         </th>
                         <th>
-                            <a href="{% url 'queue_scheduled_jobs' queue.name %}">
-                                {{ queue.scheduled_jobs }}
+                            <a href="{% url 'queue_failed_jobs' queue.name %}">
+                                {{ queue.canceled_jobs }}
                             </a>
                         </th>
                         <th><a href="{% url 'queue_workers' queue.name %}">

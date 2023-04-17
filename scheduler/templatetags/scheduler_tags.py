@@ -1,6 +1,6 @@
 from django import template
 
-from scheduler.rq_classes import JobExecution
+from scheduler.rq_classes import JobExecution, DjangoQueue
 from scheduler.tools import get_scheduled_job
 
 register = template.Library()
@@ -49,3 +49,11 @@ def job_runtime(job: JobExecution):
         return "Still running"
     else:
         return "-"
+
+
+@register.filter
+def job_scheduled_time(job: JobExecution, queue: DjangoQueue):
+    try:
+        return queue.scheduled_job_registry.get_scheduled_time(job.id)
+    except Exception:
+        return None
