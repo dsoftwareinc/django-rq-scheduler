@@ -1,6 +1,6 @@
-from scheduler import settings
 from django.contrib import admin
 
+from scheduler import settings
 from scheduler import views
 from scheduler.models import Queue
 from scheduler.models.worker import Worker

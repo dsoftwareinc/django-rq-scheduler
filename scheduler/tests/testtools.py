@@ -1,13 +1,19 @@
 from datetime import timedelta
 
-from scheduler import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.utils import timezone
 
-from scheduler.models import CronJob, JobKwarg, RepeatableJob, ScheduledJob
+from scheduler import settings
+from scheduler.models import CronJob, JobKwarg, RepeatableJob, ScheduledJob, BaseJob
 from scheduler.queues import get_queue
+
+
+def assert_message_in_response(response, message):
+    messages = [m.message for m in get_messages(response.wsgi_request)]
+    assert message in messages, f'expected "{message}" in {messages}'
 
 
 def sequence_gen():
@@ -67,22 +73,17 @@ def jobarg_factory(cls, **kwargs):
     return instance
 
 
-def _get_job_from_queue(django_job):
-    queue = django_job.rqueue
-    jobs_to_schedule = queue.scheduled_job_registry.get_job_ids()
+def _get_job_from_scheduled_registry(django_job: BaseJob):
+    jobs_to_schedule = django_job.rqueue.scheduled_job_registry.get_job_ids()
     entry = next(i for i in jobs_to_schedule if i == django_job.job_id)
-    return queue.fetch_job(entry)
+    return django_job.rqueue.fetch_job(entry)
 
 
-def _get_executions(django_job):
-    queue = get_queue(django_job.queue)
-    job_ids = (queue.get_job_ids()
-               + queue.finished_job_registry.get_job_ids()
-               + queue.scheduled_job_registry.get_job_ids()
-               + queue.failed_job_registry.get_job_ids())
+def _get_executions(django_job: BaseJob):
+    job_ids = django_job.rqueue.get_all_job_ids()
     return list(filter(
         lambda j: j.is_execution_of(django_job),
-        map(lambda jid: queue.fetch_job(jid), job_ids)))
+        map(lambda jid: django_job.rqueue.fetch_job(jid), job_ids)))
 
 
 class SchedulerBaseCase(TestCase):

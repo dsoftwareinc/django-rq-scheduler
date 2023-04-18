@@ -11,7 +11,7 @@ from scheduler import settings
 from scheduler.models import BaseJob, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
 from scheduler.tools import run_job, create_worker
 from . import jobs
-from .testtools import job_factory, jobarg_factory, _get_job_from_queue, SchedulerBaseCase, _get_executions
+from .testtools import job_factory, jobarg_factory, _get_job_from_scheduled_registry, SchedulerBaseCase, _get_executions
 from ..queues import get_queue
 
 
@@ -161,7 +161,7 @@ class BaseTestCases:
 
         def test_callable_passthrough(self):
             job = job_factory(self.JobModelClass)
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             self.assertEqual(entry.func, run_job)
             job_model, job_id = entry.args
             self.assertEqual(job_model, self.JobModelClass.__name__)
@@ -169,7 +169,7 @@ class BaseTestCases:
 
         def test_timeout_passthrough(self):
             job = job_factory(self.JobModelClass, timeout=500)
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             self.assertEqual(entry.timeout, 500)
 
         def test_at_front_passthrough(self):
@@ -180,12 +180,12 @@ class BaseTestCases:
 
         def test_callable_result(self):
             job = job_factory(self.JobModelClass, )
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             self.assertEqual(entry.perform(), 2)
 
         def test_callable_empty_args_and_kwargs(self):
             job = job_factory(self.JobModelClass, callable='scheduler.tests.jobs.test_args_kwargs')
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             self.assertEqual(entry.perform(), 'test_args_kwargs()')
 
         def test_delete_args(self):
@@ -230,7 +230,7 @@ class BaseTestCases:
             jobarg_factory(JobKwarg, key='key2', arg_type='datetime', val=date, content_object=job)
             jobarg_factory(JobKwarg, key='key3', arg_type='bool', val=False, content_object=job)
             job.save()
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             self.assertEqual(entry.perform(),
                              "test_args_kwargs('one', key1=2, key2={}, key3=False)".format(date))
 
@@ -330,7 +330,7 @@ class BaseTestCases:
             res = self.client.post(url, data=data, follow=True)
             # assert part 1
             self.assertEqual(200, res.status_code)
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             job_model, scheduled_job_id = entry.args
             self.assertEqual(job_model, job.JOB_TYPE)
             self.assertEqual(scheduled_job_id, job.id)
@@ -342,7 +342,7 @@ class BaseTestCases:
             worker.work(burst=True)
 
             # assert 2
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             self.assertEqual(job_model, job.JOB_TYPE)
             self.assertEqual(scheduled_job_id, job.id)
             self.assertTrue(has_execution_with_status(job, 'finished'))
@@ -449,7 +449,7 @@ class BaseTestCases:
 
         def test_result_ttl_passthrough(self):
             job = job_factory(self.JobModelClass, result_ttl=500)
-            entry = _get_job_from_queue(job)
+            entry = _get_job_from_scheduled_registry(job)
             self.assertEqual(entry.result_ttl, 500)
 
 
@@ -573,12 +573,12 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
 
     def test_result_interval(self):
         job = job_factory(self.JobModelClass, )
-        entry = _get_job_from_queue(job)
+        entry = _get_job_from_scheduled_registry(job)
         self.assertEqual(entry.meta['interval'], 3600)
 
     def test_repeat(self):
         job = job_factory(self.JobModelClass, repeat=10)
-        entry = _get_job_from_queue(job)
+        entry = _get_job_from_scheduled_registry(job)
         self.assertEqual(entry.meta['repeat'], 10)
 
     def test_repeat_old_job_exhausted(self):
@@ -639,7 +639,7 @@ class TestCronJob(BaseTestCases.TestBaseJob):
 
     def test_repeat(self):
         job = job_factory(self.JobModelClass, repeat=10)
-        entry = _get_job_from_queue(job)
+        entry = _get_job_from_scheduled_registry(job)
         self.assertEqual(entry.meta['repeat'], 10)
 
     def test_check_rescheduled_after_execution(self):

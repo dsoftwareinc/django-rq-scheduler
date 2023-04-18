@@ -6,11 +6,12 @@ from redis import Redis
 from redis.client import Pipeline
 from rq import Worker
 from rq.command import send_stop_job_command
+from rq.exceptions import InvalidJobOperation
 from rq.job import Job, JobStatus
 from rq.queue import Queue, logger
 from rq.registry import (
     DeferredJobRegistry, FailedJobRegistry, FinishedJobRegistry,
-    ScheduledJobRegistry, StartedJobRegistry, CanceledJobRegistry,
+    ScheduledJobRegistry, StartedJobRegistry, CanceledJobRegistry, BaseRegistry,
 )
 from rq.scheduler import RQScheduler
 
@@ -47,6 +48,7 @@ def compact(lst: List[Any]) -> List[Any]:
 
 
 ExecutionStatus = JobStatus
+InvalidJobOperation = InvalidJobOperation
 
 
 class JobExecution(Job):
@@ -148,6 +150,24 @@ class DjangoQueue(Queue):
     def __init__(self, *args, **kwargs):
         kwargs['job_class'] = JobExecution
         super(DjangoQueue, self).__init__(*args, **kwargs)
+
+    def get_registry(self, name: str) -> Union[None, BaseRegistry, 'DjangoQueue']:
+        name = name.lower()
+        if name == 'queued':
+            return self
+        elif name == 'finished':
+            return self.finished_job_registry
+        elif name == 'failed':
+            return self.failed_job_registry
+        elif name == 'scheduled':
+            return self.scheduled_job_registry
+        elif name == 'started':
+            return self.started_job_registry
+        elif name == 'deferred':
+            return self.deferred_job_registry
+        elif name == 'canceled':
+            return self.canceled_job_registry
+        return None
 
     @property
     def finished_job_registry(self):

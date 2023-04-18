@@ -9,7 +9,7 @@
     <div class="breadcrumbs">
         <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
         <a href="{% url 'queues_home' %}">Queues</a> &rsaquo;
-        <a href="{% url 'queue_jobs' queue.name %}">{{ queue.name }}</a> &rsaquo;
+        <a href="{% url 'queue_registry_jobs' queue.name 'queued' %}">{{ queue.name }}</a> &rsaquo;
         <a href="{% url 'job_details' job.id %}">{{ job.id }}</a>
     </div>
 {% endblock %}
@@ -128,15 +128,23 @@
 
 
         <div class="submit-row">
-            <p class="deletelink-box"><a href="delete/" class="deletelink">Delete</a></p>
+            <p class="deletelink-box">
+                <a href="{% url 'queue_job_action'  job.id 'delete' %}"
+                   class="deletelink">Delete</a></p>
+            {% if job.is_started %}
+                <form method='POST' action="{% url 'queue_job_action'  job.id 'cancel' %}">
+                    {% csrf_token %}
+                    <input type="submit" value="cancel" class="default" name="cancel">
+                </form>
+            {% endif %}
             {% if job.is_failed %}
-                <form method='POST' action="{% url 'queue_requeue_job' queue.name job.id %}">
+                <form method='POST' action="{% url 'queue_job_action'  job.id 'requeue' %}">
                     {% csrf_token %}
                     <input type="submit" value="Requeue" class="default" name="requeue">
                 </form>
             {% endif %}
             {% if not job.is_queued and not job.is_failed %}
-                <form method='POST' action="{% url 'queue_enqueue_job' queue.name job.id %}">
+                <form method='POST' action="{% url 'queue_job_action'  job.id 'enqueue' %}">
                     {% csrf_token %}
                     <input type="submit" value="Enqueue" class="default" name="Enqueue">
                 </form>

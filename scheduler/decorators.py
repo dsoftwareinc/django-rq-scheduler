@@ -1,4 +1,3 @@
-
 from rq.decorators import job as _rq_job
 
 from scheduler import settings

@@ -14,7 +14,7 @@
     <div class="breadcrumbs">
         <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
         <a href="{% url 'queues_home' %}">Queues</a> &rsaquo;
-        <a href="{% url 'queue_jobs' queue.name %}">{{ queue.name }}</a>
+        <a href="{% url 'queue_registry_jobs' queue.name 'queued' %}">{{ queue.name }}</a>
     </div>
 {% endblock %}
 
@@ -25,9 +25,10 @@
     <div id="content-main">
         <ul class="object-tools">
             {% if job_status == 'Failed' %}
-                <li><a href="{% url 'queue_requeue_all' queue.name %}" class="requeuelink">Requeue All</a></li>
+                <li><a href="{% url 'queue_requeue_all' queue.name registry_name %}" class="requeuelink">Requeue All</a>
+                </li>
             {% endif %}
-            <li><a href="{% url 'queue_clear' queue.name %}" class="deletelink">Empty Queue</a></li>
+            <li><a href="{% url 'queue_clear' queue.name registry_name %}" class="deletelink">Empty Queue</a></li>
         </ul>
         <div class="module" id="changelist">
             <form id="changelist-form" action="{% url 'queue_confirm_action' queue.name %}" method="post">

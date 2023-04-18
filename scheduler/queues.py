@@ -60,15 +60,10 @@ class QueueNotFoundError(Exception):
     pass
 
 
-def get_connection(name='default', use_strict_redis=False):
+def get_connection(queue_settings, use_strict_redis=False):
     """Returns a Redis connection to use based on parameters in SCHEDULER_QUEUES
     """
-    from .settings import QUEUES
-
-    if name not in QUEUES:
-        raise QueueNotFoundError(f'Queue {name} not found, queues={QUEUES.keys()}')
-
-    return _get_redis_connection(QUEUES[name], use_strict_redis)
+    return _get_redis_connection(queue_settings, use_strict_redis)
 
 
 def get_queue(
@@ -81,14 +76,16 @@ def get_queue(
     """Returns an DjangoQueue using parameters defined in `SCHEDULER_QUEUES`
     """
     from .settings import QUEUES
-
+    if name not in QUEUES:
+        raise QueueNotFoundError(f'Queue {name} not found, queues={QUEUES.keys()}')
+    queue_settings = QUEUES[name]
     if is_async is None:
-        is_async = QUEUES[name].get('ASYNC', True)
+        is_async = queue_settings.get('ASYNC', True)
 
     if default_timeout is None:
-        default_timeout = QUEUES[name].get('DEFAULT_TIMEOUT')
+        default_timeout = queue_settings.get('DEFAULT_TIMEOUT')
     if connection is None:
-        connection = get_connection(name)
+        connection = get_connection(queue_settings)
     return DjangoQueue(
         name,
         default_timeout=default_timeout,
@@ -103,7 +100,7 @@ def get_all_workers():
     from .settings import QUEUES
     workers = set()
     for queue_name in QUEUES:
-        connection = get_connection(queue_name)
+        connection = get_connection(QUEUES[queue_name])
         try:
             curr_workers = set(DjangoWorker.all(connection=connection))
             workers.update(curr_workers)

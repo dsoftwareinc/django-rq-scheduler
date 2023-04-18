@@ -48,43 +48,43 @@
                 {% for queue in queues %}
                     <tr class="{% cycle 'row1' 'row2' %}">
                         <th>
-                            <a href="{% url 'queue_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'queued' %}">
                                 {{ queue.name }}
                             </a>
                         </th>
                         <td>
-                            <a href="{% url 'queue_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'queued' %}">
                                 {{ queue.jobs }}
                             </a>
                         </td>
                         <td>{{ queue.oldest_job_timestamp }}</td>
                         <th>
-                            <a href="{% url 'queue_started_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'started' %}">
                                 {{ queue.started_jobs }}
                             </a>
                         </th>
                         <th>
-                            <a href="{% url 'queue_deferred_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'deferred' %}">
                                 {{ queue.deferred_jobs }}
                             </a>
                         </th>
                         <th>
-                            <a href="{% url 'queue_finished_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'finished' %}">
                                 {{ queue.finished_jobs }}
                             </a>
                         </th>
                         <th>
-                            <a href="{% url 'queue_failed_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'failed' %}">
                                 {{ queue.failed_jobs }}
                             </a>
                         </th>
                         <th>
-                            <a href="{% url 'queue_scheduled_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'scheduled' %}">
                                 {{ queue.scheduled_jobs }}
                             </a>
                         </th>
                         <th>
-                            <a href="{% url 'queue_failed_jobs' queue.name %}">
+                            <a href="{% url 'queue_registry_jobs' queue.name 'canceled' %}">
                                 {{ queue.canceled_jobs }}
                             </a>
                         </th>

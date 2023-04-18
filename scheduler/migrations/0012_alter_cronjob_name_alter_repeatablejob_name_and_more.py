@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('scheduler', '0011_worker_alter_queue_options_alter_cronjob_at_front_and_more'),
     ]
