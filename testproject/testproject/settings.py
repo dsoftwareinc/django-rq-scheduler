@@ -162,4 +162,10 @@ LOGGING = {
         'handlers': ['console'],
         'level': 'DEBUG',
     },
+    'loggers': {
+        'scheduler': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
 }
