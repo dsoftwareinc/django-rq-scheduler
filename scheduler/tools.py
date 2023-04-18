@@ -75,14 +75,6 @@ def create_worker(*queue_names, **kwargs):
 
 def get_job_executions(queue_name, scheduled_job):
     queue = get_queue(queue_name)
-    res = list()
     job_list = queue.get_all_jobs()
-    res.extend(list(filter(lambda j: j.is_execution_of(scheduled_job), job_list)))
-    scheduled_job_id_list = queue.scheduled_job_registry.get_job_ids()
-
-    res.extend(list(
-        map(lambda j: j.to_json(),
-            filter(lambda j: j.is_execution_of(scheduled_job),
-                   map(queue.fetch_job, scheduled_job_id_list)
-                   ))))
+    res = list(filter(lambda j: j.is_execution_of(scheduled_job), job_list))
     return res

@@ -14,6 +14,24 @@ from . import test_settings  # noqa
 
 class RqworkerTestCase(TestCase):
 
+    def test_rqworker__no_queues_params(self):
+        queue = get_queue('default')
+
+        # enqueue some jobs that will fail
+        jobs = []
+        job_ids = []
+        for _ in range(0, 3):
+            job = queue.enqueue(failing_job)
+            jobs.append(job)
+            job_ids.append(job.id)
+
+        # Create a worker to execute these jobs
+        call_command('rqworker', burst=True)
+
+        # check if all jobs are really failed
+        for job in jobs:
+            self.assertTrue(job.is_failed)
+
     def test_rqworker__run_jobs(self):
         queue = get_queue('default')
 
@@ -104,7 +122,7 @@ class ExportTest(TestCase):
         call_command('export', filename=self.tmpfile.name)
         # assert
         result = json.load(self.tmpfile)
-        self.assertEqual(len(jobs) + 1, len(result))
+        self.assertEqual(len(jobs), len(result))
         self.assertEqual(result[0], jobs[0].to_dict())
         self.assertEqual(result[1], jobs[1].to_dict())
 

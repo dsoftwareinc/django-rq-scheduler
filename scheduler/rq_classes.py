@@ -1,5 +1,6 @@
 from typing import List, Any, Optional, Union
 
+import django
 from django.apps import apps
 from redis import Redis
 from redis.client import Pipeline
@@ -12,6 +13,10 @@ from rq.registry import (
     ScheduledJobRegistry, StartedJobRegistry, CanceledJobRegistry,
 )
 from rq.scheduler import RQScheduler
+
+from scheduler import settings
+
+MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
 
 
 def as_text(v: Union[bytes, str]) -> Optional[str]:
@@ -59,15 +64,6 @@ class JobExecution(Job):
     def stop_execution(self, connection: Redis):
         send_stop_job_command(connection, self.id)
 
-    def to_json(self):
-        return dict(
-            id=self.id,
-            status=self.get_status(),
-            started_at=self.started_at,
-            ended_at=self.ended_at,
-            worker_name=self.worker_name,
-        )
-
 
 class DjangoWorker(Worker):
     def __init__(self, *args, **kwargs):
@@ -92,19 +88,19 @@ class DjangoWorker(Worker):
             logging_level: str = "INFO",
             date_format: str = '%H:%M:%S',
             log_format: str = '%(asctime)s %(message)s',
-    ):
+    ) -> None:
         """Starts the scheduler process.
         This is specifically designed to be run by the worker when running the `work()` method.
-        Instanciates the RQScheduler and tries to acquire a lock.
+        Instantiates the DjangoScheduler and tries to acquire a lock.
         If the lock is acquired, start scheduler.
         If worker is on burst mode just enqueues scheduled jobs and quits,
         otherwise, starts the scheduler in a separate process.
 
-        Args:
-            burst (bool, optional): Whether to work on burst mode. Defaults to False.
-            logging_level (str, optional): Logging level to use. Defaults to "INFO".
-            date_format (str, optional): Date Format. Defaults to DEFAULT_LOGGING_DATE_FORMAT.
-            log_format (str, optional): Log Format. Defaults to DEFAULT_LOGGING_FORMAT.
+
+        :param burst (bool, optional): Whether to work on burst mode. Defaults to False.
+        :param logging_level (str, optional): Logging level to use. Defaults to "INFO".
+        :param date_format (str, optional): Date Format. Defaults to DEFAULT_LOGGING_DATE_FORMAT.
+        :param log_format (str, optional): Log Format. Defaults to DEFAULT_LOGGING_FORMAT.
         """
         self.scheduler = DjangoScheduler(
             self.queues,
@@ -192,22 +188,32 @@ class DjangoQueue(Queue):
         job_ids = self.get_all_job_ids()
         return compact([self.fetch_job(job_id) for job_id in job_ids])
 
-
-MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
+    def clean_registries(self):
+        self.started_job_registry.cleanup()
+        self.failed_job_registry.cleanup()
+        self.finished_job_registry.cleanup()
 
 
 class DjangoScheduler(RQScheduler):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('interval', settings.SCHEDULER_CONFIG['SCHEDULER_INTERVAL'])
+        super(DjangoScheduler, self).__init__(*args, **kwargs)
+
     @staticmethod
     def reschedule_all_jobs():
         logger.debug("Rescheduling all jobs")
         for model_name in MODEL_NAMES:
             model = apps.get_model(app_label='scheduler', model_name=model_name)
             enabled_jobs = model.objects.filter(enabled=True)
-            unscheduled_jobs = filter(lambda j: not j.is_scheduled(), enabled_jobs)
+            unscheduled_jobs = filter(lambda j: j.ready_for_schedule(), enabled_jobs)
             for item in unscheduled_jobs:
                 logger.debug(f"Rescheduling {str(item)}")
                 item.save()
 
+    def work(self):
+        django.setup()
+        super(DjangoScheduler, self).work()
+
     def enqueue_scheduled_jobs(self):
-        super(DjangoScheduler, self).enqueue_scheduled_jobs()
         self.reschedule_all_jobs()
+        super(DjangoScheduler, self).enqueue_scheduled_jobs()

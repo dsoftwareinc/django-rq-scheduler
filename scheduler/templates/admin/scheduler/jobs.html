@@ -102,7 +102,7 @@
                                     {{ job.created_at|date:"Y-m-d, H:i:s" }}
                                 </td>
                                 <td>
-                                    {{ job.scheduled_at|date:"Y-m-d, H:i:s" }}
+                                    {{ job|job_scheduled_time:queue|date:"Y-m-d, H:i:s" }}
                                 </td>
                                 <td>
                                     {{ job.enqueued_at|date:"Y-m-d, H:i:s" }}

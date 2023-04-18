@@ -8,4 +8,4 @@ class SchedulerConfig(AppConfig):
     verbose_name = _('Django RQ Scheduler')
 
     def ready(self):
-        pass  # Django isn't ready yet, example a management command is being executed
+        pass

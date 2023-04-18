@@ -1,12 +1,13 @@
 import zoneinfo
 from datetime import datetime, timedelta
 
-from scheduler import settings
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from scheduler import settings
 from scheduler.models import BaseJob, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
 from scheduler.tools import run_job, create_worker
 from . import jobs
@@ -495,11 +496,14 @@ class TestRepeatableJob(BaseTestCases.TestSchedulableJob):
         job.interval_unit = 'seconds'
         self.assertIsNone(job.clean())
 
+    @override_settings(SCHEDULER_CONFIG={
+        'SCHEDULER_INTERVAL': 10,
+    })
     def test_clean_too_frequent(self):
         job = job_factory(self.JobModelClass)
         job.queue = list(settings.QUEUES)[0]
         job.callable = 'scheduler.tests.jobs.test_job'
-        job.interval = 10
+        job.interval = 2  # Smaller than 10
         job.result_ttl = -1
         job.interval_unit = 'seconds'
         with self.assertRaises(ValidationError):

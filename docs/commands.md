@@ -2,10 +2,14 @@
 
 ## rqworker
 
-Create a new worker with a scheduler for specific queues.
+Create a new worker with a scheduler for specific queues by order of priority.
+If no queues are specified, will run on default queue only.
+
+All queues must have the same redis settings on `SCHEDULER_QUEUES`.
 
 ```shell
-python manage.py rqworker
+python manage.py rqworker queue1 queue2 queue3
+
 ```
 
 ## export

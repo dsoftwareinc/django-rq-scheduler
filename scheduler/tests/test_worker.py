@@ -4,6 +4,7 @@ import uuid
 from scheduler.tests.testtools import SchedulerBaseCase
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
+from .. import settings
 
 
 class TestWorker(SchedulerBaseCase):
@@ -29,3 +30,11 @@ class TestWorker(SchedulerBaseCase):
         name = uuid.uuid4().hex[-4:] + '/' + uuid.uuid4().hex[-4:]
         worker1 = create_worker('default', name=name)
         self.assertEqual(name.replace('/', '.'), worker1.name)
+
+    def test_create_worker__scheduler_interval(self):
+        prev = settings.SCHEDULER_CONFIG['SCHEDULER_INTERVAL']
+        settings.SCHEDULER_CONFIG['SCHEDULER_INTERVAL'] = 1
+        worker = create_worker('default')
+        worker.work(burst=True)
+        self.assertEqual(worker.scheduler.interval, 1)
+        settings.SCHEDULER_CONFIG['SCHEDULER_INTERVAL'] = prev

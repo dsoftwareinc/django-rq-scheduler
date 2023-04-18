@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -10,11 +11,11 @@ from rq.logutils import setup_loghandlers
 
 from scheduler.tools import create_worker
 
-LOG_LEVELS = {
-    0: "CRITICAL",
-    1: "WARNING",
-    2: "INFO",
-    3: "DEBUG",
+VERBOSITY_TO_LOG_LEVEL = {
+    0: logging.CRITICAL,
+    1: logging.WARNING,
+    2: logging.INFO,
+    3: logging.DEBUG,
 }
 
 
@@ -50,7 +51,9 @@ class Command(BaseCommand):
             help='The queues to work on, separated by space, all queues should be using the same redis')
 
     def handle(self, **options):
-        queues = options.get('queues', 'default')
+        queues = options.get('queues', [])
+        if not queues:
+            queues = ['default', ]
         click.echo(f'Starting worker for queues {queues}')
         pidfile = options.get('pidfile')
         if pidfile:
@@ -59,8 +62,8 @@ class Command(BaseCommand):
 
         # Verbosity is defined by default in BaseCommand for all commands
         verbosity = options.get('verbosity', 1)
-        level = LOG_LEVELS.get(verbosity, 'INFO')
-        setup_loghandlers(level)
+        log_level = VERBOSITY_TO_LOG_LEVEL.get(verbosity, logging.INFO)
+        setup_loghandlers(log_level)
 
         try:
             # Instantiate a worker
@@ -74,7 +77,7 @@ class Command(BaseCommand):
             reset_db_connections()
 
             w.work(burst=options.get('burst', False),
-                   logging_level=verbosity,
+                   logging_level=log_level,
                    max_jobs=options['max_jobs'], )
         except ConnectionError as e:
             click.echo(str(e), err=True)

@@ -11,21 +11,10 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from redis.exceptions import ResponseError
-from rq import requeue_job
-from rq.exceptions import NoSuchJobError
-from rq.registry import (
-    DeferredJobRegistry,
-    FailedJobRegistry,
-    FinishedJobRegistry,
-    ScheduledJobRegistry,
-    StartedJobRegistry,
-    clean_registries,
-)
-from rq.worker_registration import clean_worker_registry
 
 from .queues import get_all_workers, get_connection, logger, get_queue
 from .rq_classes import JobExecution, ExecutionStatus, DjangoWorker
-from .settings import SCHEDULER
+from .settings import SCHEDULER_CONFIG
 
 
 def get_worker_executions(worker):
@@ -56,6 +45,10 @@ def stats_json(request):
 def get_statistics(run_maintenance_tasks=False):
     from scheduler.settings import QUEUES
     queues = []
+    if run_maintenance_tasks:
+        workers = get_all_workers()
+        for worker in workers:
+            worker.clean_registries()
     for queue_name in QUEUES:
         try:
             queue = get_queue(queue_name)
@@ -63,8 +56,7 @@ def get_statistics(run_maintenance_tasks=False):
             connection_kwargs = connection.connection_pool.connection_kwargs
 
             if run_maintenance_tasks:
-                clean_registries(queue)
-                clean_worker_registry(queue)
+                queue.clean_registries()
 
             # Raw access to the first item from left of the redis list.
             # This might not be accurate since new job can be added from the left
@@ -105,7 +97,7 @@ def get_statistics(run_maintenance_tasks=False):
 
 
 def _get_registry_job_list(queue, registry, page):
-    items_per_page = SCHEDULER['EXECUTIONS_IN_PAGE']
+    items_per_page = SCHEDULER_CONFIG['EXECUTIONS_IN_PAGE']
     num_jobs = len(registry)
     job_list = []
 
@@ -126,10 +118,7 @@ def _get_registry_job_list(queue, registry, page):
     return valid_jobs, num_jobs, page_range
 
 
-def jobs_view(request, queue_name, registry_class, status_title):
-    queue = get_queue(queue_name)
-
-    registry = registry_class(queue.name, queue.connection) if registry_class is not None else queue
+def jobs_view(request, queue, registry, status_title):
     page = int(request.GET.get('page', 1))
     job_list, num_jobs, page_range = _get_registry_job_list(queue, registry, page)
 
@@ -148,45 +137,52 @@ def jobs_view(request, queue_name, registry_class, status_title):
 @never_cache
 @staff_member_required
 def jobs(request, queue_name):
-    return jobs_view(request, queue_name, None, 'Queued')
+    queue = get_queue(queue_name)
+    return jobs_view(request, queue, queue, 'Queued')
 
 
 @never_cache
 @staff_member_required
 def finished_jobs(request, queue_name):
-    return jobs_view(request, queue_name, FinishedJobRegistry, 'Finished')
+    queue = get_queue(queue_name)
+    return jobs_view(request, queue, queue.finished_job_registry, 'Finished')
 
 
 @never_cache
 @staff_member_required
 def failed_jobs(request, queue_name):
-    return jobs_view(request, queue_name, FailedJobRegistry, 'Failed')
+    queue = get_queue(queue_name)
+    return jobs_view(request, queue, queue.failed_job_registry, 'Failed')
 
 
 @never_cache
 @staff_member_required
 def scheduled_jobs(request, queue_name):
-    return jobs_view(request, queue_name, ScheduledJobRegistry, 'Scheduled')
+    queue = get_queue(queue_name)
+    return jobs_view(request, queue, queue.scheduled_job_registry, 'Scheduled')
 
 
 @never_cache
 @staff_member_required
 def started_jobs(request, queue_name):
-    return jobs_view(request, queue_name, StartedJobRegistry, 'Started')
+    queue = get_queue(queue_name)
+    return jobs_view(request, queue, queue.started_job_registry, 'Started')
 
 
 @never_cache
 @staff_member_required
 def deferred_jobs(request, queue_name):
-    return jobs_view(request, queue_name, DeferredJobRegistry, 'Deferred')
+    queue = get_queue(queue_name)
+    return jobs_view(request, queue, queue.deferred_job_registry, 'Deferred')
 
 
 @never_cache
 @staff_member_required
 def queue_workers(request, queue_name):
     queue = get_queue(queue_name)
-    clean_worker_registry(queue)
     all_workers = DjangoWorker.all(queue.connection)
+    for w in all_workers:
+        w.clean_registries()
     worker_list = [worker for worker in all_workers if queue.name in worker.queue_names()]
 
     context_data = {
@@ -223,7 +219,7 @@ def worker_details(request, name):
     worker.total_working_time = worker.total_working_time / 1000
 
     execution_list = get_worker_executions(worker)
-    paginator = Paginator(execution_list, SCHEDULER['EXECUTIONS_IN_PAGE'])
+    paginator = Paginator(execution_list, SCHEDULER_CONFIG['EXECUTIONS_IN_PAGE'])
     page_number = request.GET.get('p', 1)
     page_obj = paginator.get_page(page_number)
     page_range = paginator.get_elided_page_range(page_obj.number)
@@ -252,9 +248,7 @@ def job_detail(request, job_id):
             queue = get_queue(queue_name)
             job = JobExecution.fetch(job_id, connection=queue.connection)
             break
-        except NoSuchJobError:
-            pass
-        except redis.ConnectionError:
+        except Exception:
             pass
     if job is None:
         raise Http404(f"Couldn't find job with this ID: {job_id}")
@@ -309,7 +303,7 @@ def requeue_job_view(request, queue_name, job_id):
     job = JobExecution.fetch(job_id, connection=queue.connection)
 
     if request.method == 'POST':
-        requeue_job(job_id, connection=queue.connection)
+        job.requeue()
         messages.info(request, f'You have successfully re-queued {job.id}')
         return redirect('job_details', job_id)
 
@@ -351,17 +345,17 @@ def clear_queue(request, queue_name):
 @staff_member_required
 def requeue_all(request, queue_name):
     queue = get_queue(queue_name)
-    registry = FailedJobRegistry(queue=queue)
     next_url = request.META.get('HTTP_REFERER') or reverse('queue_jobs', args=[queue_name])
-    job_ids = registry.get_job_ids()
+    job_ids = queue.failed_job_registry.get_job_ids()
     if request.method == 'POST':
         count = 0
         # Confirmation received
         for job_id in job_ids:
             try:
-                requeue_job(job_id, connection=queue.connection)
+                job = JobExecution.fetch(job_id, connection=queue.connection)
+                job.requeue()
                 count += 1
-            except NoSuchJobError:
+            except Exception:
                 pass
 
         messages.info(request, f'You have successfully re-queued {count} jobs!')
@@ -370,7 +364,7 @@ def requeue_all(request, queue_name):
     context_data = {
         **admin.site.each_context(request),
         'queue': queue,
-        'total_jobs': len(registry),
+        'total_jobs': len(queue.failed_job_registry),
         'action': 'requeue',
         'jobs': [queue.fetch_job(job_id) for job_id in job_ids],
         'next_url': next_url,
@@ -424,7 +418,8 @@ def actions(request, queue_name):
                 messages.info(request, f'You have successfully deleted {len(job_ids)} jobs!')
             elif request.POST['action'] == 'requeue':
                 for job_id in job_ids:
-                    requeue_job(job_id, connection=queue.connection)
+                    job = JobExecution.fetch(job_id, connection=queue.connection)
+                    job.requeue()
                 messages.info(request, f'You have successfully re-queued {len(job_ids)}  jobs!')
             elif request.POST['action'] == 'stop':
                 cancelled_jobs = 0
@@ -454,14 +449,11 @@ def enqueue_job(request, queue_name, job_id):
 
         # Remove job from correct registry if needed
         if job.get_status() == ExecutionStatus.DEFERRED:
-            registry = DeferredJobRegistry(queue.name, queue.connection)
-            registry.remove(job)
+            queue.deferred_job_registry.remove(job)
         elif job.get_status() == ExecutionStatus.FINISHED:
-            registry = FinishedJobRegistry(queue.name, queue.connection)
-            registry.remove(job)
+            queue.finished_job_registry.remove(job)
         elif job.get_status() == ExecutionStatus.SCHEDULED:
-            registry = ScheduledJobRegistry(queue.name, queue.connection)
-            registry.remove(job)
+            queue.scheduled_job_registry.remove(job)
 
         messages.info(request, 'You have successfully enqueued %s' % job.id)
         return redirect('job_details', job_id)

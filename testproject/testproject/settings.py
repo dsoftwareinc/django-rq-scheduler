@@ -15,8 +15,6 @@ import os
 import django
 from fakeredis import FakeStrictRedis, FakeRedis, FakeServer, FakeConnection
 
-import scheduler
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
@@ -163,5 +161,11 @@ LOGGING = {
     'root': {
         'handlers': ['console'],
         'level': 'DEBUG',
+    },
+    'loggers': {
+        'scheduler': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
     },
 }
