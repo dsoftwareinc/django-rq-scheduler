@@ -50,7 +50,9 @@ class Command(BaseCommand):
             help='The queues to work on, separated by space, all queues should be using the same redis')
 
     def handle(self, **options):
-        queues = options.get('queues', 'default')
+        queues = options.get('queues', [])
+        if not queues:
+            queues = ['default', ]
         click.echo(f'Starting worker for queues {queues}')
         pidfile = options.get('pidfile')
         if pidfile:
