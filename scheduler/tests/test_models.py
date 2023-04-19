@@ -11,7 +11,9 @@ from scheduler import settings
 from scheduler.models import BaseJob, CronJob, JobArg, JobKwarg, RepeatableJob, ScheduledJob
 from scheduler.tools import run_job, create_worker
 from . import jobs
-from .testtools import job_factory, jobarg_factory, _get_job_from_scheduled_registry, SchedulerBaseCase, _get_executions
+from .testtools import (
+    job_factory, jobarg_factory, _get_job_from_scheduled_registry,
+    SchedulerBaseCase, _get_executions)
 from ..queues import get_queue
 
 
