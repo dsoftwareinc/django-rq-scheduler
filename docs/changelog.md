@@ -16,7 +16,7 @@
 * admin views are significantly more informative.
 * job-ids and worker-ids are more informative.
 * Added ability to cancel ongoing job.
-* job executions inline in each job
+* job executions inline in each job.
 
 ### 🚀 Roadmap
 

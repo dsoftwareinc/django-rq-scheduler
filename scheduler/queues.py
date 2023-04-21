@@ -6,8 +6,27 @@ from redis.sentinel import Sentinel
 from .rq_classes import JobExecution, DjangoQueue, DjangoWorker
 from .settings import logger
 
+_CONNECTION_PARAMS = {
+    'URL',
+    'DB',
+    'USE_REDIS_CACHE',
+    'UNIX_SOCKET_PATH',
+    'HOST',
+    'PORT',
+    'PASSWORD',
+    'SENTINELS',
+    'MASTER_NAME',
+    'SOCKET_TIMEOUT',
+    'SSL',
+    'CONNECTION_KWARGS',
+}
 
-def _get_redis_connection(config, use_strict_redis=False, fake=False):
+
+class QueueNotFoundError(Exception):
+    pass
+
+
+def _get_redis_connection(config, use_strict_redis=False):
     """
     Returns a redis connection from a connection config
     """
@@ -25,7 +44,6 @@ def _get_redis_connection(config, use_strict_redis=False, fake=False):
                 config['URL'],
                 db=config.get('DB'),
             )
-
     if 'UNIX_SOCKET_PATH' in config:
         return redis_cls(unix_socket_path=config['UNIX_SOCKET_PATH'], db=config['DB'])
 
@@ -54,10 +72,6 @@ def _get_redis_connection(config, use_strict_redis=False, fake=False):
         ssl_cert_reqs=config.get('SSL_CERT_REQS', 'required'),
         **config.get('REDIS_CLIENT_KWARGS', {})
     )
-
-
-class QueueNotFoundError(Exception):
-    pass
 
 
 def get_connection(queue_settings, use_strict_redis=False):
@@ -109,22 +123,6 @@ def get_all_workers():
     return workers
 
 
-_CONNECTION_PARAMS = {
-    'URL',
-    'DB',
-    'USE_REDIS_CACHE',
-    'UNIX_SOCKET_PATH',
-    'HOST',
-    'PORT',
-    'PASSWORD',
-    'SENTINELS',
-    'MASTER_NAME',
-    'SOCKET_TIMEOUT',
-    'SSL',
-    'CONNECTION_KWARGS',
-}
-
-
 def _queues_share_connection_params(q1_params: Dict, q2_params: Dict):
     """Check that both queues share the same connection parameters
     """
@@ -135,8 +133,7 @@ def _queues_share_connection_params(q1_params: Dict, q2_params: Dict):
 
 
 def get_queues(*queue_names, **kwargs) -> List[DjangoQueue]:
-    """
-    Return queue instances from specified queue names.
+    """Return queue instances from specified queue names.
     All instances must use the same Redis connection.
     """
     from .settings import QUEUES
