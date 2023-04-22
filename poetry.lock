@@ -566,14 +566,14 @@ pgp = ["gpg"]
 
 [[package]]
 name = "fakeredis"
-version = "2.10.3"
+version = "2.11.0"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "fakeredis-2.10.3-py3-none-any.whl", hash = "sha256:078ad729fe7cbcc84c9ff6f25c0e503fd4e19db6956f78049f9991b10c5271ba"},
-    {file = "fakeredis-2.10.3.tar.gz", hash = "sha256:c5dcb070ef3219226e1d6db8836ddad47da1fc821270f6e89cfeb5da1f7f2e38"},
+    {file = "fakeredis-2.11.0-py3-none-any.whl", hash = "sha256:156ef67713dd53000c28dd341be61a365c20230bc17c8fb8320b0c123e667aff"},
+    {file = "fakeredis-2.11.0.tar.gz", hash = "sha256:d25883dc52c31546e586b6ec3c49c5999b3025bfc4812532d71dedcfed56fee1"},
 ]
 
 [package.dependencies]
@@ -671,14 +671,14 @@ files = [
 
 [[package]]
 name = "importlib-metadata"
-version = "6.5.0"
+version = "6.6.0"
 description = "Read metadata from Python packages"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "importlib_metadata-6.5.0-py3-none-any.whl", hash = "sha256:03ba783c3a2c69d751b109fc0c94a62c51f581b3d6acf8ed1331b6d5729321ff"},
-    {file = "importlib_metadata-6.5.0.tar.gz", hash = "sha256:7a8bdf1bc3a726297f5cfbc999e6e7ff6b4fa41b26bba4afc580448624460045"},
+    {file = "importlib_metadata-6.6.0-py3-none-any.whl", hash = "sha256:43dd286a2cd8995d5eaef7fee2066340423b818ed3fd70adf0bad5f1fac53fed"},
+    {file = "importlib_metadata-6.6.0.tar.gz", hash = "sha256:92501cdf9cc66ebd3e612f1b4f0c0765dfa42f0fa38ffb319b6bd84dd675d705"},
 ]
 
 [package.dependencies]
@@ -1419,14 +1419,14 @@ files = [
 
 [[package]]
 name = "trove-classifiers"
-version = "2023.4.20"
+version = "2023.4.22"
 description = "Canonical source for classifiers on PyPI (pypi.org)."
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "trove-classifiers-2023.4.20.tar.gz", hash = "sha256:9fbc0db7e6f80471cd3b9fc29a63c10a19c16089b771c8ea87a005e92e8dc114"},
-    {file = "trove_classifiers-2023.4.20-py3-none-any.whl", hash = "sha256:9a29cdbf29bca9bf3b0ce6e02a9a8fb1c29a2660e47bb5d3cf713245185ac94f"},
+    {file = "trove-classifiers-2023.4.22.tar.gz", hash = "sha256:65e8cb3929e3788141db90a0776b76fcafbeb548a4fbe6aee4bfd9656e899939"},
+    {file = "trove_classifiers-2023.4.22-py3-none-any.whl", hash = "sha256:f8823bc4b002fb60ad102f1a97fbb0086efe149123f5701bcbae93d330321cca"},
 ]
 
 [[package]]

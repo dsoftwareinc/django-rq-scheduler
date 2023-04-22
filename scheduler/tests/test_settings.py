@@ -92,4 +92,7 @@ settings.SCHEDULER_QUEUES = {
         'DEFAULT_TIMEOUT': 400,
     },
 }
+settings.SCHEDULER_CONFIG = dict(
+    FAKEREDIS=True,
+)
 conf_settings()

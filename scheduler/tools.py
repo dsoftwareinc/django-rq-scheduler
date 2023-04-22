@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from scheduler.queues import get_queues, logger, get_queue
 from scheduler.rq_classes import DjangoWorker, MODEL_NAMES
+from scheduler.settings import get_config
 
 
 def callable_func(callable_str: str):
@@ -65,6 +66,7 @@ def create_worker(*queue_names, **kwargs):
     queues = get_queues(*queue_names)
     existing_workers = DjangoWorker.all(connection=queues[0].connection)
     existing_worker_names = set(map(lambda w: w.name, existing_workers))
+    kwargs['fork_job_execution'] = not get_config('FAKEREDIS')
     if kwargs.get('name', None) is None:
         kwargs['name'] = _calc_worker_name(existing_worker_names)
 

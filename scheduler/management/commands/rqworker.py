@@ -46,6 +46,8 @@ class Command(BaseCommand):
                             help='Default worker timeout to be used')
         parser.add_argument('--max-jobs', action='store', default=None, dest='max_jobs', type=int,
                             help='Maximum number of jobs to execute before terminating worker')
+        parser.add_argument('--fork-job-execution', action='store', default=True, dest='fork_job_execution', type=bool,
+                            help='Fork job execution to another process')
         parser.add_argument(
             'queues', nargs='*', type=str,
             help='The queues to work on, separated by space, all queues should be using the same redis')
@@ -67,7 +69,11 @@ class Command(BaseCommand):
 
         try:
             # Instantiate a worker
-            w = create_worker(*queues, name=options['name'], default_worker_ttl=options['worker_ttl'], )
+            w = create_worker(
+                *queues,
+                name=options['name'],
+                default_worker_ttl=options['worker_ttl'],
+                fork_job_execution=options['fork_job_execution'], )
 
             # Call use_connection to push the redis connection into LocalStack
             # without this, jobs using RQ's get_current_job() will fail
@@ -78,6 +84,7 @@ class Command(BaseCommand):
 
             w.work(burst=options.get('burst', False),
                    logging_level=log_level,
+
                    max_jobs=options['max_jobs'], )
         except ConnectionError as e:
             click.echo(str(e), err=True)

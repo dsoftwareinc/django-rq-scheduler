@@ -1,9 +1,11 @@
 from typing import List, Dict
 
+import fakeredis
 import redis
 from redis.sentinel import Sentinel
 
 from .rq_classes import JobExecution, DjangoQueue, DjangoWorker
+from .settings import get_config
 from .settings import logger
 
 _CONNECTION_PARAMS = {
@@ -30,7 +32,10 @@ def _get_redis_connection(config, use_strict_redis=False):
     """
     Returns a redis connection from a connection config
     """
-    redis_cls = redis.StrictRedis if use_strict_redis else redis.Redis
+    if get_config('FAKEREDIS'):
+        redis_cls = fakeredis.FakeRedis if use_strict_redis else fakeredis.FakeStrictRedis
+    else:
+        redis_cls = redis.StrictRedis if use_strict_redis else redis.Redis
     logger.debug(f'Getting connection for {config}')
     if 'URL' in config:
         if config.get('SSL') or config.get('URL').startswith('rediss://'):

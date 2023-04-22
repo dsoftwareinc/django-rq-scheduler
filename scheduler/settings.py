@@ -25,9 +25,14 @@ def conf_settings():
         'DEFAULT_RESULT_TTL': 600,  # 10 minutes
         'DEFAULT_TIMEOUT': 300,  # 5 minutes
         'SCHEDULER_INTERVAL': 10,  # 10 seconds
+        'FAKEREDIS': False, # For testing purposes
     }
     user_settings = getattr(settings, 'SCHEDULER_CONFIG', {})
     SCHEDULER_CONFIG.update(user_settings)
 
 
 conf_settings()
+
+
+def get_config(key: str, default=None):
+    return SCHEDULER_CONFIG.get(key, None)

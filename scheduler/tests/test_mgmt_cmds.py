@@ -26,7 +26,7 @@ class RqworkerTestCase(TestCase):
             job_ids.append(job.id)
 
         # Create a worker to execute these jobs
-        call_command('rqworker', burst=True)
+        call_command('rqworker', fork_job_execution=False, burst=True)
 
         # check if all jobs are really failed
         for job in jobs:
@@ -44,7 +44,7 @@ class RqworkerTestCase(TestCase):
             job_ids.append(job.id)
 
         # Create a worker to execute these jobs
-        call_command('rqworker', 'default', burst=True)
+        call_command('rqworker', 'default', fork_job_execution=False, burst=True)
 
         # check if all jobs are really failed
         for job in jobs:
@@ -66,7 +66,7 @@ class RqworkerTestCase(TestCase):
         job_ids.append(job.id)
 
         # Create a worker to execute these jobs
-        call_command('rqworker', 'default', 'django_rq_scheduler_test', burst=True)
+        call_command('rqworker', 'default', 'django_rq_scheduler_test', fork_job_execution=False, burst=True)
 
         # check if all jobs are really failed
         for job in jobs:
@@ -80,7 +80,7 @@ class RqworkerTestCase(TestCase):
         other_job = queue2.enqueue(failing_job)
 
         # Create a worker to execute these jobs
-        call_command('rqworker', 'default', burst=True)
+        call_command('rqworker', 'default', fork_job_execution=False, burst=True)
         # assert
         self.assertTrue(job.is_failed)
         self.assertTrue(other_job.is_queued)

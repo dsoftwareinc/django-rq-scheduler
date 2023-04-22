@@ -340,7 +340,7 @@ class BaseTestCases:
             self.assertTrue(has_execution_with_status(job, 'queued'))
 
             # act 2
-            worker = create_worker('default')
+            worker = create_worker('default', fork_job_execution=False, )
             worker.work(burst=True)
 
             # assert 2

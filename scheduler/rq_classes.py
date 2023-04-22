@@ -14,6 +14,7 @@ from rq.registry import (
     ScheduledJobRegistry, StartedJobRegistry, CanceledJobRegistry, BaseRegistry,
 )
 from rq.scheduler import RQScheduler
+from rq.worker import WorkerStatus
 
 from scheduler import settings
 
@@ -69,6 +70,7 @@ class JobExecution(Job):
 
 class DjangoWorker(Worker):
     def __init__(self, *args, **kwargs):
+        self.fork_job_execution = kwargs.pop('fork_job_execution', True)
         kwargs['job_class'] = JobExecution
         kwargs['queue_class'] = DjangoQueue
         super(DjangoWorker, self).__init__(*args, **kwargs)
@@ -120,6 +122,14 @@ class DjangoWorker(Worker):
             else:
                 proc = self.scheduler.start()
                 self._set_property('scheduler_pid', proc.pid)
+
+    def execute_job(self, job: 'Job', queue: 'Queue'):
+        if self.fork_job_execution:
+            super(DjangoWorker, self).execute_job(job, queue)
+        else:
+            self.set_state(WorkerStatus.BUSY)
+            self.perform_job(job, queue)
+            self.set_state(WorkerStatus.IDLE)
 
     def work(self, **kwargs) -> bool:
         kwargs.setdefault('with_scheduler', True)
