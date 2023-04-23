@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 
 from scheduler.settings import conf_settings
@@ -93,6 +95,6 @@ settings.SCHEDULER_QUEUES = {
     },
 }
 settings.SCHEDULER_CONFIG = dict(
-    FAKEREDIS=True,
+    FAKEREDIS=(os.getenv('FAKEREDIS', 'False') == 'True'),
 )
 conf_settings()

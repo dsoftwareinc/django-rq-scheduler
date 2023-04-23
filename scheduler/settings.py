@@ -5,8 +5,8 @@ from django.core.exceptions import ImproperlyConfigured
 
 logger = logging.getLogger("scheduler")
 
-QUEUES = None
-SCHEDULER_CONFIG = None
+QUEUES = dict()
+SCHEDULER_CONFIG = dict()
 
 
 def conf_settings():

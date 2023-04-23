@@ -53,7 +53,7 @@ rq = "^1.13"
 [tool.poetry.dev-dependencies]
 poetry = "^1.4"
 coverage = "^7"
-fakeredis = "^2.10"
+fakeredis = { version = "^2.10", extras=['lua'] }
 Flake8-pyproject = "^1.2"
 
 [tool.flake8]
