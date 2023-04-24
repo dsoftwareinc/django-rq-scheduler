@@ -14,7 +14,16 @@
     </div>
 {% endblock %}
 
-{% block content_title %}<h2>Job {{ job.id }}</h2>{% endblock %}
+{% block content_title %}
+    <h2>Job {{ job.id }}
+        {% if job.is_scheduled_job %}
+            <small>
+                <a href="{{ job|scheduled_job }}">Link to scheduled job</a>
+            </small>
+        {% endif %}
+    </h2>
+
+{% endblock %}
 
 {% block content %}
     <div id="content-main">
@@ -23,6 +32,7 @@
                 <label>Queue:</label>
                 <div class="readonly">{{ job.origin }}</div>
             </div>
+
 
             <div class="form-row">
                 <label>Timeout:</label>
@@ -128,73 +138,81 @@
 
 
         <div class="submit-row">
-            <p class="deletelink-box">
+            <div class="deletelink-box">
                 <a href="{% url 'queue_job_action'  job.id 'delete' %}"
-                   class="deletelink">Delete</a></p>
+                   class="deletelink">Delete</a>
+            </div>
             {% if job.is_started %}
-                <form method='POST' action="{% url 'queue_job_action'  job.id 'cancel' %}">
-                    {% csrf_token %}
-                    <input type="submit" value="cancel" class="default" name="cancel">
-                </form>
+                <div class="deletelink-box">
+                    <form method='POST' action="{% url 'queue_job_action'  job.id 'cancel' %}">
+                        {% csrf_token %}
+                        <input type="submit" value="cancel" class="default" name="cancel">
+                    </form>
+                </div>
             {% endif %}
             {% if job.is_failed %}
-                <form method='POST' action="{% url 'queue_job_action'  job.id 'requeue' %}">
-                    {% csrf_token %}
-                    <input type="submit" value="Requeue" class="default" name="requeue">
-                </form>
+                <div class="deletelink-box">
+                    <form method='POST' action="{% url 'queue_job_action'  job.id 'requeue' %}">
+                        {% csrf_token %}
+                        <input type="submit" value="Requeue" class="default" name="requeue">
+                    </form>
+                </div>
             {% endif %}
             {% if not job.is_queued and not job.is_failed %}
-                <form method='POST' action="{% url 'queue_job_action'  job.id 'enqueue' %}">
-                    {% csrf_token %}
-                    <input type="submit" value="Enqueue" class="default" name="Enqueue">
-                </form>
+                <div class="deletelink-box">
+                    <form method='POST' action="{% url 'queue_job_action'  job.id 'enqueue' %}">
+                        {% csrf_token %}
+                        <input type="submit" value="Enqueue" class="default" name="Enqueue">
+                    </form>
+                </div>
             {% endif %}
         </div>
+    </div>
 
 
-        <div class="inline-group" id="choice_set-group">
+    <div class="inline-group" id="choice_set-group">
 
-            {% for result in job.results %}
-                <h2>Result {{ result.id }}</h2>
-                <div class="inline-related">
+        {% for result in job.results %}
+            <h2>Result {{ result.id }}</h2>
+            <div class="inline-related">
 
-                    <fieldset class="module aligned ">
-                        <div class="form-row field-choice_text">
-                            <div>
-                                <label>Type:</label>
-                                <div class="readonly">{{ result.type.name }}</div>
-                            </div>
+                <fieldset class="module aligned ">
+                    <div class="form-row field-choice_text">
+                        <div>
+                            <label>Type:</label>
+                            <div class="readonly">{{ result.type.name }}</div>
                         </div>
+                    </div>
 
+                    <div class="form-row field-votes">
+                        <div>
+                            <label>Created at: {{ result.Type }}</label>
+                            <div class="readonly">{{ result.created_at|date:"Y-m-d, H:i:s" }}</div>
+                        </div>
+                    </div>
+                    {% if result.type.value == 1 %}
                         <div class="form-row field-votes">
                             <div>
-                                <label>Created at: {{ result.Type }}</label>
-                                <div class="readonly">{{ result.created_at|date:"Y-m-d, H:i:s" }}</div>
+                                <label>Return value:</label>
+                                <div>
+                                    <pre>{{ result.return_value }}</pre>
+                                </div>
                             </div>
                         </div>
-                        {% if result.type.value == 1 %}
-                            <div class="form-row field-votes">
+                    {% elif result.type.value == 2 %}
+                        <div class="form-row field-votes">
+                            <div>
+                                <label>Exception:</label>
                                 <div>
-                                    <label>Return value:</label>
-                                    <div>
-                                        <pre>{{ result.return_value }}</pre>
-                                    </div>
+                                    <pre>{{ result.exc_string }}</pre>
                                 </div>
                             </div>
-                        {% elif result.type.value == 2 %}
-                            <div class="form-row field-votes">
-                                <div>
-                                    <label>Exception:</label>
-                                    <div>
-                                        <pre>{{ result.exc_string }}</pre>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
-                    </fieldset>
-                </div>
-            {% endfor %}
-        </div>
+                        </div>
+                    {% endif %}
+                </fieldset>
+            </div>
+        {% endfor %}
+    </div>
 
     </div>
 

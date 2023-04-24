@@ -1,12 +1,12 @@
 from math import ceil
-from typing import Tuple
+from typing import Tuple, Optional
 
 import redis
 from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.http.response import HttpResponseNotFound, Http404
+from django.http.response import HttpResponseNotFound, Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -214,7 +214,7 @@ def worker_details(request, name):
     return render(request, 'admin/scheduler/worker_details.html', context_data)
 
 
-def _find_job(job_id: str) -> Tuple[DjangoQueue, JobExecution]:
+def _find_job(job_id: str) -> Tuple[Optional[DjangoQueue], Optional[JobExecution]]:
     from scheduler.settings import QUEUES
 
     for queue_name in QUEUES:
@@ -225,13 +225,15 @@ def _find_job(job_id: str) -> Tuple[DjangoQueue, JobExecution]:
                 return queue, job
         except Exception:
             pass
-    raise Http404(f"Couldn't find job with this ID: {job_id}")
+    return None, None
 
 
 @never_cache
 @staff_member_required
 def job_detail(request, job_id: str):
     queue, job = _find_job(job_id)
+    if job is None:
+        return HttpResponseBadRequest(f'Job {job_id} does not exist, maybe its TTL has passed')
     try:
         job.func_name
         data_is_valid = True
@@ -395,6 +397,8 @@ SUPPORTED_JOB_ACTIONS = {'requeue', 'delete', 'enqueue', 'cancel'}
 @staff_member_required
 def job_action(request, job_id: str, action: str):
     queue, job = _find_job(job_id)
+    if job is None:
+        return HttpResponseBadRequest(f'Job {job_id} does not exist, maybe its TTL has passed')
     if action not in SUPPORTED_JOB_ACTIONS:
         return HttpResponseNotFound()
 

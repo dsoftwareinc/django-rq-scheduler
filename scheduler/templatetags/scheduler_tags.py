@@ -23,6 +23,12 @@ def get_item(dictionary, key):
 
 
 @register.filter
+def scheduled_job(job: JobExecution):
+    scheduled_job = get_scheduled_job(*job.args)
+    return scheduled_job.get_absolute_url()
+
+
+@register.filter
 def worker_scheduler_pid(worker):
     return worker.scheduler_pid()
 

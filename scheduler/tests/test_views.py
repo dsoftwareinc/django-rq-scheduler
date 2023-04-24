@@ -27,7 +27,7 @@ class SingleJobActionViewsTest(BaseTestCase):
 
     def test_single_job_action_unknown_job(self):
         res = self.client.get(reverse('queue_job_action', args=['unknown', 'cancel']), follow=True)
-        self.assertEqual(404, res.status_code)
+        self.assertEqual(400, res.status_code)
 
     def test_single_job_action_unknown_action(self):
         queue = get_queue('default')
@@ -304,7 +304,7 @@ class ViewTest(BaseTestCase):
         # Bad job-id should return 404
         url = reverse('job_details', args=['bad_job_id', ])
         res = self.client.get(url)
-        self.assertEqual(404, res.status_code)
+        self.assertEqual(400, res.status_code)
 
     def test_job_details_on_deleted_dependency(self):
         """Page doesn't crash even if job.dependency has been deleted"""

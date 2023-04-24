@@ -10,6 +10,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.tz import utc
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -230,6 +231,10 @@ class BaseJob(TimeStampedModel):
             timeout=self.timeout,
             result_ttl=self.result_ttl,
         )
+
+    def get_absolute_url(self):
+        model = self._meta.model.__name__.lower()
+        return reverse(f'admin:scheduler_{model}_change', args=[self.id, ])
 
     def __str__(self):
         func = self.function_string()
