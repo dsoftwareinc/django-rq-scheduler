@@ -32,7 +32,44 @@ jobs:
         shell: bash
         run: |
           poetry run flake8 scheduler/
-  build:
+  testFakeRedis:
+    needs: [ 'flake8' ]
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 6
+      matrix:
+        python-version: [ '3.9', '3.10', '3.11' ]
+        django-version: [ '3.2.18', '4.2' ]
+    outputs:
+      version: ${{ steps.getVersion.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache-dependency-path: poetry.lock
+      - name: Install poetry and dependencies
+        shell: bash
+        run: |
+          python -m pip --quiet install poetry
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+          poetry install
+          poetry run pip install django==${{ matrix.django-version }}
+
+      - name: Get version
+        id: getVersion
+        shell: bash
+        run: |
+          VERSION=$(poetry version -s --no-ansi -n)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+      - name: Run Tests without coverage
+        run: |
+          cd testproject
+          export FAKEREDIS=True
+          poetry run python manage.py test scheduler
+
+  testRedis:
     needs: [ 'flake8' ]
     runs-on: ubuntu-latest
     strategy:
@@ -109,7 +146,7 @@ jobs:
       # write permission is required for auto-labeler
       # otherwise, read permission is required at least
       pull-requests: write
-    needs: build
+    needs: testRedis
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v5

@@ -6,8 +6,10 @@ from redis import Redis
 from redis.client import Pipeline
 from rq import Worker
 from rq.command import send_stop_job_command
+from rq.decorators import job
 from rq.exceptions import InvalidJobOperation
 from rq.job import Job, JobStatus
+from rq.job import get_current_job  # noqa
 from rq.queue import Queue, logger
 from rq.registry import (
     DeferredJobRegistry, FailedJobRegistry, FinishedJobRegistry,
@@ -19,6 +21,10 @@ from rq.worker import WorkerStatus
 from scheduler import settings
 
 MODEL_NAMES = ['ScheduledJob', 'RepeatableJob', 'CronJob']
+
+rq_job_decorator = job
+ExecutionStatus = JobStatus
+InvalidJobOperation = InvalidJobOperation
 
 
 def as_text(v: Union[bytes, str]) -> Optional[str]:
@@ -46,10 +52,6 @@ def compact(lst: List[Any]) -> List[Any]:
     :returns: The list without None values
     """
     return [item for item in lst if item is not None]
-
-
-ExecutionStatus = JobStatus
-InvalidJobOperation = InvalidJobOperation
 
 
 class JobExecution(Job):

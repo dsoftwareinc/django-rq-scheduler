@@ -84,7 +84,6 @@ class Command(BaseCommand):
 
             w.work(burst=options.get('burst', False),
                    logging_level=log_level,
-
                    max_jobs=options['max_jobs'], )
         except ConnectionError as e:
             click.echo(str(e), err=True)

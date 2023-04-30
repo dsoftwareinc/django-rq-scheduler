@@ -1,7 +1,6 @@
-from rq.decorators import job as _rq_job
-
 from scheduler import settings
 from .queues import get_queue, QueueNotFoundError
+from .rq_classes import rq_job_decorator
 
 
 def job(*args, **kwargs):
@@ -38,7 +37,7 @@ def job(*args, **kwargs):
     kwargs.setdefault('result_ttl', config.get('DEFAULT_RESULT_TTL'))
     kwargs.setdefault('timeout', config.get('DEFAULT_TIMEOUT'))
 
-    decorator = _rq_job(queue, *args, **kwargs)
+    decorator = rq_job_decorator(queue, *args, **kwargs)
     if func:
         return decorator(func)
     return decorator
