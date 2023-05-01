@@ -10,7 +10,7 @@ from django.urls import reverse
 from scheduler.queues import get_queue
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
-from .jobs import test_job, failing_job, long_job, test_job
+from .jobs import failing_job, long_job, test_job
 from .testtools import assert_message_in_response
 from ..rq_classes import JobExecution, ExecutionStatus
 
