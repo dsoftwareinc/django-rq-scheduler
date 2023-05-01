@@ -1,6 +1,5 @@
 from time import sleep
 
-
 _counter = 0
 
 
@@ -8,10 +7,6 @@ def arg_callable():
     global _counter
     _counter += 1
     return _counter
-
-
-def test_job():
-    return 1 + 1
 
 
 def test_args_kwargs(*args, **kwargs):
@@ -32,5 +27,5 @@ def failing_job():
     raise ValueError
 
 
-def access_self():
-    return get_current_job().id
+def test_job():
+    return 1 + 1

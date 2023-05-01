@@ -10,7 +10,7 @@ from django.urls import reverse
 from scheduler.queues import get_queue
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
-from .jobs import access_self, failing_job, long_job, test_job
+from .jobs import test_job, failing_job, long_job, test_job
 from .testtools import assert_message_in_response
 from ..rq_classes import JobExecution, ExecutionStatus
 
@@ -54,7 +54,7 @@ class SingleJobActionViewsTest(BaseTestCase):
 
     def test_single_job_action_delete_job(self):
         queue = get_queue('django_rq_scheduler_test')
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
         res = self.client.get(reverse('queue_job_action', args=[job.id, 'delete']), follow=True)
         self.assertEqual(200, res.status_code)
         self.client.post(reverse('queue_job_action', args=[job.id, 'delete']), {'post': 'yes'}, follow=True)
@@ -119,7 +119,7 @@ class JobListActionViewsTest(BaseTestCase):
         # enqueue some jobs
         job_ids = []
         for _ in range(0, 3):
-            job = queue.enqueue(access_self)
+            job = queue.enqueue(test_job)
             job_ids.append(job.id)
 
         # remove those jobs using view
@@ -167,7 +167,7 @@ class JobListActionViewsTest(BaseTestCase):
         job_ids = []
         worker = create_worker('django_rq_scheduler_test')
         for _ in range(3):
-            job = queue.enqueue(access_self)
+            job = queue.enqueue(test_job)
             job_ids.append(job.id)
             worker.prepare_job_execution(job)
 
@@ -202,7 +202,7 @@ class QueueRegistryJobsViewTest(BaseTestCase):
     def test_queued_jobs(self):
         """Jobs in queue are displayed properly"""
         queue = get_queue('default')
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
         queue_name = 'default'
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'queued']))
         self.assertEqual(res.context['jobs'], [job])
@@ -212,7 +212,7 @@ class QueueRegistryJobsViewTest(BaseTestCase):
         queue = get_queue('django_rq_scheduler_test')
         queue_name = 'django_rq_scheduler_test'
 
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
         registry = queue.finished_job_registry
         registry.add(job, 2)
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'finished']))
@@ -227,7 +227,7 @@ class QueueRegistryJobsViewTest(BaseTestCase):
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'failed']))
         self.assertEqual(res.status_code, 200)
 
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
         registry = queue.failed_job_registry
         registry.add(job, 2)
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'failed']))
@@ -242,7 +242,7 @@ class QueueRegistryJobsViewTest(BaseTestCase):
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'scheduled']))
         self.assertEqual(res.status_code, 200)
 
-        job = queue.enqueue_at(datetime.now(), access_self)
+        job = queue.enqueue_at(datetime.now(), test_job)
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'scheduled']))
         self.assertEqual(res.context['jobs'], [job])
 
@@ -252,7 +252,7 @@ class QueueRegistryJobsViewTest(BaseTestCase):
         queue_name = 'django_rq_scheduler_test'
 
         registry = queue.scheduled_job_registry
-        job = queue.enqueue_at(datetime.now(), access_self)
+        job = queue.enqueue_at(datetime.now(), test_job)
         self.assertEqual(len(registry), 1)
 
         queue.connection.delete(job.key)
@@ -266,7 +266,7 @@ class QueueRegistryJobsViewTest(BaseTestCase):
         queue = get_queue('django_rq_scheduler_test')
         queue_name = 'django_rq_scheduler_test'
 
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
         registry = queue.started_job_registry
         registry.add(job, 2)
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'started']))
@@ -277,7 +277,7 @@ class QueueRegistryJobsViewTest(BaseTestCase):
         queue = get_queue('django_rq_scheduler_test')
         queue_name = 'django_rq_scheduler_test'
 
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
         registry = queue.deferred_job_registry
         registry.add(job, 2)
         res = self.client.get(reverse('queue_registry_jobs', args=[queue_name, 'deferred']))
@@ -289,7 +289,7 @@ class ViewTest(BaseTestCase):
     def test_job_details(self):
         """Job data is displayed properly"""
         queue = get_queue('default')
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
 
         url = reverse('job_details', args=[job.id, ])
         res = self.client.get(url)
@@ -311,8 +311,8 @@ class ViewTest(BaseTestCase):
         """Page doesn't crash even if job.dependency has been deleted"""
         queue = get_queue('default')
 
-        job = queue.enqueue(access_self)
-        second_job = queue.enqueue(access_self, depends_on=job)
+        job = queue.enqueue(test_job)
+        second_job = queue.enqueue(test_job, depends_on=job)
         job.delete()
         url = reverse('job_details', args=[second_job.id])
         res = self.client.get(url)
@@ -362,14 +362,14 @@ class ViewTest(BaseTestCase):
 
     def test_clear_queue_enqueued(self):
         queue = get_queue('django_rq_scheduler_test')
-        job = queue.enqueue(access_self)
+        job = queue.enqueue(test_job)
         self.client.post(reverse('queue_clear', args=[queue.name, 'queued']), {'post': 'yes'})
         self.assertFalse(JobExecution.exists(job.id, connection=queue.connection))
         self.assertNotIn(job.id, queue.job_ids)
 
     def test_clear_queue_scheduled(self):
         queue = get_queue('django_rq_scheduler_test')
-        job = queue.enqueue_at(datetime.now(), access_self)
+        job = queue.enqueue_at(datetime.now(), test_job)
 
         res = self.client.get(reverse('queue_clear', args=[queue.name, 'scheduled']), follow=True)
         self.assertEqual(200, res.status_code)
