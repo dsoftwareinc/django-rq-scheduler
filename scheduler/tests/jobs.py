@@ -1,6 +1,5 @@
 from time import sleep
 
-from scheduler.rq_classes import get_current_job
 
 _counter = 0
 

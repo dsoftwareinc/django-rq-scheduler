@@ -6,7 +6,6 @@ import click
 from django.core.management.base import BaseCommand
 from django.db import connections
 from redis.exceptions import ConnectionError
-from rq import use_connection
 from rq.logutils import setup_loghandlers
 
 from scheduler.tools import create_worker
@@ -74,10 +73,6 @@ class Command(BaseCommand):
                 name=options['name'],
                 default_worker_ttl=options['worker_ttl'],
                 fork_job_execution=options['fork_job_execution'], )
-
-            # Call use_connection to push the redis connection into LocalStack
-            # without this, jobs using RQ's get_current_job() will fail
-            use_connection(w.connection)
 
             # Close any opened DB connection before any fork
             reset_db_connections()

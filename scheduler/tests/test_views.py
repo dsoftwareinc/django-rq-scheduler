@@ -10,7 +10,7 @@ from django.urls import reverse
 from scheduler.queues import get_queue
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
-from .jobs import access_self, failing_job, long_job
+from .jobs import access_self, failing_job, long_job, test_job
 from .testtools import assert_message_in_response
 from ..rq_classes import JobExecution, ExecutionStatus
 
@@ -86,28 +86,29 @@ class SingleJobActionViewsTest(BaseTestCase):
 
     def test_single_job_action_enqueue_job(self):
         queue = get_queue('django_rq_scheduler_test')
-
+        job_list = []
         # enqueue some jobs that depends on other
         previous_job = None
         for _ in range(0, 3):
-            job = queue.enqueue(access_self, depends_on=previous_job)
+            job = queue.enqueue(test_job, depends_on=previous_job)
+            job_list.append(job)
             previous_job = job
 
         # This job is deferred
-        last_job = job
-        self.assertEqual(last_job.get_status(), ExecutionStatus.DEFERRED)
-        self.assertIsNone(last_job.enqueued_at)
 
-        # We want to force-enqueue this job
-        res = self.client.get(reverse('queue_job_action', args=[last_job.id, 'enqueue']), follow=True)
-        self.assertEqual(200, res.status_code)
-        res = self.client.post(reverse('queue_job_action', args=[last_job.id, 'enqueue']), follow=True)
+        self.assertEqual(job_list[-1].get_status(), ExecutionStatus.DEFERRED)
+        self.assertIsNone(job_list[-1].enqueued_at)
 
-        # Check that job is updated correctly
+        # Try to force enqueue last job should do nothing
+        res = self.client.get(reverse('queue_job_action', args=[job_list[-1].id, 'enqueue']), follow=True)
         self.assertEqual(200, res.status_code)
-        tmp = queue.fetch_job(last_job.id)
-        self.assertEqual(tmp.get_status(), ExecutionStatus.QUEUED)
-        self.assertIsNotNone(tmp.enqueued_at)
+        res = self.client.post(reverse('queue_job_action', args=[job_list[-1].id, 'enqueue']), follow=True)
+
+        # Check that job is still deferred because it has dependencies (rq 1.14 change)
+        self.assertEqual(200, res.status_code)
+        tmp = queue.fetch_job(job_list[-1].id)
+        self.assertEqual(tmp.get_status(), ExecutionStatus.DEFERRED)
+        self.assertIsNone(tmp.enqueued_at)
 
 
 class JobListActionViewsTest(BaseTestCase):
