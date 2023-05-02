@@ -108,7 +108,7 @@ class SingleJobActionViewsTest(BaseTestCase):
         self.assertEqual(200, res.status_code)
         tmp = queue.fetch_job(job_list[-1].id)
         self.assertEqual(tmp.get_status(), ExecutionStatus.QUEUED)
-        self.assertIsNone(tmp.enqueued_at)
+        self.assertIsNotNone(tmp.enqueued_at)
 
 
 class JobListActionViewsTest(BaseTestCase):
