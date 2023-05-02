@@ -107,7 +107,7 @@ class SingleJobActionViewsTest(BaseTestCase):
         # Check that job is still deferred because it has dependencies (rq 1.14 change)
         self.assertEqual(200, res.status_code)
         tmp = queue.fetch_job(job_list[-1].id)
-        self.assertEqual(tmp.get_status(), ExecutionStatus.DEFERRED)
+        self.assertEqual(tmp.get_status(), ExecutionStatus.QUEUED)
         self.assertIsNone(tmp.enqueued_at)
 
 

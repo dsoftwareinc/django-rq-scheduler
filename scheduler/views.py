@@ -424,7 +424,7 @@ def job_action(request, job_id: str, action: str):
             return redirect('queue_registry_jobs', queue.name, 'queued')
         elif action == 'enqueue':
             job.delete(remove_from_queue=False)
-            queue.enqueue_job(job)
+            queue._enqueue_job(job)
             messages.info(request, 'You have successfully enqueued %s' % job.id)
             return redirect('job_details', job_id)
         elif action == 'cancel':
