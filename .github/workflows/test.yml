@@ -1,13 +1,11 @@
 name: Django CI
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
-      - main
       - master
   push:
     branches:
-      - main
       - master
   workflow_dispatch:
 
@@ -20,7 +18,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache-dependency-path: poetry.lock
       - name: Install poetry and dependencies
         shell: bash
@@ -39,7 +37,7 @@ jobs:
       max-parallel: 6
       matrix:
         python-version: [ '3.9', '3.10', '3.11' ]
-        django-version: [ '3.2.18', '4.2' ]
+        django-version: [ '3.2.19', '4.2.1' ]
     outputs:
       version: ${{ steps.getVersion.outputs.VERSION }}
     steps:
@@ -76,10 +74,10 @@ jobs:
       max-parallel: 6
       matrix:
         python-version: [ '3.9', '3.10', '3.11' ]
-        django-version: [ '3.2.18', '4.2' ]
+        django-version: [ '3.2.19', '4.2.1' ]
         include:
           - python-version: '3.11'
-            django-version: '4.2'
+            django-version: '4.2.1'
             coverage: yes
     services:
       redis:
