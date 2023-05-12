@@ -52,7 +52,7 @@ class BaseJob(TimeStampedModel):
                     'past jobs that should no longer be scheduled'),
     )
     queue = models.CharField(
-        _('queue'), max_length=16, choices=QUEUES,
+        _('queue'), max_length=255, choices=QUEUES,
         help_text=_('Queue name'), )
     job_id = models.CharField(
         _('job id'), max_length=128, editable=False, blank=True, null=True,
