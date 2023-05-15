@@ -369,14 +369,6 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         kwargs = {self.interval_unit: self.interval, }
         return timedelta(**kwargs).total_seconds()
 
-    def _prevent_duplicate_runs(self):
-        """
-        Counts the number of repeats lapsed between scheduled time and now
-        and decrements that amount from the repeats remaining and updates the scheduled time to the next repeat.
-
-        self.repeat is None ==> Run forever.
-        """
-
     def _enqueue_args(self):
         res = super(RepeatableJob, self)._enqueue_args()
         res['meta']['interval'] = self.interval_seconds()
@@ -424,10 +416,7 @@ class CronJob(BaseJob):
         try:
             croniter.croniter(self.cron_string)
         except ValueError as e:
-            raise ValidationError({
-                'cron_string': ValidationError(
-                    _(str(e)), code='invalid')
-            })
+            raise ValidationError({'cron_string': ValidationError(_(str(e)), code='invalid')})
 
     def _schedule_time(self):
         return tools.get_next_cron_time(self.cron_string)

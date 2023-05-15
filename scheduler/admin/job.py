@@ -34,7 +34,18 @@ class JobKwargInline(HiddenMixin, GenericStackedInline):
     )
 
 
+@admin.register(CronJob, ScheduledJob, RepeatableJob)
 class JobAdmin(admin.ModelAdmin):
+    LIST_DISPLAY_EXTRA = dict(
+        CronJob=('cron_string', 'next_run',),
+        ScheduledJob=('scheduled_time',),
+        RepeatableJob=('scheduled_time', 'interval_display'),
+    )
+    FIELDSET_EXTRA = dict(
+        CronJob=('cron_string', 'repeat', 'timeout', 'result_ttl',),
+        ScheduledJob=('scheduled_time', 'timeout', 'result_ttl'),
+        RepeatableJob=('scheduled_time', ('interval', 'interval_unit',), 'repeat', 'timeout', 'result_ttl',),
+    )
     """BaseJob admin class"""
     save_on_top = True
     change_form_template = 'admin/scheduler/change_form.html'
@@ -52,6 +63,22 @@ class JobAdmin(admin.ModelAdmin):
             'fields': ('queue', 'job_id',),
         }),
     )
+
+    def get_list_display(self, request):
+        if self.model.__name__ not in JobAdmin.LIST_DISPLAY_EXTRA:
+            raise ValueError(f'Unrecognized model {self.model}')
+        return JobAdmin.list_display + JobAdmin.LIST_DISPLAY_EXTRA[self.model.__name__]
+
+    def get_fieldsets(self, request, obj=None):
+        if self.model.__name__ not in JobAdmin.FIELDSET_EXTRA:
+            raise ValueError(f'Unrecognized model {self.model}')
+        return JobAdmin.fieldsets + ((_('Scheduling'), {
+            'fields': JobAdmin.FIELDSET_EXTRA[self.model.__name__],
+        }),)
+
+    @admin.display(description='Next run')
+    def next_run(self, o: CronJob):
+        return tools.get_next_cron_time(o.cron_string)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra = extra_context or {}
@@ -117,55 +144,3 @@ class JobAdmin(admin.ModelAdmin):
             job.enqueue_to_run()
             job_names.append(job.name)
         self.message_user(request, f"The following jobs have been enqueued: {', '.join(job_names)}", )
-
-
-@admin.register(ScheduledJob)
-class ScheduledJobAdmin(JobAdmin):
-    list_display = JobAdmin.list_display + ('scheduled_time',)
-
-    fieldsets = JobAdmin.fieldsets + (
-        (_('Scheduling'), {
-            'fields': (
-                'scheduled_time',
-                'timeout',
-                'result_ttl'
-            ),
-        }),
-    )
-
-
-@admin.register(RepeatableJob)
-class RepeatableJobAdmin(JobAdmin):
-    list_display = JobAdmin.list_display + ('scheduled_time', 'interval_display')
-
-    fieldsets = JobAdmin.fieldsets + (
-        (_('Scheduling'), {
-            'fields': (
-                'scheduled_time',
-                ('interval', 'interval_unit',),
-                'repeat',
-                'timeout',
-                'result_ttl',
-            ),
-        }),
-    )
-
-
-@admin.register(CronJob)
-class CronJobAdmin(JobAdmin):
-    list_display = JobAdmin.list_display + ('cron_string', 'next_run')
-
-    fieldsets = JobAdmin.fieldsets + (
-        (_('Scheduling'), {
-            'fields': (
-                'cron_string',
-                'repeat',
-                'timeout',
-                'result_ttl',
-            ),
-        }),
-    )
-
-    @admin.display(description='Next run')
-    def next_run(self, o):
-        return tools.get_next_cron_time(o.cron_string)
