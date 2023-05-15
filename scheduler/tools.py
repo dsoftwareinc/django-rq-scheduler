@@ -3,6 +3,7 @@ import os
 
 import croniter
 from django.apps import apps
+from django.templatetags.tz import utc
 from django.utils import timezone
 
 from scheduler.queues import get_queues, logger, get_queue
@@ -19,12 +20,12 @@ def callable_func(callable_str: str):
     return func
 
 
-def get_next_cron_time(cron_string):
+def get_next_cron_time(cron_string) -> timezone.datetime:
     """Calculate the next scheduled time by creating a crontab object
     with a cron string"""
     now = timezone.now()
     itr = croniter.croniter(cron_string, now)
-    return itr.get_next(timezone.datetime)
+    return utc(itr.get_next(timezone.datetime))
 
 
 def get_scheduled_job(task_model: str, task_id: int):

@@ -209,12 +209,12 @@ class BaseJob(TimeStampedModel):
         return True
 
     def _schedule_time(self):
-        raise NotImplementedError
+        return utc(self.scheduled_time)
 
     def to_dict(self) -> Dict:
         """Export model to dictionary, so it can be saved as external file backup
         """
-        return dict(
+        res = dict(
             model=self.JOB_TYPE,
             name=self.name,
             callable=self.callable,
@@ -230,7 +230,12 @@ class BaseJob(TimeStampedModel):
             at_front=self.at_front,
             timeout=self.timeout,
             result_ttl=self.result_ttl,
+            cron_string=getattr(self, 'cron_string', None),
+            scheduled_time=self._schedule_time().isoformat(),
+            interval=getattr(self, 'interval', None),
+            interval_unit=getattr(self, 'interval_unit', None),
         )
+        return res
 
     def get_absolute_url(self):
         model = self._meta.model.__name__.lower()
@@ -280,9 +285,6 @@ class BaseJob(TimeStampedModel):
 class ScheduledTimeMixin(models.Model):
     scheduled_time = models.DateTimeField(_('scheduled time'))
 
-    def _schedule_time(self):
-        return utc(self.scheduled_time)
-
     class Meta:
         abstract = True
 
@@ -295,12 +297,6 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
         return (super(ScheduledJob, self).ready_for_schedule()
                 and (self.scheduled_time is None
                      or self.scheduled_time >= timezone.now()))
-
-    def to_dict(self) -> Dict:
-        res = super(ScheduledJob, self).to_dict()
-        res['scheduled_time'] = self.scheduled_time.isoformat()
-        del res['repeat']
-        return res
 
     class Meta:
         verbose_name = _('Scheduled Job')
@@ -322,15 +318,6 @@ class RepeatableJob(ScheduledTimeMixin, BaseJob):
         _('interval unit'), max_length=12, choices=UNITS, default=UNITS.hours
     )
     JOB_TYPE = 'RepeatableJob'
-
-    def to_dict(self) -> Dict:
-        res = super(RepeatableJob, self).to_dict()
-        res.update(dict(
-            scheduled_time=self.scheduled_time.isoformat(),
-            interval=self.interval,
-            interval_unit=self.interval_unit,
-        ))
-        return res
 
     def clean(self):
         super(RepeatableJob, self).clean()
@@ -402,11 +389,6 @@ class CronJob(BaseJob):
             '''Define the schedule in a crontab like syntax.
             Times are in UTC. Use <a href="https://crontab.guru/">crontab.guru</a> to create a cron string.''')
     )
-
-    def to_dict(self) -> Dict:
-        res = super(CronJob, self).to_dict()
-        res['cron_string'] = self.cron_string
-        return res
 
     def clean(self):
         super(CronJob, self).clean()

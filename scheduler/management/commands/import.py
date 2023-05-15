@@ -1,10 +1,11 @@
 import sys
-from datetime import datetime
 
 import click
 from django.apps import apps
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from scheduler.models import JobArg, JobKwarg
 from scheduler.tools import MODEL_NAMES
@@ -24,9 +25,14 @@ def create_job_from_dict(job_dict, update):
     del kwargs['model']
     del kwargs['callable_args']
     del kwargs['callable_kwargs']
-    if 'scheduled_time' in kwargs:
-        kwargs['scheduled_time'] = datetime.fromisoformat(kwargs['scheduled_time'])
-
+    if kwargs.get('scheduled_time', None):
+        kwargs['scheduled_time'] = timezone.datetime.fromisoformat(kwargs['scheduled_time'])
+        if not settings.USE_TZ:
+            kwargs['scheduled_time'] = timezone.make_naive(kwargs['scheduled_time'])
+    model_fields = set(map(lambda field: field.attname, model._meta.get_fields()))
+    keys_to_ignore = list(filter(lambda k: k not in model_fields, kwargs.keys()))
+    for k in keys_to_ignore:
+        del kwargs[k]
     scheduled_job = model.objects.create(**kwargs)
     click.echo(f'Created job {scheduled_job}')
     content_type = ContentType.objects.get_for_model(scheduled_job)
