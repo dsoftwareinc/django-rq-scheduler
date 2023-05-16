@@ -2,7 +2,6 @@ import time
 
 import click
 from django.core.management.base import BaseCommand
-
 from scheduler.views import get_statistics
 
 ANSI_LIGHT_GREEN = "\033[1;32m"
@@ -53,11 +52,8 @@ class Command(BaseCommand):
                    f'  Canceled |'
                    f'   Workers |')
         self._print_separator()
-
         for ind, queue in enumerate(statistics["queues"]):
             vals = (queue[k] for k in KEYS)
-            vals = (queue["jobs"], queue["started_jobs"], queue["deferred_jobs"],
-                    queue["finished_jobs"], queue['canceled_jobs'], queue["workers"])
             # Deal with colors
             if prev_stats and len(prev_stats['queues']) > ind:
                 prev = prev_stats["queues"][ind]

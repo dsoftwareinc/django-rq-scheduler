@@ -16,16 +16,16 @@ class Command(BaseCommand):
         parser.add_argument('--dry-run', action='store_true', help='Do not actually delete failed jobs')
 
     def handle(self, *args, **options):
-        queue = get_queue(options['queue'])
+        queue = get_queue(options.get('queue', 'default'))
         job_ids = queue.failed_job_registry.get_job_ids()
-        jobs = [JobExecution.fetch(job_id) for job_id in job_ids]
+        jobs = [JobExecution.fetch(job_id, connection=queue.connection) for job_id in job_ids]
         func_name = options.get('func', None)
         if func_name is not None:
             jobs = [job for job in jobs if job.func_name == func_name]
-        if options['dry_run']:
-            click.echo(f'Found {len(jobs)} failed jobs')
-            return
-
+        dry_run = options.get('dry_run', False)
+        click.echo(f'Found {len(jobs)} failed jobs')
         for job in jobs:
-            job.delete()
+            click.echo(f'Deleting {job.id}')
+            if not dry_run:
+                job.delete()
         click.echo(f'Deleted {len(jobs)} failed jobs')

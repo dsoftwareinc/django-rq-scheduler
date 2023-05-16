@@ -6,12 +6,12 @@ from unittest import mock
 import yaml
 from django.core.management import call_command
 from django.test import TestCase
-
 from scheduler.models import ScheduledJob, RepeatableJob
 from scheduler.queues import get_queue
 from scheduler.tests.jobs import failing_job, test_job
 from scheduler.tests.testtools import job_factory
 from . import test_settings  # noqa
+from ..tools import create_worker
 
 
 class RqworkerTestCase(TestCase):
@@ -93,6 +93,17 @@ class RqstatsTest(TestCase):
         call_command('rqstats', '-j')
         call_command('rqstats', '-y')
         call_command('rqstats')
+
+
+class DeleteFailedExecutionsTest(TestCase):
+    def test_rqstats__does_not_fail(self):
+        queue = get_queue('default')
+        queue.enqueue(failing_job)
+        worker = create_worker('default')
+        worker.work(burst=True)
+        self.assertEqual(1, len(queue.failed_job_registry))
+        call_command('delete_failed_executions', queue='default')
+        self.assertEqual(0, len(queue.failed_job_registry))
 
 
 class RunJobTest(TestCase):
