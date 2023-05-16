@@ -187,3 +187,88 @@ class ImportTest(TestCase):
         attrs = ['name', 'queue', 'callable', 'enabled', 'timeout']
         for attr in attrs:
             self.assertEqual(getattr(jobs[0], attr), getattr(db_job, attr))
+
+    def test_import__should_schedule_job_yaml(self):
+        jobs = list()
+        jobs.append(job_factory(ScheduledJob, enabled=True, instance_only=True))
+        jobs.append(job_factory(RepeatableJob, enabled=True, instance_only=True))
+        res = yaml.dump([j.to_dict() for j in jobs], default_flow_style=False)
+        self.tmpfile.write(res)
+        self.tmpfile.flush()
+        # act
+        call_command('import', filename=self.tmpfile.name, format='yaml')
+        # assert
+        self.assertEqual(1, ScheduledJob.objects.count())
+        db_job = ScheduledJob.objects.first()
+        attrs = ['name', 'queue', 'callable', 'enabled', 'timeout']
+        for attr in attrs:
+            self.assertEqual(getattr(jobs[0], attr), getattr(db_job, attr))
+
+    def test_import__should_schedule_job_yaml_without_yaml_lib(self):
+        jobs = list()
+        jobs.append(job_factory(ScheduledJob, enabled=True, instance_only=True))
+        jobs.append(job_factory(RepeatableJob, enabled=True, instance_only=True))
+        res = yaml.dump([j.to_dict() for j in jobs], default_flow_style=False)
+        self.tmpfile.write(res)
+        self.tmpfile.flush()
+        # act
+        with mock.patch.dict('sys.modules', {'yaml': None}):
+            with self.assertRaises(SystemExit) as cm:
+                call_command('import', filename=self.tmpfile.name, format='yaml')
+            self.assertEqual(cm.exception.code, 1)
+
+    def test_import__should_schedule_job_reset(self):
+        jobs = list()
+        job_factory(ScheduledJob, enabled=True)
+        job_factory(ScheduledJob, enabled=True)
+        jobs.append(job_factory(ScheduledJob, enabled=True))
+        jobs.append(job_factory(RepeatableJob, enabled=True, instance_only=True))
+        res = json.dumps([j.to_dict() for j in jobs])
+        self.tmpfile.write(res)
+        self.tmpfile.flush()
+        # act
+        call_command('import', filename=self.tmpfile.name, reset=True, )
+        # assert
+        self.assertEqual(1, ScheduledJob.objects.count())
+        db_job = ScheduledJob.objects.first()
+        attrs = ['name', 'queue', 'callable', 'enabled', 'timeout']
+        for attr in attrs:
+            self.assertEqual(getattr(jobs[0], attr), getattr(db_job, attr))
+        self.assertEqual(1, RepeatableJob.objects.count())
+        db_job = RepeatableJob.objects.first()
+        attrs = ['name', 'queue', 'callable', 'enabled', 'timeout']
+        for attr in attrs:
+            self.assertEqual(getattr(jobs[1], attr), getattr(db_job, attr))
+
+    def test_import__should_schedule_job_update_existing(self):
+        jobs = list()
+        job_factory(ScheduledJob, enabled=True)
+        jobs.append(job_factory(ScheduledJob, enabled=True))
+        res = json.dumps([j.to_dict() for j in jobs])
+        self.tmpfile.write(res)
+        self.tmpfile.flush()
+        # act
+        call_command('import', filename=self.tmpfile.name, update=True, )
+        # assert
+        self.assertEqual(2, ScheduledJob.objects.count())
+        db_job = ScheduledJob.objects.get(name=jobs[0].name)
+        self.assertNotEqual(jobs[0].id, db_job.id)
+        attrs = ['name', 'queue', 'callable', 'enabled', 'timeout']
+        for attr in attrs:
+            self.assertEqual(getattr(jobs[0], attr), getattr(db_job, attr))
+
+    def test_import__should_schedule_job_without_update_existing(self):
+        jobs = list()
+        job_factory(ScheduledJob, enabled=True)
+        jobs.append(job_factory(ScheduledJob, enabled=True))
+        res = json.dumps([j.to_dict() for j in jobs])
+        self.tmpfile.write(res)
+        self.tmpfile.flush()
+        # act
+        call_command('import', filename=self.tmpfile.name, )
+        # assert
+        self.assertEqual(2, ScheduledJob.objects.count())
+        db_job = ScheduledJob.objects.get(name=jobs[0].name)
+        attrs = ['id', 'name', 'queue', 'callable', 'enabled', 'timeout']
+        for attr in attrs:
+            self.assertEqual(getattr(jobs[0], attr), getattr(db_job, attr))

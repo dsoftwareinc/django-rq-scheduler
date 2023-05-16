@@ -89,13 +89,13 @@ class Command(BaseCommand):
                 jobs = json.load(file)
             except json.decoder.JSONDecodeError:
                 click.echo('Error decoding json', err=True)
-
-        if options.get("format") == 'yaml':
+                exit(1)
+        elif options.get("format") == 'yaml':
             try:
                 import yaml
             except ImportError:
                 click.echo("Aborting. LibYAML is not installed.")
-                return
+                exit(1)
             # Disable YAML alias
             yaml.Dumper.ignore_aliases = lambda *x: True
             jobs = yaml.load(file, yaml.SafeLoader)
@@ -103,7 +103,7 @@ class Command(BaseCommand):
         if options.get('reset'):
             for model_name in MODEL_NAMES:
                 model = apps.get_model(app_label='scheduler', model_name=model_name)
-                model.objects.delete()
+                model.objects.all().delete()
 
         for job in jobs:
             create_job_from_dict(job, update=options.get('update'))
