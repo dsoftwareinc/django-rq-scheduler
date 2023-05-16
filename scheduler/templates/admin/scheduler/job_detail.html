@@ -89,8 +89,7 @@
                 </div>
             </div>
             <div class="form-row">
-
-                <label>Scheduler callable</label>
+                <label>Scheduler callable:</label>
                 <div class="data">{{ job | show_func_name }}</div>
             </div>
 
@@ -100,7 +99,7 @@
                     {% for k in job.meta %}
                         <div class="form-row">
                             <label>{{ k }}</label>
-                            <div class="data">{{ job.meta|get_item:k }}</div>
+                            <div class="data">{{ job.meta | get_item:k }}</div>
                         </div>
                     {% endfor %}
                 </div>

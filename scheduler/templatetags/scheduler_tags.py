@@ -1,4 +1,7 @@
+from typing import Dict
+
 from django import template
+from django.utils.safestring import mark_safe
 
 from scheduler.rq_classes import JobExecution, DjangoQueue
 from scheduler.tools import get_scheduled_job
@@ -9,16 +12,17 @@ register = template.Library()
 @register.filter
 def show_func_name(rq_job: JobExecution) -> str:
     try:
-        if rq_job.func_name == 'scheduler.tools.run_job':
+        res = rq_job.func_name
+        if res == 'scheduler.tools.run_job':
             job = get_scheduled_job(*rq_job.args)
-            return job.function_string()
-        return rq_job.func_name
+            res = job.function_string()
+        return mark_safe(res)
     except Exception as e:
         return repr(e)
 
 
 @register.filter
-def get_item(dictionary, key):
+def get_item(dictionary: Dict, key):
     return dictionary.get(key)
 
 

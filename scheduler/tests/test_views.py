@@ -11,7 +11,8 @@ from scheduler.queues import get_queue
 from scheduler.tools import create_worker
 from . import test_settings  # noqa
 from .jobs import failing_job, long_job, test_job
-from .testtools import assert_message_in_response
+from .testtools import assert_message_in_response, job_factory, _get_job_from_scheduled_registry
+from ..models import ScheduledJob
 from ..rq_classes import JobExecution, ExecutionStatus
 
 
@@ -306,6 +307,17 @@ class ViewTest(BaseTestCase):
         url = reverse('job_details', args=['bad_job_id', ])
         res = self.client.get(url)
         self.assertEqual(400, res.status_code)
+
+    def test_scheduled_job_details(self):
+        """Job data is displayed properly"""
+        queue = get_queue('default')
+        scheduled_job = job_factory(ScheduledJob, enabled=True)
+        job = _get_job_from_scheduled_registry(scheduled_job)
+
+        url = reverse('job_details', args=[job.id, ])
+        res = self.client.get(url, follow=True)
+        self.assertIn('job', res.context)
+        self.assertEqual(res.context['job'], job)
 
     def test_job_details_on_deleted_dependency(self):
         """Page doesn't crash even if job.dependency has been deleted"""
