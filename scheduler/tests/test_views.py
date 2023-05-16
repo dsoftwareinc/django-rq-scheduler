@@ -310,7 +310,6 @@ class ViewTest(BaseTestCase):
 
     def test_scheduled_job_details(self):
         """Job data is displayed properly"""
-        queue = get_queue('default')
         scheduled_job = job_factory(ScheduledJob, enabled=True)
         job = _get_job_from_scheduled_registry(scheduled_job)
 
