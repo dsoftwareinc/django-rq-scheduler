@@ -45,10 +45,8 @@ def as_text(v: Union[bytes, str]) -> Optional[str]:
 
 
 def compact(lst: List[Any]) -> List[Any]:
-    """Excludes `None` values from a list-like object.
-
+    """Remove `None` values from an iterable object.
     :param lst: A list (or list-like) object
-
     :returns: The list without None values
     """
     return [item for item in lst if item is not None]
@@ -154,6 +152,14 @@ class DjangoWorker(Worker):
 
 
 class DjangoQueue(Queue):
+    REGISTRIES = dict(
+        finished='finished_job_registry',
+        failed='failed_job_registry',
+        scheduled='scheduled_job_registry',
+        started='started_job_registry',
+        deferred='deferred_job_registry',
+        canceled='canceled_job_registry',
+    )
     """
     A subclass of RQ's QUEUE that allows jobs to be stored temporarily to be
     enqueued later at the end of Django's request/response cycle.
@@ -167,18 +173,8 @@ class DjangoQueue(Queue):
         name = name.lower()
         if name == 'queued':
             return self
-        elif name == 'finished':
-            return self.finished_job_registry
-        elif name == 'failed':
-            return self.failed_job_registry
-        elif name == 'scheduled':
-            return self.scheduled_job_registry
-        elif name == 'started':
-            return self.started_job_registry
-        elif name == 'deferred':
-            return self.deferred_job_registry
-        elif name == 'canceled':
-            return self.canceled_job_registry
+        elif name in DjangoQueue.REGISTRIES:
+            return getattr(self, DjangoQueue.REGISTRIES[name])
         return None
 
     @property
