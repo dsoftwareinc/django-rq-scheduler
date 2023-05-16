@@ -1,11 +1,8 @@
 from django.contrib import admin
 
-from scheduler import settings
 from scheduler import views
 from scheduler.models import Queue
 from scheduler.models.worker import Worker
-
-QUEUES = [(key, key) for key in settings.QUEUES.keys()]
 
 
 class ImmutableAdmin(admin.ModelAdmin):
@@ -31,11 +28,10 @@ class ImmutableAdmin(admin.ModelAdmin):
 
 @admin.register(Queue)
 class QueueAdmin(ImmutableAdmin):
-    """Admin View for Django-RQ Queue"""
+    """Admin View for queues"""
 
     def changelist_view(self, request, extra_context=None):
         """The 'change list' admin view for this model."""
-        # proxy request to stats view
         return views.stats(request)
 
 
@@ -45,5 +41,4 @@ class WorkerAdmin(ImmutableAdmin):
 
     def changelist_view(self, request, extra_context=None):
         """The 'change list' admin view for this model."""
-        # proxy request to stats view
         return views.workers(request)

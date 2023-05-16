@@ -24,8 +24,8 @@ def get_item(dictionary, key):
 
 @register.filter
 def scheduled_job(job: JobExecution):
-    scheduled_job = get_scheduled_job(*job.args)
-    return scheduled_job.get_absolute_url()
+    django_scheduled_job = get_scheduled_job(*job.args)
+    return django_scheduled_job.get_absolute_url()
 
 
 @register.filter
