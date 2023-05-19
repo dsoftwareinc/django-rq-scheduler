@@ -6,6 +6,7 @@ from unittest import mock
 import yaml
 from django.core.management import call_command
 from django.test import TestCase
+
 from scheduler.models import ScheduledJob, RepeatableJob
 from scheduler.queues import get_queue
 from scheduler.tests.jobs import failing_job, test_job
@@ -98,10 +99,11 @@ class RqstatsTest(TestCase):
 class DeleteFailedExecutionsTest(TestCase):
     def test_rqstats__does_not_fail(self):
         queue = get_queue('default')
+        prev_len = len(queue.failed_job_registry)
         queue.enqueue(failing_job)
         worker = create_worker('default')
         worker.work(burst=True)
-        self.assertEqual(1, len(queue.failed_job_registry))
+        self.assertEqual(prev_len + 1, len(queue.failed_job_registry))
         call_command('delete_failed_executions', queue='default')
         self.assertEqual(0, len(queue.failed_job_registry))
 

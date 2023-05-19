@@ -53,7 +53,7 @@ class Command(BaseCommand):
                    f'   Workers |')
         self._print_separator()
         for ind, queue in enumerate(statistics["queues"]):
-            vals = (queue[k] for k in KEYS)
+            vals = list((queue[k] for k in KEYS))
             # Deal with colors
             if prev_stats and len(prev_stats['queues']) > ind:
                 prev = prev_stats["queues"][ind]
