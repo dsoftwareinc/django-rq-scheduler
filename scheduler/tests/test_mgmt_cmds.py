@@ -12,6 +12,7 @@ from scheduler.queues import get_queue
 from scheduler.tests.jobs import failing_job, test_job
 from scheduler.tests.testtools import job_factory
 from . import test_settings  # noqa
+from .test_views import BaseTestCase
 from ..tools import create_worker
 
 
@@ -96,7 +97,7 @@ class RqstatsTest(TestCase):
         call_command('rqstats')
 
 
-class DeleteFailedExecutionsTest(TestCase):
+class DeleteFailedExecutionsTest(BaseTestCase):
     def test_delete_failed_executions__delete_jobs(self):
         queue = get_queue('default')
         call_command('delete_failed_executions', queue='default')
