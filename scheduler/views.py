@@ -1,3 +1,4 @@
+from html import escape
 from math import ceil
 from typing import Tuple, Optional
 
@@ -9,7 +10,7 @@ from django.http import JsonResponse
 from django.http.response import HttpResponseNotFound, Http404, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse, resolve
 from django.views.decorators.cache import never_cache
 from redis.exceptions import ResponseError
 
@@ -233,7 +234,7 @@ def _find_job(job_id: str) -> Tuple[Optional[DjangoQueue], Optional[JobExecution
 def job_detail(request, job_id: str):
     queue, job = _find_job(job_id)
     if job is None:
-        return HttpResponseBadRequest(f'Job {job_id} does not exist, maybe its TTL has passed')
+        return HttpResponseBadRequest(f'Job {escape(job_id)} does not exist, maybe its TTL has passed')
     try:
         job.func_name
         data_is_valid = True
@@ -333,6 +334,11 @@ def requeue_all(request, queue_name, registry_name):
 def confirm_action(request, queue_name):
     queue = get_queue(queue_name)
     next_url = request.META.get('HTTP_REFERER') or reverse('queue_registry_jobs', args=[queue_name, 'queued'])
+    try:
+        resolve(next_url)
+    except Exception:
+        messages.warning(request, 'Bad followup URL')
+        next_url = reverse('queue_registry_jobs', args=[queue_name, 'queued'])
 
     if request.method == 'POST' and request.POST.get('action', False):
         # confirm action
@@ -357,6 +363,11 @@ def confirm_action(request, queue_name):
 def actions(request, queue_name):
     queue = get_queue(queue_name)
     next_url = request.POST.get('next_url') or reverse('queue_registry_jobs', args=[queue_name, 'queued'])
+    try:
+        resolve(next_url)
+    except Exception:
+        messages.warning(request, 'Bad followup URL')
+        next_url = reverse('queue_registry_jobs', args=[queue_name, 'queued'])
 
     action = request.POST.get('action', False)
     job_ids = request.POST.get('job_ids', False)
@@ -398,7 +409,7 @@ SUPPORTED_JOB_ACTIONS = {'requeue', 'delete', 'enqueue', 'cancel'}
 def job_action(request, job_id: str, action: str):
     queue, job = _find_job(job_id)
     if job is None:
-        return HttpResponseBadRequest(f'Job {job_id} does not exist, maybe its TTL has passed')
+        return HttpResponseBadRequest(f'Job {escape(job_id)} does not exist, maybe its TTL has passed')
     if action not in SUPPORTED_JOB_ACTIONS:
         return HttpResponseNotFound()
 

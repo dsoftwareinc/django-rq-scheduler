@@ -113,6 +113,27 @@ class SingleJobActionViewsTest(BaseTestCase):
 
 
 class JobListActionViewsTest(BaseTestCase):
+    def test_job_list_action_delete_jobs__with_bad_next_url(self):
+        queue = get_queue('django_rq_scheduler_test')
+
+        # enqueue some jobs
+        job_ids = []
+        for _ in range(0, 3):
+            job = queue.enqueue(test_job)
+            job_ids.append(job.id)
+
+        # remove those jobs using view
+        res = self.client.post(
+            reverse('queue_actions', args=[queue.name, ]), {
+                'action': 'delete', 'job_ids': job_ids,
+                'next_url': 'bad_url',
+            }, follow=True)
+        assert_message_in_response(res, 'Bad followup URL')
+        # check if jobs are removed
+        self.assertEqual(200, res.status_code)
+        for job_id in job_ids:
+            self.assertFalse(JobExecution.exists(job_id, connection=queue.connection))
+            self.assertNotIn(job_id, queue.job_ids)
 
     def test_job_list_action_delete_jobs(self):
         queue = get_queue('django_rq_scheduler_test')
