@@ -1,6 +1,5 @@
 from typing import List, Dict
 
-import fakeredis
 import redis
 from redis.sentinel import Sentinel
 
@@ -33,6 +32,7 @@ def _get_redis_connection(config, use_strict_redis=False):
     Returns a redis connection from a connection config
     """
     if get_config('FAKEREDIS'):
+        import fakeredis
         redis_cls = fakeredis.FakeRedis if use_strict_redis else fakeredis.FakeStrictRedis
     else:
         redis_cls = redis.StrictRedis if use_strict_redis else redis.Redis
