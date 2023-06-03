@@ -1,5 +1,31 @@
 # Changelog
 
+## v2023.6.1 🌈
+
+### 🚀 Features
+
+### 🐛 Bug Fixes
+
+* Minor fix on export model
+
+### 🧰 Maintenance
+
+* Simplified admin + model code significantly
+* Remove need for django-model-utils dependency
+* Fix GitHub actions
+* Fix security issues
+
+## v2023.6.0 🌈
+
+### 🚀 Features
+
+* Extend the queue name to 255 characters @gavaig (#138)
+
+### 🧰 Maintenance
+
+* Update dependencies
+* Create SECURITY.md @cunla (#125)
+
 ## v2023.5.0 🌈
 
 ### 🚀 Breaking changes
