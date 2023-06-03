@@ -14,8 +14,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
-from model_utils import Choices
-from model_utils.models import TimeStampedModel
 
 from scheduler import settings
 from scheduler import tools
@@ -37,7 +35,9 @@ def callback_save_job(job, connection, result, *args, **kwargs):
         scheduled_job.schedule()
 
 
-class BaseJob(TimeStampedModel):
+class BaseJob(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
     QUEUES = [(key, key) for key in settings.QUEUES.keys()]
     JOB_TYPE = 'BaseJob'
     name = models.CharField(
@@ -247,6 +247,9 @@ class BaseJob(TimeStampedModel):
 
     def save(self, **kwargs):
         schedule_job = kwargs.pop('schedule_job', True)
+        update_fields = kwargs.get('update_fields', None)
+        if update_fields:
+            kwargs['update_fields'] = set(update_fields).union({'modified'})
         super(BaseJob, self).save(**kwargs)
         if schedule_job:
             self.schedule()
@@ -305,17 +308,16 @@ class ScheduledJob(ScheduledTimeMixin, BaseJob):
 
 
 class RepeatableJob(ScheduledTimeMixin, BaseJob):
-    UNITS = Choices(
-        ('seconds', _('seconds')),
-        ('minutes', _('minutes')),
-        ('hours', _('hours')),
-        ('days', _('days')),
-        ('weeks', _('weeks')),
-    )
+    class TimeUnits(models.TextChoices):
+        SECONDS = 'seconds', _('seconds')
+        MINUTES = 'minutes', _('minutes')
+        HOURS = 'hours', _('hours')
+        DAYS = 'days', _('days')
+        WEEKS = 'weeks', _('weeks')
 
     interval = models.PositiveIntegerField(_('interval'))
     interval_unit = models.CharField(
-        _('interval unit'), max_length=12, choices=UNITS, default=UNITS.hours
+        _('interval unit'), max_length=12, choices=TimeUnits.choices, default=TimeUnits.HOURS
     )
     JOB_TYPE = 'RepeatableJob'
 

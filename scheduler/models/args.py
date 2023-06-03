@@ -6,7 +6,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from model_utils import Choices
 
 from scheduler import tools
 
@@ -20,15 +19,15 @@ ARG_TYPE_TYPES_DICT = {
 
 
 class BaseJobArg(models.Model):
-    ARG_TYPE = Choices(
-        ('str', _('string')),
-        ('int', _('int')),
-        ('bool', _('boolean')),
-        ('datetime', _('datetime')),
-        ('callable', _('callable')),
-    )
+    class ArgType(models.TextChoices):
+        STR = 'str', _('string')
+        INT = 'int', _('int')
+        BOOL = 'bool', _('boolean')
+        DATETIME = 'datetime', _('datetime')
+        CALLABLE = 'callable', _('callable')
+
     arg_type = models.CharField(
-        _('Argument Type'), max_length=12, choices=ARG_TYPE, default=ARG_TYPE.str
+        _('Argument Type'), max_length=12, choices=ArgType.choices, default=ArgType.STR,
     )
     val = models.CharField(_('Argument Value'), blank=True, max_length=255)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
