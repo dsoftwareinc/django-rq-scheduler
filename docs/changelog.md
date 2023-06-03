@@ -14,6 +14,7 @@
 * Remove need for django-model-utils dependency
 * Fix GitHub actions
 * Fix security issues
+* Clean direct redis connection calls from views.py
 
 ## v2023.6.0 🌈
 

@@ -74,7 +74,7 @@ def get_statistics(run_maintenance_tasks=False):
             # with `at_front` parameters.
             # Ideally rq should supports Queue.oldest_job
 
-            last_job_id = connection.lindex(queue.key, 0)
+            last_job_id = queue.last_job_id()
             last_job = queue.fetch_job(last_job_id.decode('utf-8')) if last_job_id else None
             if last_job and last_job.enqueued_at:
                 oldest_job_timestamp = last_job.enqueued_at.strftime('%Y-%m-%d, %H:%M:%S')
@@ -378,7 +378,7 @@ def actions(request, queue_name):
         for job_id in job_ids:
             job = JobExecution.fetch(job_id, connection=queue.connection)
             # Remove job id from queue and delete the actual job
-            queue.connection.lrem(queue.key, 0, job.id)
+            queue.remove_job_id(job.id)
             job.delete()
         messages.info(request, f'You have successfully deleted {len(job_ids)} jobs!')
     elif action == 'requeue':
@@ -429,7 +429,7 @@ def job_action(request, job_id: str, action: str):
             return redirect('job_details', job_id)
         elif action == 'delete':
             # Remove job id from queue and delete the actual job
-            queue.connection.lrem(queue.key, 0, job.id)
+            queue.remove_job_id(job.id)
             job.delete()
             messages.info(request, 'You have successfully deleted %s' % job.id)
             return redirect('queue_registry_jobs', queue.name, 'queued')

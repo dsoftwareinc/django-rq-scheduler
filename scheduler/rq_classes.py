@@ -221,6 +221,12 @@ class DjangoQueue(Queue):
         self.failed_job_registry.cleanup()
         self.finished_job_registry.cleanup()
 
+    def remove_job_id(self, job_id: str):
+        self.connection.lrem(self.key, 0, job_id)
+
+    def last_job_id(self):
+        return self.connection.lindex(self.key, 0)
+
 
 class DjangoScheduler(RQScheduler):
     def __init__(self, *args, **kwargs):
