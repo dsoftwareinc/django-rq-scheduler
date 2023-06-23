@@ -3,11 +3,11 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "django-rq-scheduler"
+name = "django-tasks-scheduler"
 packages = [
     { include = "scheduler" },
 ]
-version = "2023.6.2"
+version = "1.0.0"
 description = "An async job scheduler for django using redis"
 readme = "README.md"
 keywords = ["redis", "django", "background-jobs", "job-queue", "task-queue", "redis-queue", "scheduled-jobs"]
@@ -36,7 +36,7 @@ classifiers = [
     'Framework :: Django :: 3',
     'Framework :: Django :: 3.2',
 ]
-homepage = "https://github.com/dsoftwareinc/django-rq-scheduler"
+homepage = "https://github.com/dsoftwareinc/django-redis-scheduler"
 documentation = "https://django-rq-scheduler.readthedocs.io/en/latest/"
 
 [tool.poetry.urls]
