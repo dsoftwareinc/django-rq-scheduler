@@ -978,13 +978,13 @@ testing = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "platformdirs"
-version = "3.6.0"
+version = "3.8.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "platformdirs-3.6.0-py3-none-any.whl", hash = "sha256:ffa199e3fbab8365778c4a10e1fbf1b9cd50707de826eb304b50e57ec0cc8d38"},
-    {file = "platformdirs-3.6.0.tar.gz", hash = "sha256:57e28820ca8094678b807ff529196506d7a21e17156cb1cddb3e74cebce54640"},
+    {file = "platformdirs-3.8.0-py3-none-any.whl", hash = "sha256:ca9ed98ce73076ba72e092b23d3c93ea6c4e186b3f1c3dad6edd98ff6ffcca2e"},
+    {file = "platformdirs-3.8.0.tar.gz", hash = "sha256:b0cabcb11063d21a0b261d557acb0a9d2126350e63b70cdf7db6347baea456dc"},
 ]
 
 [package.extras]
@@ -1385,13 +1385,13 @@ requests = ">=2.0.1,<3.0.0"
 
 [[package]]
 name = "rq"
-version = "1.15.0"
+version = "1.15.1"
 description = "RQ is a simple, lightweight, library for creating background jobs, and processing them."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "rq-1.15.0-py2.py3-none-any.whl", hash = "sha256:6bdc8885bf839a246c4b4e02f2ee31d8f840061fced200f13df9a58a582ec04a"},
-    {file = "rq-1.15.0.tar.gz", hash = "sha256:9e89beb034bd253163ac4aa2a0c7d7c7c536aa488df8bbbbc9d354c96e81bb44"},
+    {file = "rq-1.15.1-py2.py3-none-any.whl", hash = "sha256:6e243d8d9c4af4686ded4b01b25ea1ff4bac4fc260b02638fbe9c8c17b004bd1"},
+    {file = "rq-1.15.1.tar.gz", hash = "sha256:1f49f4ac1a084044bb8e95b3f305c0bf17e55618b08c18e0b60c080f12d6f008"},
 ]
 
 [package.dependencies]
@@ -1669,4 +1669,4 @@ yaml = ["pyyaml"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "831de4c18c2f8ea4156291078b343669a5bd6e98fdc5bebdfe0bfe1f2f63fb5e"
+content-hash = "c2089159ff389f8fd9df30cc7debc8f81297d2524d281e0b52d5edca1b1782fa"
