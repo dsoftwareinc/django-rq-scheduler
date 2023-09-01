@@ -1,5 +1,10 @@
 # Django RQ Scheduler
 
+!!! Info
+
+    This Project is migrated to and maintained in [django-tasks-scheduler](https://github.com/dsoftwareinc/django-tasks-scheduler).
+    Please migrate your package usage to django-tasks-scheduler.
+
 [![Django CI](https://github.com/dsoftwareinc/django-rq-scheduler/actions/workflows/test.yml/badge.svg)](https://github.com/dsoftwareinc/django-rq-scheduler/actions/workflows/test.yml)
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/cunla/b756396efb895f0e34558c980f1ca0c7/raw/django-rq-scheduler-4.json)
 [![badge](https://img.shields.io/pypi/dm/django-rq-scheduler)](https://pypi.org/project/django-rq-scheduler/)
